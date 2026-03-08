@@ -4,7 +4,7 @@ Para mantener el repositorio organizado, propongo utilizar los siguientes prefij
 **NO HAY QUE  PUSHEAR DIRECTAMENTE A `main`**, la idea es siempre crear ramas a partir de `dev` antes de empezar a desarrollar. 
 Cada tanto mergearemos nuestras ramas locales con cambios en `dev` (rama de desarrollo o development), y cada tanto mergearemos `dev`en la rama `main` (producción)
 
-Un detalle que recomiendo y que también pueda agilizar el trabajo es clonar el repositorio mediante clave SSH en vez de clonarlo por URL. Esto va a servir para que GitHub no pida autenticación en el IDE que estemos usando cada vez que queramos hacer un push (realmente es un poco frustrante, por eso esta recomendación)
+Un detalle que recomiendo y que puede agilizar el trabajo es clonar el repositorio mediante SSH en vez de clonarlo por URL. Esto va a servir para que GitHub no pida autenticación en el IDE que estemos usando cada vez que queramos hacer un push (realmente es un poco frustrante, por eso esta recomendación)
 
 ### 1. Prefijos de Ramas
 - `feat/` : Nuevas funcionalidades (ej: `feat/sign-up`, `feat/api-usuarios`).
