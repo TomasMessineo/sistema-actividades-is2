@@ -15,7 +15,7 @@ Un detalle que recomiendo y que puede agilizar el trabajo es clonar el repositor
 
 ### 2. Formato de Mensajes de Commit (Conventional Commits)
 
-No es por ser pesado, pero si todos usan el mismo formato, buscar un error en el historial es mil veces más fácil. Sugeriles esto:
+No es por ser pesado, pero si todos usamos el mismo formato, buscar un error en el historial es mil veces más fácil. Sugiero esto:
 
     Formato: prefijo: descripción corta en minúsculas
     Ejemplo: feat: agregar validacion de cuit en el registro
