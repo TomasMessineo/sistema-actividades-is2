@@ -1,0 +1,16 @@
+# Base de Datos
+postgres_data/
+
+# Java / Spring Boot
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+*.class
+
+# React / Node
+frontend/node_modules/
+frontend/dist/
+.eslintcache
+
+# Varios
+.DS_Store
+.env
