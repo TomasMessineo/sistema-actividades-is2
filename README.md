@@ -1,4 +1,65 @@
-## Guía de Trabajo en Git
+# Cómo levantar los servicios localmente
+
+1. Clonar el repositorio
+Abrí una terminal y ejecutá el comando git clone seguido de la URL de tu repositorio:
+```bash
+git clone https://github.com/TomasMessineo/sistema-actividades-is2
+cd sistema-actividades-is2
+```
+
+2. Moverse a rama dev
+```bash
+git checkout dev
+```
+
+3. Levantar docker
+```bash
+docker compose up
+```
+
+4. Bajar contenedor
+```
+docker compose down
+```
+
+5. Ver contenedores activos
+```
+docker ps
+```
+
+## Puertos usados:
+
+**Frontend (React):** http://localhost:5173
+
+**Backend (API):** http://localhost:8080
+
+**pgAdmin (Gestor DB):** http://localhost:8081
+
+**PostgreSQL (DB):** 
+_Conexión interna:_ db:5432
+
+## Credenciales de Acceso
+
+**pgAdmin (Acceso Web):**
+```
+Usuario: admin@sportify.com
+Contraseña: admin
+```
+
+**PostgreSQL (Configuración Interna)**
+```
+Host: db
+Base de Datos: sportify_db
+Usuario: root
+Contraseña: root
+```
+
+## Documentación de la API (Swagger)
+
+Una vez que el contenedor del backend esté corriendo, se puede acceder a la documentación interactiva de los endpoints en:
+`http://localhost:8080/swagger-ui/index.html`
+
+# Guía de Trabajo en Git
 
 Para mantener el repositorio organizado, propongo utilizar los siguientes prefijos para las ramas. 
 **NO HAY QUE  PUSHEAR DIRECTAMENTE A `main`**, la idea es siempre crear ramas a partir de `dev` antes de empezar a desarrollar. 
