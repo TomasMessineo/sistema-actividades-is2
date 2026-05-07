@@ -60,7 +60,15 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@sportify.com
       PGADMIN_DEFAULT_PASSWORD: admin
+      PGPASSFILE: /var/lib/pgadmin/.pgpass
     volumes:
       - ./pgadmin/servers.json:/pgadmin4/servers.json
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        echo 'db:5432:*:root:root' > /var/lib/pgadmin/.pgpass
+        chmod 0600 /var/lib/pgadmin/.pgpass
+        exec /entrypoint.sh
     depends_on:
       - db
