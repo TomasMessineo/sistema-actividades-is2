@@ -60,5 +60,7 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@sportify.com
       PGADMIN_DEFAULT_PASSWORD: admin
+    volumes:
+      - ./pgadmin/servers.json:/pgadmin4/servers.json
     depends_on:
       - db
