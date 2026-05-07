@@ -35,8 +35,9 @@ docker ps
 
 **pgAdmin (Gestor DB):** http://localhost:8081
 
-**PostgreSQL (DB):** 
-_Conexión interna:_ db:5432
+**PostgreSQL (DB):** _Conexión interna:_ db:5432
+
+**Swagger (para ver APIs):** http://localhost:8080/swagger-ui/index.html
 
 ## Credenciales de Acceso
 
