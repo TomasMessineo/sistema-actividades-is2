@@ -94,8 +94,3 @@ No es por ser pesado, pero si todos usamos el mismo formato, buscar un error en 
 7. `git add .` (agregar cambios realizados) 
 8. `git commit -m "descripción breve de cambios realizados"` (darle un nombre o commitear sobre los cambios realizados, la idea es ser lo mas específico posible al describir el commit. Por ej: `git commit -m "Feature: Nueva funcionalidad para retornar JSON desde Endpoint de Usuario"`).
 9. `git push -u origin nombre-rama` (pushear/subir los cambios en el repositorio, en la rama desde donde se está parado localmente. El parámetro -u vincula la rama local con la remota para que después sí puedan usar el comando `git push` solito)
-
-## Entornos y Acceso
-- **Frontend (React):** [Definir URL local con puerto para Frontend]
-- **Backend (Spring):** [Definir URL local con puerto para Backend]
-- **Base de Datos:** [Definir URL local con puerto para la BD]
