@@ -92,3 +92,43 @@ backend/src/main/java/com/sportify/backend/
       ↓
 4. React recibe PagoResponse    
 ```
+
+## Estructura del FRONT
+
+```java
+frontend/
+├── src/
+│   ├── assets/
+│   │   ├── images/
+│   │   └── icons/
+│   │
+│   ├── components/
+│   │   ├── pago/
+│   │   │   ├── FormularioTarjeta.jsx      # Inputs de tarjeta + botón "confirmar pago"
+│   │   │   ├── SelectorMetodoPago.jsx     # Botones MP / Tarjeta + botón "confirmar"
+│   │   │   └── MensajeError.jsx           # Muestra el error específico (fondos, tarjeta inválida, conexión)
+│   │   └── ui/
+│   │       ├── Boton.jsx                  # Botón reutilizable
+│   │       └── Spinner.jsx                # Loading mientras espera respuesta
+│   │
+│   ├── views/
+│   │   └── pago/
+│   │       ├── VistaSelectorPago.jsx      # Pantalla 1: elige método y tipo
+│   │       ├── VistaFormularioTarjeta.jsx # Pantalla 2: ingresa datos tarjeta
+│   │       ├── VistaMercadoPago.jsx       # Pantalla 3: redirect y espera MP
+│   │       ├── VistaPagoExitoso.jsx       # Pantalla 4: éxito + redirect a clases
+│   │       └── VistaPagoFallido.jsx       # Pantalla 5: error con detalle
+│   │
+│   ├── services/
+│   │   ├── api.js                         # Configuración base de axios (URL del backend)
+│   │   └── pagoService.js                 # Llamadas HTTP al endpoint /api/pagos/procesar
+│   │
+│   ├── routes/
+│   │   └── RutasPago.jsx                  # Define las rutas /pago, /pago/tarjeta, etc.
+│   │
+│   ├── styles/
+│   │   └── pago.css                       # Estilos específicos del módulo (vacío por ahora)
+│   │
+│   ├── App.jsx
+│   └── main.jsx
+```
