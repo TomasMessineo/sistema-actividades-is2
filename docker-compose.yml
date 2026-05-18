@@ -17,7 +17,7 @@ services:
   # 2. BACKEND: Spring Boot (Java 17)
   # Configurado para disciplinas de Yoga, Funcional y Pilates con límite de 30 personas.
   backend:
-    image: eclipse-temurin:17-jdk-alpine
+    image: eclipse-temurin:17-jdk
     container_name: sportify_backend
     working_dir: /app
     ports:

@@ -1,0 +1,94 @@
+# Modificaciones de las clases y archivos creados
+
+## Pago.java
+
+Se agrego:
+
+```java
+private LocalDateTime fechaCreacion;     // Para saber cuándo se creó el pago
+private LocalDateTime fechaActualizacion; // Para saber cuándo cambió de estado
+private EstadoPago estado;               // Para saber si está PENDIENTE, COMPLETADO, FALLIDO
+private String idTransaccion;            // Para guardar el ID que devuelve Mercado Pago
+private String descripcion;              // Para describir qué se pagó (ej: "Yoga - $500")
+
+@PrePersist                              // Se ejecuta ANTES de guardar por PRIMERA VEZ en BD
+                                         // Setea fechaCreacion, fechaActualizacion y estado = PENDIENTE
+
+@PreUpdate                               // Se ejecuta ANTES de ACTUALIZAR un registro en BD
+                                         // Actualiza fechaActualizacion a la hora actual
+```
+
+## Agrego en "src/main/resources/aplication.properties"
+```java
+spring.application.name=backend
+
+spring.datasource.url=jdbc:postgresql://db:5432/sportify_db
+spring.datasource.username=root
+spring.datasource.password=root
+spring.datasource.driver-class-name=org.postgresql.Driver
+
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQL10Dialect
+spring.jpa.show-sql=true
+spring.jpa.open-in-view=false
+
+spring.mvc.cors.allowed-origins=http://localhost:5173,http://localhost:3000
+spring.mvc.cors.allowed-methods=GET,POST,PUT,DELETE,OPTIONS
+spring.mvc.cors.allowed-headers=*
+spring.mvc.cors.allow-credentials=true
+
+server.port=8080
+server.servlet.context-path=/api
+
+mercadopago.token-acceso=${MERCADO_PAGO_ACCESS_TOKEN:}
+mercadopago.clave-publica=${MERCADO_PAGO_PUBLIC_KEY:}
+
+logging.level.root=INFO
+logging.level.com.sportify=DEBUG
+```
+
+## Creo las carpetas Controllers y DTOS
+
+``java
+
+backend/src/main/java/com/sportify/backend/
+├── controllers/
+│   └── PagoController.java    
+├── dtos/
+│   ├── PagoRequest.java
+│   └── PagoResponse.java
+├── services/
+│   ├── PagoService.java
+│   ├── MercadoPagoService.java
+│   └── TarjetaCreditoService.java
+├── repositories/
+│   └── PagoRepository.java
+└── entities/
+    └── Pago.java
+
+``
+
+## PagoRequest  
+
+```java
+
+1. React envía datos
+      ↓
+2. PagoRequest RECIBE los datos (en memoria)
+      ↓
+3. PagoController toma PagoRequest
+      ↓
+4. PagoService CREA un Pago y LO GUARDA en BD
+
+```
+## PagoResponse
+
+```java
+1. Backend procesa el pago
+      ↓
+2. PagoService/MercadoPagoService generan resultado
+      ↓
+3. PagoResponse DEVUELVE los datos al frontend
+      ↓
+4. React recibe PagoResponse    
+```
