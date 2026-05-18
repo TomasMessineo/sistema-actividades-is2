@@ -1,6 +1,6 @@
 package com.sportify.backend.entities;
 
-
+import lombok.experimental.SuperBuilder;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -12,7 +12,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
+@SuperBuilder
 public abstract class Usuario {
 
     @Id

@@ -1,6 +1,7 @@
 package com.sportify.backend.entities;
 
 
+import lombok.experimental.SuperBuilder;
 import jakarta.persistence.Entity;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -11,7 +12,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
+@SuperBuilder
 public class Administrador extends Usuario {
 
 }
