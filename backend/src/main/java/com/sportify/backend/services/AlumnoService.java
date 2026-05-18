@@ -1,42 +1,35 @@
-package com.sportify.backend.services;
+package com.sportify.backend.service;
 
 import com.sportify.backend.entities.Alumno;
-import com.sportify.backend.repositories.AlumnoRepository;
+import com.sportify.backend.repository.AlumnoRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@Service
 public class AlumnoService {
 
-    private AlumnoRepository repositorio;
+    @Autowired
+    private AlumnoRepository alumnoRepository;
 
-
-    public AlumnoService(AlumnoRepository repositorio) {
-        this.repositorio = repositorio;
+    // 1. LISTAR
+    public List<Alumno> listarTodos() {
+        return alumnoRepository.findAll();
     }
 
-    public List<Alumno> getAlumnos() {
-        return repositorio.findAll();
+    // 2. AGREGAR / GUARDAR
+    public Alumno guardar(Alumno alumno) {
+        return alumnoRepository.save(alumno);
     }
 
-    public List<Alumno> findAll() {
-        return repositorio.findAll();
+    // 3. BUSCAR POR ID
+    public Alumno buscarPorId(Integer id) {
+        return alumnoRepository.findById(id).orElseThrow(() -> new RuntimeException("Alumno no encontrado"));
     }
 
-    public Alumno findById(Integer id) {
-        return repositorio.findById(id).get();
+    // 4. ELIMINAR (¡Acá está el que faltaba!)
+    public void eliminar(Integer id) {
+        alumnoRepository.deleteById(id);
     }
-
-    public Alumno addAlumno(Alumno alumno) {
-        return repositorio.save(alumno);
-    }
-
-    public Alumno updateAlumno(Alumno alumno) {
-        return repositorio.save(alumno);
-    }
-
-    public void deleteAlumno(Alumno alumno) {
-        repositorio.delete(alumno);
-    }
-
-
 }
