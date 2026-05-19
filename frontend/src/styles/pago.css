@@ -1,0 +1,143 @@
+:root {
+  --verde-principal: #2e7d32;
+  --verde-claro: #4caf50;
+  --verde-hover: #1b5e20;
+  --negro: #121212;
+  --negro-card: #1e1e1e;
+  --negro-input: #2a2a2a;
+  --gris-borde: #3a3a3a;
+  --gris-texto: #aaaaaa;
+  --blanco: #ffffff;
+  --rojo-error: #e53935;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--negro);
+  color: var(--blanco);
+  font-family: 'Arial', sans-serif;
+  min-height: 100vh;
+}
+
+.pago-container {
+  max-width: 440px;
+  width: 100%;
+  margin: 0 auto;
+  background-color: var(--negro-card);
+  border-radius: 16px;
+  padding: 40px 36px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--gris-borde);
+}
+
+.pago-container h2 {
+  color: var(--blanco);
+  font-size: 1.5rem;
+  margin-bottom: 28px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.pago-container h3 {
+  color: var(--gris-texto);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 10px;
+  margin-top: 22px;
+}
+
+.botones-grupo {
+  display: flex;
+  gap: 10px;
+}
+
+.botones-grupo button {
+  flex: 1;
+  background-color: var(--negro-input);
+  color: var(--gris-texto);
+  border: 1px solid var(--gris-borde);
+  padding: 14px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.88rem;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.botones-grupo button:hover {
+  border-color: var(--verde-claro);
+  color: var(--blanco);
+}
+
+.botones-grupo button.seleccionado {
+  border-color: var(--verde-claro);
+  background-color: rgba(76, 175, 80, 0.15);
+  color: var(--verde-claro);
+  font-weight: 600;
+}
+
+.pago-input {
+  width: 100%;
+  background-color: var(--negro-input);
+  color: var(--blanco);
+  border: 1px solid var(--gris-borde);
+  padding: 14px;
+  border-radius: 10px;
+  font-size: 1rem;
+  margin-bottom: 16px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.pago-input:focus {
+  border-color: var(--verde-claro);
+}
+
+.pago-input::placeholder {
+  color: var(--gris-texto);
+}
+
+.btn-confirmar {
+  width: 100%;
+  background-color: var(--verde-principal);
+  color: var(--blanco);
+  border: none;
+  padding: 15px;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 28px;
+  transition: background-color 0.2s;
+  letter-spacing: 0.5px;
+}
+
+.btn-confirmar:hover {
+  background-color: var(--verde-hover);
+}
+
+.btn-confirmar:disabled {
+  background-color: var(--gris-borde);
+  color: var(--gris-texto);
+  cursor: not-allowed;
+}
+
+.mensaje-exitoso {
+  text-align: center;
+  color: var(--verde-claro);
+  font-size: 1.1rem;
+  margin-top: 20px;
+}
+
+.mensaje-error {
+  text-align: center;
+  color: var(--rojo-error);
+  font-size: 1.1rem;
+  margin-top: 20px;
+}

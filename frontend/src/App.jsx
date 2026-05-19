@@ -1,8 +1,9 @@
-import { useState } from 'react'
+/**import { useState } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import heroImg from './assets/hero.png'
 import './App.css'
+
 
 function App() {
   const [count, setCount] = useState(0)
@@ -120,3 +121,16 @@ function App() {
 }
 
 export default App
+**/
+import { BrowserRouter } from 'react-router-dom';
+import RutasPago from './routes/RutasPago';
+
+function App() {
+  return (
+    <BrowserRouter>
+      <RutasPago />
+    </BrowserRouter>
+  );
+}
+
+export default App;

@@ -49,7 +49,7 @@ public class Pago {
 
     public enum TipoClase {
         INDIVIDUAL,
-        ABONADA
+        ABONADO
     }
 
     @Enumerated(EnumType.STRING)
