@@ -56,7 +56,7 @@ public class PagoController {
         }
     }
 
-    @GetMapping("/{idPago}")
+    @GetMapping("/detalle/{idPago}")
     public ResponseEntity<?> obtenerPago(@PathVariable int idPago) {
         try {
             Pago pago = pagoService.obtenerPagoPorId(idPago);
@@ -81,6 +81,16 @@ public class PagoController {
         try {
             List<Pago> pagos = pagoService.obtenerPagosPorEstado(estado);
             return ResponseEntity.ok(pagos);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/verificar/{idPago}")
+    public ResponseEntity<?> verificarPago(@PathVariable String idPago) {
+        try {
+            mercadoPagoService.verificarEstadoPago(idPago);
+            return ResponseEntity.ok("Estado actualizado");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

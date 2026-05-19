@@ -5,6 +5,7 @@ import VistaFormularioTarjeta from '../views/pago/VistaFormularioTarjeta.jsx';
 import VistaMercadoPago from '../views/pago/VistaMercadoPago.jsx';
 import VistaPagoExitoso from '../views/pago/VistaPagoExitoso.jsx';
 import VistaPagoFallido from '../views/pago/VistaPagoFallido.jsx';
+import VistaVerificarPago from '../views/pago/VistaVerificarPago.jsx';
 
 function RutasPago() {
   return (
@@ -14,6 +15,7 @@ function RutasPago() {
       <Route path="/pago/mercadopago" element={<VistaMercadoPago />} />
       <Route path="/pago/exitoso" element={<VistaPagoExitoso />} />
       <Route path="/pago/fallido" element={<VistaPagoFallido />} />
+      <Route path="/pago/verificar" element={<VistaVerificarPago />} />
     </Routes>
   );
 }

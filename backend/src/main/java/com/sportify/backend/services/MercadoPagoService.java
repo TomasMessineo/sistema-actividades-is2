@@ -1,14 +1,22 @@
 package com.sportify.backend.services;
 
-import java.util.UUID;
-
+import com.mercadopago.MercadoPagoConfig;
+import com.mercadopago.client.payment.PaymentClient;
+import com.mercadopago.client.preference.PreferenceBackUrlsRequest;
+import com.mercadopago.client.preference.PreferenceClient;
+import com.mercadopago.client.preference.PreferenceItemRequest;
+import com.mercadopago.client.preference.PreferenceRequest;
+import com.mercadopago.resources.payment.Payment;
+import com.mercadopago.resources.preference.Preference;
+import com.sportify.backend.dtos.PagoRequest;
+import com.sportify.backend.dtos.PagoResponse;
+import com.sportify.backend.entities.Pago;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import com.sportify.backend.dtos.PagoRequest;
-import com.sportify.backend.dtos.PagoResponse;
-import com.sportify.backend.entities.Pago;
+import java.math.BigDecimal;
+import java.util.List;
 
 @Service
 public class MercadoPagoService {
@@ -16,29 +24,49 @@ public class MercadoPagoService {
     @Value("${mercadopago.token-acceso}")
     private String tokenAcceso;
 
-    @Value("${mercadopago.clave-publica}")
-    private String clavePublica;
-
     @Autowired
     private PagoService pagoService;
 
     public PagoResponse procesarPago(Pago pago, PagoRequest solicitud) {
         try {
-            String idPreferencia = generarPreferenciaMercadoPago(pago, solicitud);
-            String urlPago = "https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=" + idPreferencia;
+            MercadoPagoConfig.setAccessToken(tokenAcceso);
+
+            PreferenceItemRequest item = PreferenceItemRequest.builder()
+                    .title("Clase Sportify")
+                    .quantity(1)
+                    .unitPrice(BigDecimal.valueOf(pago.getValor()))
+                    .build();
+
+            PreferenceBackUrlsRequest backUrls = PreferenceBackUrlsRequest.builder()
+                    .success("http://localhost:5173/pago/verificar")
+                    .failure("http://localhost:5173/pago/fallido")
+                    .pending("http://localhost:5173/pago/verificar")
+                    .build();
+
+            PreferenceRequest request = PreferenceRequest.builder()
+                    .items(List.of(item))
+                    .backUrls(backUrls)
+                    .autoReturn("approved")
+                    .build();
+
+            PreferenceClient client = new PreferenceClient();
+            Preference preference = client.create(request);
+
+            String idPreferencia = preference.getId();
+            String urlPago = preference.getInitPoint();
 
             pagoService.actualizarEstadoPago(
                     pago.getIdPago(),
                     Pago.EstadoPago.PENDIENTE,
                     idPreferencia
-            ); 
+            );
 
             return new PagoResponse(
                     pago.getIdPago(),
                     Pago.EstadoPago.PENDIENTE,
                     idPreferencia,
                     pago.getValor(),
-                    "Abre Mercado Pago para completar el pago",
+                    "Redirigiendo a Mercado Pago",
                     urlPago
             );
 
@@ -52,11 +80,29 @@ public class MercadoPagoService {
         }
     }
 
-    private String generarPreferenciaMercadoPago(Pago pago, PagoRequest solicitud) {
-        return "PREF_" + UUID.randomUUID().toString();
-    }
+    public void verificarEstadoPago(String idPago) {
+        try {
+            MercadoPagoConfig.setAccessToken(tokenAcceso);
 
-    public void verificarEstadoPago(String idPreferencia) {
-        // Integración con API de Mercado Pago
+            PaymentClient client = new PaymentClient();
+            Payment payment = client.get(Long.parseLong(idPago));
+
+            if ("approved".equals(payment.getStatus())) {
+                pagoService.actualizarEstadoPago(
+                        Integer.parseInt(idPago),
+                        Pago.EstadoPago.COMPLETADO,
+                        idPago
+                );
+            } else if ("rejected".equals(payment.getStatus())) {
+                pagoService.actualizarEstadoPago(
+                        Integer.parseInt(idPago),
+                        Pago.EstadoPago.FALLIDO,
+                        idPago
+                );
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException("Error verificando pago: " + e.getMessage());
+        }
     }
 }

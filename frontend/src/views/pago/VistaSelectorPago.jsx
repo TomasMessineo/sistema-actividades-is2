@@ -1,21 +1,27 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import '../../styles/pago.css';
+import mpLogo from '../../assets/images/MP_RGB_HANDSHAKE_color_horizontal.svg';
 
 function VistaSelectorPago() {
   const navigate = useNavigate();
+  const location = useLocation();
+  //const { tipoPago, idClase } = location.state;
+  const tipoPago = location.state?.tipoPago;   //esto hay que sacarlo cuando la clase pase tipo
+  const idClase = location.state?.idClase;      //esto hay que sacarlo cuando venga el id CLase
+
+
   const [metodoPago, setMetodoPago] = useState(null);
-  const [tipoPago, setTipoPago] = useState(null);
 
   const confirmar = () => {
-    if (!metodoPago || !tipoPago) {
-      alert('Seleccioná un método de pago y un tipo');
+    if (!metodoPago) {
+      alert('Seleccioná un método de pago');
       return;
     }
     if (metodoPago === 'TARJETADECREDITO') {
-      navigate('/pago/tarjeta', { state: { metodoPago, tipoPago } });
+      navigate('/pago/tarjeta', { state: { metodoPago, tipoPago, idClase } });
     } else {
-      navigate('/pago/mercadopago', { state: { metodoPago, tipoPago } });
+      navigate('/pago/mercadopago', { state: { metodoPago, tipoPago, idClase } });
     }
   };
 
@@ -24,34 +30,18 @@ function VistaSelectorPago() {
       <div className="pago-container">
         <h2>¿Cómo querés pagar?</h2>
 
-        <h3>Tipo de pago</h3>
-        <div className="botones-grupo">
-          <button
-            className={tipoPago === 'INDIVIDUAL' ? 'seleccionado' : ''}
-            onClick={() => setTipoPago('INDIVIDUAL')}
-          >
-            🎯 Clase individual
-          </button>
-          <button
-            className={tipoPago === 'ABONADA' ? 'seleccionado' : ''}
-            onClick={() => setTipoPago('ABONADA')}
-          >
-            📅 Abono mensual
-          </button>
-        </div>
-
         <h3>Método de pago</h3>
         <div className="botones-grupo">
           <button
             className={metodoPago === 'MERCADOPAGO' ? 'seleccionado' : ''}
             onClick={() => setMetodoPago('MERCADOPAGO')}
           >
-            💳 Mercado Pago
+            <img src={mpLogo} alt="Mercado Pago" height="20" style={{ verticalAlign: 'middle', marginRight: '6px' }} />
+            MercadoPago
           </button>
           <button
             className={metodoPago === 'TARJETADECREDITO' ? 'seleccionado' : ''}
-            onClick={() => setMetodoPago('TARJETADECREDITO')}
-          >
+            onClick={() => setMetodoPago('TARJETADECREDITO')}>
             💳 Tarjeta de crédito
           </button>
         </div>
