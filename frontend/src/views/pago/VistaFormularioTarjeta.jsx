@@ -6,7 +6,7 @@ import '../../styles/pago.css';
 function VistaFormularioTarjeta() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { metodoPago, tipoPago, idClase } = location.state || {};
+  const { metodoPago, idAlumno, idClase, monto } = location.state || {};
 
   const [numeroTarjeta, setNumeroTarjeta] = useState('');
   const [nombreTitular, setNombreTitular] = useState('');
@@ -23,11 +23,11 @@ function VistaFormularioTarjeta() {
     setLoading(true);
     try {
       const respuesta = await pagoService.procesarPago({
-        idAlumno: 1,
-        tipoPago: tipoPago,
+        idAlumno: idAlumno,
+        tipoPago: 'INDIVIDUAL',  //hardcodeado para que no rompa
         metodoPago: metodoPago,
         idClase: idClase,
-        monto: 150.00,
+        monto: monto,
         emailAlumno: 'alumno@example.com',
         numeroTarjeta: numeroTarjeta,
         nombreTitular: nombreTitular,

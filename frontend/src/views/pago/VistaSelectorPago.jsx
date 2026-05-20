@@ -6,10 +6,9 @@ import mpLogo from '../../assets/images/MP_RGB_HANDSHAKE_color_horizontal.svg';
 function VistaSelectorPago() {
   const navigate = useNavigate();
   const location = useLocation();
-  //const { tipoPago, idClase } = location.state;
-  const tipoPago = location.state?.tipoPago;   //esto hay que sacarlo cuando la clase pase tipo
-  const idClase = location.state?.idClase;      //esto hay que sacarlo cuando venga el id CLase
-
+  const idAlumno = location.state?.idAlumno;
+  const idClase = location.state?.idClase;
+  const monto = location.state?.monto;
 
   const [metodoPago, setMetodoPago] = useState(null);
 
@@ -19,9 +18,9 @@ function VistaSelectorPago() {
       return;
     }
     if (metodoPago === 'TARJETADECREDITO') {
-      navigate('/pago/tarjeta', { state: { metodoPago, tipoPago, idClase } });
+      navigate('/pago/tarjeta', { state: { metodoPago, idAlumno, idClase, monto } });
     } else {
-      navigate('/pago/mercadopago', { state: { metodoPago, tipoPago, idClase } });
+      navigate('/pago/mercadopago', { state: { metodoPago, idAlumno, idClase, monto } });
     }
   };
 

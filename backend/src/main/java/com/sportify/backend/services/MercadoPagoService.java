@@ -6,6 +6,7 @@ import com.mercadopago.client.preference.PreferenceBackUrlsRequest;
 import com.mercadopago.client.preference.PreferenceClient;
 import com.mercadopago.client.preference.PreferenceItemRequest;
 import com.mercadopago.client.preference.PreferenceRequest;
+import com.mercadopago.exceptions.MPApiException;
 import com.mercadopago.resources.payment.Payment;
 import com.mercadopago.resources.preference.Preference;
 import com.sportify.backend.dtos.PagoRequest;
@@ -46,15 +47,16 @@ public class MercadoPagoService {
             PreferenceRequest request = PreferenceRequest.builder()
                     .items(List.of(item))
                     .backUrls(backUrls)
-                    .autoReturn("approved")
                     .build();
 
             PreferenceClient client = new PreferenceClient();
             Preference preference = client.create(request);
 
             String idPreferencia = preference.getId();
-            String urlPago = preference.getInitPoint();
+            //String urlPago = preference.getInitPoint();
+            String urlPago = preference.getSandboxInitPoint();
 
+            
             pagoService.actualizarEstadoPago(
                     pago.getIdPago(),
                     Pago.EstadoPago.PENDIENTE,
@@ -70,12 +72,11 @@ public class MercadoPagoService {
                     urlPago
             );
 
+        } catch (MPApiException e) {
+            pagoService.actualizarEstadoPago(pago.getIdPago(), Pago.EstadoPago.FALLIDO, null);
+            throw new RuntimeException("Error en Mercado Pago: " + e.getApiResponse().getContent());
         } catch (Exception e) {
-            pagoService.actualizarEstadoPago(
-                    pago.getIdPago(),
-                    Pago.EstadoPago.FALLIDO,
-                    null
-            );
+            pagoService.actualizarEstadoPago(pago.getIdPago(), Pago.EstadoPago.FALLIDO, null);
             throw new RuntimeException("Error en Mercado Pago: " + e.getMessage());
         }
     }
