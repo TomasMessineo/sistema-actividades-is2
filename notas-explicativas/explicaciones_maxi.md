@@ -135,3 +135,15 @@ frontend/
     ├── App.jsx
     └── main.jsx
 ```
+
+
+## Tarjetas de Credito 
+```java
+Número	Resultado
+4111 1111 1111 1111	✅ Pago exitoso
+4000 0000 0000 0002	❌ Fondos insuficientes
+4000 0000 0000 0119	❌ Error de conexión
+Cualquier número inválido	❌ Número inexistente
+
+``
+

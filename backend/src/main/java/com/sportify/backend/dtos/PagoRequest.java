@@ -13,11 +13,11 @@ import lombok.Setter;
 @AllArgsConstructor
 public class PagoRequest {
 
-    private int idAlumno;
+    private Integer idAlumno;
     private Pago.TipoClase tipoPago;
     private Pago.TipoPago metodoPago;
     private Integer idClase;
-    private double monto;
+    private Double monto;
     private String emailAlumno;
 
     // Para tarjeta de crédito

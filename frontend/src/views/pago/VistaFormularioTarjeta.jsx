@@ -8,6 +8,11 @@ function VistaFormularioTarjeta() {
   const location = useLocation();
   const { metodoPago, idAlumno, idClase, monto } = location.state || {};
 
+  // Fallbacks para pruebas
+  const idAlumnoFinal = idAlumno || 1;
+  const idClaseFinal = idClase || 1;
+  const montoFinal = monto || 150.0;
+
   const [numeroTarjeta, setNumeroTarjeta] = useState('');
   const [nombreTitular, setNombreTitular] = useState('');
   const [fechaVencimiento, setFechaVencimiento] = useState('');
@@ -23,22 +28,23 @@ function VistaFormularioTarjeta() {
     setLoading(true);
     try {
       const respuesta = await pagoService.procesarPago({
-        idAlumno: idAlumno,
-        tipoPago: 'INDIVIDUAL',  //hardcodeado para que no rompa
-        metodoPago: metodoPago,
-        idClase: idClase,
-        monto: monto,
+        idAlumno: idAlumnoFinal,
+        tipoPago: 'INDIVIDUAL',
+        metodoPago: metodoPago || 'TARJETA_CREDITO',
+        idClase: idClaseFinal,
+        monto: montoFinal,
         emailAlumno: 'alumno@example.com',
-        numeroTarjeta: numeroTarjeta,
-        nombreTitular: nombreTitular,
-        fechaVencimiento: fechaVencimiento,
-        cvv: cvv,
+        numeroTarjeta,
+        nombreTitular,
+        fechaVencimiento,
+        cvv,
       });
 
       navigate('/pago/exitoso', { state: { respuesta } });
 
     } catch (error) {
-      navigate('/pago/fallido', { state: { error: error.message } });
+      const mensaje = error.response?.data?.mensaje || 'Error al procesar el pago';
+      navigate('/pago/fallido', { state: { error: mensaje } });
     } finally {
       setLoading(false);
     }
