@@ -18,12 +18,12 @@ public class ClaseService {
         return claseRepository.findAll();
     }
 
-    public List<clase> listFromDate() {
-        return null //STUB todo
+    public List<clase> listFromDate(LocalDate fecha) {
+        return claseRepository.findByFecha(fecha).orElseThrow(() -> new RuntimeException("No hay clases para esa fecha"))
         }
 
-    public List<clase> listFromActivity() {
-        return null //STUB todo
+    public List<clase> listFromActivity(Actividad actividad) {
+        return return claseRepository.findByActividad(actividad).orElseThrow(() -> new RuntimeException("No hay clases para esa actividad"))
     }
 
     // 2. AGREGAR / GUARDAR
