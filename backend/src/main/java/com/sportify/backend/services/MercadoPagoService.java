@@ -53,8 +53,8 @@ public class MercadoPagoService {
             Preference preference = client.create(request);
 
             String idPreferencia = preference.getId();
-            //String urlPago = preference.getInitPoint();
-            String urlPago = preference.getSandboxInitPoint();
+            String urlPago = preference.getInitPoint(); //Produccion
+            //String urlPago = preference.getSandboxInitPoint(); //Prueba SANDBOX
 
             
             pagoService.actualizarEstadoPago(
