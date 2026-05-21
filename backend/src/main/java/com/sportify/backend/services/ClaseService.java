@@ -14,8 +14,16 @@ public class ClaseService {
     private ClaseRepository claseRepository;
 
     // 1. LISTAR
-    public List<Clase> listarTodos() {
+    public List<Clase> listAll() {
         return claseRepository.findAll();
+    }
+
+    public List<clase> listFromDate() {
+        return null //STUB todo
+        }
+
+    public List<clase> listFromActivity() {
+        return null //STUB todo
     }
 
     // 2. AGREGAR / GUARDAR
