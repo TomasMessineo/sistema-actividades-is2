@@ -19,9 +19,19 @@ function RegisterPage() {
             <p>Unite a Sportify y transformá tu cuerpo hoy mismo.</p>
           </div>
           <form className="auth-form" onSubmit={handleSubmit}>
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="nombre">Nombre</label>
+                <input type="text" id="nombre" placeholder="Juan" required />
+              </div>
+              <div className="form-group">
+                <label htmlFor="apellido">Apellido</label>
+                <input type="text" id="apellido" placeholder="Pérez" required />
+              </div>
+            </div>
             <div className="form-group">
-              <label htmlFor="name">Nombre completo</label>
-              <input type="text" id="name" placeholder="Juan Pérez" required />
+              <label htmlFor="dni">DNI</label>
+              <input type="text" id="dni" placeholder="Sin puntos ni espacios" required />
             </div>
             <div className="form-group">
               <label htmlFor="email">Correo electrónico</label>
