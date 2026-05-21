@@ -22,24 +22,13 @@ public class AuthController {
     public ResponseEntity<?> registrarCliente(@RequestBody RegistroDTO registroDTO) {
 
         try {
-            LocalDate fechaNacimiento = registroDTO.getFechaNacimiento();
-            LocalDate hace16Anios = LocalDate.now().minusYears(16);
-            
-            // Por seguridad, vuelvo a evaluar la edad en el backend, aunque ya se hizo en el frontend, 
-            // para evitar que alguien intente saltarse esa validación.
-            if (fechaNacimiento != null && fechaNacimiento.isAfter(hace16Anios)) {
-                return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .body("la cuenta no ha podido crearse debido a que el usuario debe tener mas de 16 años");
-            }
-
             Alumno nuevoAlumno = Alumno.builder()
                     .nombre(registroDTO.getNombre())
                     .apellido(registroDTO.getApellido())
                     .dni(registroDTO.getDni())
                     .email(registroDTO.getEmail())
                     .password(registroDTO.getPassword())
-                    .fechaNacimiento(fechaNacimiento)
+                    .fechaNacimiento(registroDTO.getFechaNacimiento())
                     .build();
             
             Alumno alumnoRegistrado = alumnoService.guardar(nuevoAlumno);

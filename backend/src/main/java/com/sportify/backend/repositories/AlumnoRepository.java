@@ -10,4 +10,5 @@ public interface AlumnoRepository extends JpaRepository<Alumno, Integer> {
     // Esta interfaz queda vacía. JPA se encarga de todo el CRUD automáticamente
 
     Optional<Alumno> findByDni(String dni);
+    Optional<Alumno> findByEmail(String email);
 }
