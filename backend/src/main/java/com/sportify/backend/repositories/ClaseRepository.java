@@ -11,5 +11,5 @@ public interface ClaseRepository extends JpaRepository<Clase, Integer> {
     //se supone que springboot auto-genera basado en nombre
     List<Clase> findByFecha(LocalDate fecha);
     List<Clase> findByActividad(Actividad actividad)
-
+    List<Clase> findByActividadId(Integer actividadId)
 }
