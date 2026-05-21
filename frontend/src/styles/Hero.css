@@ -1,0 +1,336 @@
+.hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* Background */
+.hero__bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.hero__bg-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.05);
+  animation: heroZoom 20s ease-in-out infinite alternate;
+}
+
+@keyframes heroZoom {
+  from {
+    transform: scale(1.05);
+  }
+
+  to {
+    transform: scale(1.12);
+  }
+}
+
+.hero__bg-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 10, 11, 0.7);
+}
+
+.hero__bg-gradient {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(10, 10, 11, 0.3) 0%, transparent 30%, transparent 60%, var(--bg-primary) 100%),
+    radial-gradient(ellipse at 50% 0%, rgba(62, 207, 42, 0.08) 0%, transparent 60%);
+}
+
+/* Particles */
+.hero__particles {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.hero__particle {
+  position: absolute;
+  background: var(--primary);
+  border-radius: 50%;
+  opacity: 0;
+  animation: particleFloat linear infinite;
+}
+
+@keyframes particleFloat {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0);
+  }
+
+  20% {
+    opacity: 0.6;
+    transform: translateY(-20px) scale(1);
+  }
+
+  80% {
+    opacity: 0.3;
+    transform: translateY(-80px) scale(0.8);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-120px) scale(0);
+  }
+}
+
+/* Content */
+.hero__content {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  padding-top: 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.hero__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--primary);
+  padding: 10px 24px;
+  background: rgba(62, 207, 42, 0.08);
+  border: 1px solid rgba(62, 207, 42, 0.2);
+  border-radius: var(--radius-full);
+  backdrop-filter: blur(10px);
+}
+
+.hero__badge-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--primary);
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(62, 207, 42, 0.4);
+  }
+
+  50% {
+    opacity: 0.8;
+    transform: scale(1.2);
+    box-shadow: 0 0 0 8px rgba(62, 207, 42, 0);
+  }
+}
+
+.hero__title {
+  font-size: clamp(40px, 7vw, 80px);
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+}
+
+.hero__title-accent {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 50%, #A3FF7A 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero__description {
+  font-size: 18px;
+  max-width: 600px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.hero__actions {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.hero__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 16px 32px;
+  border-radius: var(--radius-full);
+  transition: all var(--transition-normal);
+  cursor: pointer;
+}
+
+.hero__btn--primary {
+  background: var(--primary);
+  color: var(--bg-primary);
+  box-shadow: 0 4px 20px rgba(62, 207, 42, 0.3);
+}
+
+.hero__btn--primary:hover {
+  background: var(--primary-light);
+  box-shadow: var(--shadow-glow-strong);
+  transform: translateY(-3px);
+}
+
+.hero__btn--primary svg {
+  transition: transform var(--transition-fast);
+}
+
+.hero__btn--primary:hover svg {
+  transform: translateX(4px);
+}
+
+.hero__btn--outline {
+  border: 1.5px solid var(--border-hover);
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+}
+
+.hero__btn--outline:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: rgba(62, 207, 42, 0.05);
+  transform: translateY(-3px);
+}
+
+/* Scroll indicator */
+.hero__scroll-indicator {
+  position: relative;
+  margin-top: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  animation: scrollBounce 2s ease-in-out infinite;
+}
+
+.hero__scroll-mouse {
+  width: 24px;
+  height: 36px;
+  border: 2px solid var(--text-muted);
+  border-radius: 12px;
+  display: flex;
+  justify-content: center;
+  padding-top: 6px;
+}
+
+.hero__scroll-wheel {
+  width: 3px;
+  height: 8px;
+  background: var(--primary);
+  border-radius: 3px;
+  animation: scrollWheel 2s ease-in-out infinite;
+}
+
+@keyframes scrollBounce {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(8px);
+  }
+}
+
+@keyframes scrollWheel {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* Glow elements */
+.hero__glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.hero__glow--1 {
+  width: 600px;
+  height: 600px;
+  background: rgba(62, 207, 42, 0.06);
+  top: -200px;
+  right: -200px;
+  animation: glowPulse 6s ease-in-out infinite;
+}
+
+.hero__glow--2 {
+  width: 400px;
+  height: 400px;
+  background: rgba(62, 207, 42, 0.04);
+  bottom: 100px;
+  left: -100px;
+  animation: glowPulse 8s ease-in-out infinite reverse;
+}
+
+@keyframes glowPulse {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .hero__content {
+    padding-top: 120px;
+    padding-bottom: 80px;
+  }
+
+  .hero__description {
+    font-size: 16px;
+  }
+
+  .hero__actions {
+    flex-direction: column;
+    width: 100%;
+    max-width: 320px;
+  }
+
+  .hero__btn {
+    justify-content: center;
+    padding: 14px 28px;
+  }
+
+  .hero__scroll-indicator {
+    margin-top: 24px;
+  }
+}
