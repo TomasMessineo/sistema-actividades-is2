@@ -17,3 +17,6 @@ frontend/dist/
 
 # idea 
 .idea/
+
+# .env
+.env
