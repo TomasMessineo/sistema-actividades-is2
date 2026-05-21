@@ -131,7 +131,7 @@ function RegisterPage() {
               <input type="password" id="confirmPassword" {...register('confirmPassword')} className={errors.confirmPassword ? 'input-error' : ''} placeholder="••••••••" />
               {errors.confirmPassword && <span className="field-error-text">{errors.confirmPassword.message}</span>}
             </div>
-            <button type="submit" className="auth-submit">Registrarme</button>
+            <button type="submit" className="auth-submit">Registrarse</button>
           </form>
           <div className="auth-footer">
             <p>¿Ya tenés una cuenta? <Link to="/login">Iniciá sesión acá</Link></p>
