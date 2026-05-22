@@ -30,39 +30,7 @@ const benefits = [
     ),
     title: 'Comunidad Activa',
     description: 'Formá parte de una comunidad que te motiva y acompaña en tu camino fitness.',
-  },
-  {
-    icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-      </svg>
-    ),
-    title: 'Control de Progreso',
-    description: 'Monitoreá tu avance con métricas y estadísticas detalladas de tu rendimiento.',
-  },
-  {
-    icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10"/>
-        <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
-        <line x1="9" y1="9" x2="9.01" y2="9"/>
-        <line x1="15" y1="9" x2="15.01" y2="9"/>
-      </svg>
-    ),
-    title: 'Ambiente Motivador',
-    description: 'Un espacio energético y positivo donde cada sesión se siente como una victoria.',
-  },
-  {
-    icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-        <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-        <line x1="12" y1="22.08" x2="12" y2="12"/>
-      </svg>
-    ),
-    title: 'Capacidad Controlada',
-    description: 'Salones con cupo limitado para garantizar atención personalizada y seguridad.',
-  },
+  }
 ];
 
 function Benefits() {
@@ -70,12 +38,6 @@ function Benefits() {
     <section className="benefits" id="benefits">
       <div className="benefits__container container">
         <div className="benefits__header reveal">
-          <span className="section-label">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-            </svg>
-            Beneficios
-          </span>
           <h2 className="section-title">
             ¿Por qué elegir Sportify?
           </h2>

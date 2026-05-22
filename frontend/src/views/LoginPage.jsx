@@ -10,9 +10,6 @@ function LoginPage() {
   return (
     <div className="auth-page centered-layout">
       <div className="auth-content">
-        <div className="auth-brand-header">
-          <Link to="/" className="auth-logo-link">Sportify</Link>
-        </div>
         <div className="auth-card login-card">
           <div className="auth-header">
             <h2>Iniciar Sesión</h2>

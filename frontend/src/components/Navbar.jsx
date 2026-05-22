@@ -31,8 +31,22 @@ function Navbar() {
         </Link>
 
         <ul className={`navbar__links ${menuOpen ? 'navbar__links--open' : ''}`} id="navbar-links">
-          <li><Link to="/" className="navbar__link" id="nav-inicio" onClick={() => setMenuOpen(false)}>Inicio</Link></li>
-          <li><Link to="/info" className="navbar__link" id="nav-info" onClick={() => setMenuOpen(false)}>Información general</Link></li>
+          <li>
+            <Link to="/" className="navbar__link" id="nav-inicio" onClick={() => {
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+              setMenuOpen(false);
+            }}>Inicio</Link>
+          </li>
+          <li>
+            <a href="/#info" className="navbar__link" id="nav-info" onClick={(e) => {
+              if (window.location.pathname === '/') {
+                e.preventDefault();
+                scrollTo('info');
+              } else {
+                setMenuOpen(false);
+              }
+            }}>Información general</a>
+          </li>
         </ul>
 
         <div className="navbar__actions" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>

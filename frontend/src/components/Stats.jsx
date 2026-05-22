@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import '../styles/Stats.css';
 const stats = [
   { value: 3, suffix: '', label: 'Disciplinas', icon: '🏋️' },
-  { value: 50, suffix: '', label: 'Capacidad máxima del salón', icon: '👥' },
+  { value: 30, suffix: '', label: 'Capacidad máxima del salón', icon: '👥' },
 ];
 
 function AnimatedCounter({ target, suffix, duration = 2000 }) {
@@ -52,6 +52,15 @@ function Stats() {
     <section className="stats" id="stats">
       <div className="stats__bg-glow"></div>
       <div className="stats__container container">
+        <div className="stats__header reveal">
+          <h2 className="section-title">
+            Nuestros números
+          </h2>
+          <p className="section-subtitle">
+            Resultados que respaldan nuestro compromiso con la comunidad.
+          </p>
+        </div>
+
         <div className="stats__grid">
           {stats.map((stat, index) => (
             <div className="stats__item reveal" key={index} id={`stat-${index}`}>

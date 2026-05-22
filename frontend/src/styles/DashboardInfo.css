@@ -1,0 +1,192 @@
+.info-dashboard {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 40px 40px; 
+  min-height: calc(100vh - 80px);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  align-items: start;
+  scroll-margin-top: 80px; /* Para que al apretar "Información general" no lo tape la barra de navegación */
+}
+
+/* Limpieza de paddings y márgenes */
+.info-dashboard > section {
+  padding: 0 !important;
+  background: transparent !important;
+}
+
+.info-dashboard section .container {
+  padding: 0 !important;
+  max-width: 100% !important;
+}
+
+/* Cabeceras uniformes para las 3 columnas */
+.info-dashboard .stats__header,
+.info-dashboard .disciplines__header, 
+.info-dashboard .benefits__header {
+  margin-bottom: 20px !important;
+  text-align: left !important;
+  display: flex;
+  flex-direction: column;
+}
+
+.info-dashboard .section-title {
+  font-size: 26px !important;
+  margin: 0 !important;
+  color: var(--primary) !important; /* Títulos de las columnas en color verde/principal */
+}
+
+/* Ocultar el texto extra y badgets para ahorrar espacio */
+.info-dashboard .section-subtitle,
+.info-dashboard .section-label,
+.info-dashboard .discipline-card__level,
+.info-dashboard .discipline-card__action,
+.info-dashboard .benefits__cta,
+.info-dashboard .stats__bg-glow {
+  display: none !important;
+}
+
+/* ====== 1. ESTADÍSTICAS ====== */
+.info-dashboard .stats__grid {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+}
+
+.info-dashboard .stats__item {
+  padding: 24px 20px !important;
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-lg) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+}
+
+.info-dashboard .stats__icon {
+  font-size: 32px !important;
+  margin-bottom: 8px !important;
+  color: var(--primary) !important;
+}
+
+.info-dashboard .stats__number {
+  font-size: 42px !important;
+  font-weight: 800 !important;
+  margin-bottom: 4px !important;
+  line-height: 1 !important;
+  color: #ffffff !important;
+}
+
+.info-dashboard .stats__label {
+  font-size: 16px !important;
+  color: #ffffff !important; /* Blanco para que se lea mejor */
+}
+
+
+/* ====== 2. DISCIPLINAS ====== */
+.info-dashboard .disciplines__grid {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+}
+
+.info-dashboard .discipline-card {
+  display: flex !important;
+  flex-direction: column !important; 
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-lg) !important;
+  overflow: hidden !important;
+  cursor: default !important;
+}
+
+.info-dashboard .discipline-card:hover {
+  transform: none !important;
+}
+
+.info-dashboard .discipline-card__image-wrapper {
+  width: 100% !important;
+  height: 90px !important; /* Más chico para que no se corte la pantalla */
+}
+
+.info-dashboard .discipline-card__content {
+  padding: 12px 18px !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.info-dashboard .discipline-card__title {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  margin-bottom: 6px !important;
+  color: var(--primary) !important; /* Destacado en verde */
+}
+
+.info-dashboard .discipline-card__description {
+  font-size: 13.5px !important;
+  color: #ffffff !important; /* Blanco para mejorar contraste */
+  margin: 0 !important;
+}
+
+
+/* ====== 3. BENEFICIOS ====== */
+.info-dashboard .benefits__grid {
+  display: flex !important;
+  flex-direction: column !important; 
+  gap: 16px !important;
+  margin-bottom: 0 !important;
+}
+
+.info-dashboard .benefit-card {
+  padding: 16px 20px !important;
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-lg) !important;
+  display: flex !important;
+  flex-direction: column !important; 
+  align-items: flex-start !important;
+  gap: 10px !important;
+}
+
+.info-dashboard .benefit-card__icon-wrap {
+  width: 40px !important;
+  height: 40px !important;
+  margin: 0 !important;
+  background: var(--primary-subtle, rgba(0, 255, 136, 0.1)) !important;
+  color: var(--primary) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+.info-dashboard .benefit-card__icon-wrap svg {
+  width: 20px !important;
+  height: 20px !important;
+}
+
+.info-dashboard .benefit-card__title {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  margin: 0 !important;
+  color: var(--primary) !important; /* Destacado en verde */
+}
+
+.info-dashboard .benefit-card__description {
+  font-size: 13.5px !important;
+  color: #ffffff !important; /* Texto en blanco claro */
+  margin: 0 !important;
+  line-height: 1.4 !important;
+}
+
+
+/* RESPONSIVE */
+@media (max-width: 1024px) {
+  .info-dashboard {
+    grid-template-columns: 1fr;
+    padding-top: 80px;
+  }
+}

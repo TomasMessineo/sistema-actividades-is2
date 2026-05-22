@@ -1,4 +1,4 @@
-import heroImg from '../assets/images/hero-bg.png';
+import heroImg from '../assets/images/hero-bg-v2.png';
 import { Link } from 'react-router-dom';
 import { useEffect } from 'react';
 import '../styles/Hero.css';

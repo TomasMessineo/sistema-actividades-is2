@@ -42,6 +42,7 @@
   position: absolute;
   inset: 0;
   background:
+    radial-gradient(circle at 16% 10%, rgba(255, 255, 255, 0.45) 0%, transparent 25%),
     linear-gradient(180deg, rgba(10, 10, 11, 0.3) 0%, transparent 30%, transparent 60%, var(--bg-primary) 100%),
     radial-gradient(ellipse at 50% 0%, rgba(62, 207, 42, 0.08) 0%, transparent 60%);
 }
