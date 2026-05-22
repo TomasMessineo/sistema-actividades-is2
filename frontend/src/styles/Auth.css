@@ -5,6 +5,42 @@
   background-color: var(--bg-primary); /* Base sólida tipo github */
 }
 
+.auth-back-button {
+  position: absolute;
+  top: 40px;
+  left: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 15px;
+  text-decoration: none;
+  z-index: 10;
+  transition: all var(--transition-fast);
+  background: rgba(10, 10, 11, 0.4);
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.auth-back-button:hover {
+  color: var(--primary);
+  background: rgba(10, 10, 11, 0.8);
+  border-color: var(--border-hover);
+  transform: translateX(-4px);
+}
+
+@media (max-width: 768px) {
+  .auth-back-button {
+    top: 24px;
+    left: 24px;
+  }
+}
+
 /* --- Layouts Base --- */
 .centered-layout {
   display: flex;
