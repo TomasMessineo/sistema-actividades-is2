@@ -1,6 +1,4 @@
 import { Link } from 'react-router-dom';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import '../styles/Auth.css';
 
 function LoginPage() {
@@ -10,13 +8,15 @@ function LoginPage() {
   };
 
   return (
-    <div className="landing-page">
-      <Navbar />
-      <div className="auth-page">
-        <div className="auth-card">
+    <div className="auth-page centered-layout">
+      <div className="auth-content">
+        <div className="auth-brand-header">
+          <Link to="/" className="auth-logo-link">Sportify</Link>
+        </div>
+        <div className="auth-card login-card">
           <div className="auth-header">
             <h2>Iniciar Sesión</h2>
-            <p>Bienvenido de nuevo a Sportify. Ingresá tus datos para continuar.</p>
+            <p className="auth-subtitle">Bienvenido de nuevo a Sportify. Ingresá tus datos para continuar.</p>
           </div>
           <form className="auth-form" onSubmit={handleSubmit}>
             <div className="form-group">
@@ -42,7 +42,6 @@ function LoginPage() {
           </div>
         </div>
       </div>
-      <Footer />
     </div>
   );
 }

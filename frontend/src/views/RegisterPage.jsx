@@ -3,9 +3,8 @@ import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import { apiFetch } from '../services/apiClient'; // <-- Importamos nuestro nuevo cliente base
+import heroImage from '../assets/images/musculacion.png'; // Importamos la imagen para la pantalla dividida
 import '../styles/Auth.css';
 
 // 1. Definimos el esquema de validación con Yup
@@ -33,9 +32,11 @@ const schema = yup.object({
 function RegisterPage() {
   const [status, setStatus] = useState({ type: '', message: '' });
 
-  // 2. Inicializamos React Hook Form
+  // 2. Inicializamos React Hook Form asegurándonos de que solo valide al presionar Submit
   const { register, handleSubmit, formState: { errors } } = useForm({
-    resolver: yupResolver(schema)
+    resolver: yupResolver(schema),
+    mode: 'onSubmit',
+    reValidateMode: 'onSubmit'
   });
 
   const onSubmit = async (data) => {
@@ -69,13 +70,23 @@ function RegisterPage() {
   };
 
   return (
-    <div className="landing-page">
-      <Navbar />
-      <div className="auth-page">
-        <div className="auth-card">
+    <div className="auth-page split-layout">
+      {/* Sección Izquierda (Imagen y Branding) */}
+      <div className="auth-sidebar hide-on-mobile">
+        <div className="auth-sidebar-overlay"></div>
+        <img src={heroImage} alt="Entrenamiento motivacional" className="auth-sidebar-bg" />
+      </div>
+
+      {/* Sección Derecha (Formulario) */}
+      <div className="auth-content">
+        <div className="auth-card register-card">
+          {/* Logo visible solo en mobile ya que en escritorio está en la imagen lateral */}
+          <div className="auth-brand-header show-on-mobile">
+            <Link to="/" className="auth-logo-link">Sportify</Link>
+          </div>
           <div className="auth-header">
             <h2>Crear Cuenta</h2>
-            <p>Unite a Sportify y transformá tu cuerpo hoy mismo.</p>
+            <p className="auth-subtitle">Unite a Sportify y transformá tu cuerpo hoy mismo.</p>
           </div>
           
           {status.message && (
@@ -138,7 +149,6 @@ function RegisterPage() {
           </div>
         </div>
       </div>
-      <Footer />
     </div>
   );
 }
