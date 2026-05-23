@@ -1,21 +1,23 @@
 package com.sportify.backend.repositories;
 
+import com.sportify.backend.entities.Actividad;
+import com.sportify.backend.entities.Clase;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.util.List;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-
-import com.sportify.backend.entities.Clase;
+@Repository
+public interface ClaseRepository extends JpaRepository<Clase, Integer> {
+    List<Clase> findByProfesorId(int idProfesor);
+    List<Clase> findByActividadIdActividad(int idActividad);
+    List<Clase> findByFecha(LocalDate fecha);
+    List<Clase> findByPrecio(double precio);
 
 @Repository
 public interface ClaseRepository extends JpaRepository<Clase, Integer> {
-
-    List<Clase> findByProfesorId(int idProfesor);
-
-    List<Clase> findByActividadIdActividad(int idActividad);
-
+    // Esta interfaz queda vacía. JPA se encarga de todo el CRUD automáticamente.
     List<Clase> findByFecha(LocalDate fecha);
-
-    List<Clase> findByPrecio(double precio);
+    List<Clase> findByActividad(Actividad actividad);
+    List<Clase> findByActividad_IdActividad(Integer actividadId);
 }
