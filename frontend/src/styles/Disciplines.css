@@ -1,0 +1,124 @@
+.disciplines {
+  padding: var(--section-padding);
+  position: relative;
+  background: var(--bg-secondary);
+}
+
+.disciplines__header {
+  text-align: center;
+  margin-bottom: 80px;
+}
+
+.disciplines__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px;
+}
+
+/* Card */
+.discipline-card {
+  position: relative;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  transition: all var(--transition-normal);
+  cursor: pointer;
+}
+
+.discipline-card:hover {
+  border-color: var(--border-accent);
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-glow);
+}
+
+/* Image */
+.discipline-card__image-wrapper {
+  position: relative;
+  height: 280px;
+  overflow: hidden;
+}
+
+.discipline-card__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.8s var(--ease-out-expo);
+}
+
+.discipline-card:hover .discipline-card__image {
+  transform: scale(1.08);
+}
+
+.discipline-card__image-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 40%, rgba(10, 10, 11, 0.9) 100%);
+}
+
+.discipline-card__level {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 14px;
+  background: rgba(10, 10, 11, 0.7);
+  backdrop-filter: blur(10px);
+  color: var(--primary);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-full);
+  letter-spacing: 0.03em;
+}
+
+/* Content */
+.discipline-card__content {
+  padding: 28px 32px 32px;
+}
+
+.discipline-card__title {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+
+.discipline-card__description {
+  font-size: 15px;
+  color: var(--text-muted);
+  line-height: 1.7;
+  margin-bottom: 20px;
+}
+
+.discipline-card__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary);
+  transition: all var(--transition-fast);
+}
+
+.discipline-card__action svg {
+  transition: transform var(--transition-fast);
+}
+
+.discipline-card:hover .discipline-card__action svg {
+  transform: translateX(4px);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .disciplines__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .discipline-card__image-wrapper {
+    height: 220px;
+  }
+
+  .discipline-card__content {
+    padding: 20px 24px 28px;
+  }
+}

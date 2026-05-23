@@ -3,16 +3,11 @@ import AvailableClassesView from './views/student/availableClassesView.jsx'
 import ClassCalendarView from './views/admin/classCalendarView.jsx'
 import MyClassesView from './views/student/myClassesView.jsx'
 import StudentStatsView from './views/admin/studentStatsView.jsx'
+import LandingPage from './views/LandingPage';
+import LoginPage from './views/LoginPage';
+import RegisterPage from './views/RegisterPage';
+import ProfileView from './views/general/profileView.jsx'
 import './App.css'
-
-function PlaceholderView({ title, description }) {
-  return (
-    <main style={{ padding: '3rem 1.5rem', maxWidth: '960px', margin: '0 auto' }}>
-      <h1>{title}</h1>
-      <p>{description}</p>
-    </main>
-  )
-}
 
 function App() {
   return (
@@ -23,16 +18,20 @@ function App() {
           element={<Navigate to="/calendario" replace />}
         />
 
-        <Route path="/perfil" element={<PlaceholderView title="Mi perfil" description="Esta vista todavía no tiene contenido, pero la navegación ya funciona." />} />
+        <Route path="/perfil" element={<ProfileView />} />
         <Route path="/clasesDisponibles" element={<AvailableClassesView />} />
         <Route path="/misClases" element={<MyClassesView />} />
         <Route path="/calendario" element={<ClassCalendarView />} />
         <Route path="/alumnos" element={<StudentStatsView />} />
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
 
         <Route path="*" element={<Navigate to="/calendario" replace />} />
       </Routes>
     </BrowserRouter>
   )
+
 }
 
 export default App

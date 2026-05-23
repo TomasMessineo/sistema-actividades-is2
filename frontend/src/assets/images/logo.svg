@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="100%" height="100%">
+  <!-- Dumbbell Handle -->
+  <rect x="140" y="105" width="120" height="15" rx="3" fill="#1A1A1A" />
+  
+  <!-- Left Weights -->
+  <!-- Inner Black Plates -->
+  <rect x="120" y="70" width="20" height="85" rx="10" fill="#1A1A1A" />
+  <rect x="100" y="80" width="15" height="65" rx="7.5" fill="#1A1A1A" />
+  <!-- Outer Green Plates -->
+  <rect x="80" y="90" width="12" height="45" rx="6" fill="#3ECF2A" />
+  <rect x="65" y="98" width="8" height="29" rx="4" fill="#3ECF2A" />
+
+  <!-- Right Weights -->
+  <!-- Inner Black Plates -->
+  <rect x="260" y="70" width="20" height="85" rx="10" fill="#1A1A1A" />
+  <rect x="285" y="80" width="15" height="65" rx="7.5" fill="#1A1A1A" />
+  <!-- Outer Green Plates -->
+  <rect x="308" y="90" width="12" height="45" rx="6" fill="#3ECF2A" />
+  <rect x="327" y="98" width="8" height="29" rx="4" fill="#3ECF2A" />
+
+  <!-- Text "Sportify" -->
+  <text x="200" y="230" font-family="'Outfit', system-ui, sans-serif" font-weight="800" font-size="72" text-anchor="middle">
+    <tspan fill="#1A1A1A">Sport</tspan><tspan fill="#3ECF2A">ify</tspan>
+  </text>
+</svg>
