@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
-import { apiFetch } from '../services/apiClient';
-import '../styles/Auth.css';
+import { apiFetch } from '../../services/apiClient';
+import '../../styles/Auth.css';
 
 const schema = yup.object({
   email: yup.string()
@@ -16,6 +16,7 @@ const schema = yup.object({
 
 function LoginPage() {
   const [status, setStatus] = useState({ type: '', message: '' });
+  const navigate = useNavigate();
 
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: yupResolver(schema),
@@ -37,8 +38,9 @@ function LoginPage() {
       });
 
       console.log("Inicio de sesión exitoso:", responseData);
-      setStatus({ type: 'success', message: '¡Inicio de sesión exitoso! (Redirigiendo...)' });
-
+      setStatus({ type: 'success', message: '¡Inicio de sesión exitoso!' });
+      navigate('/misclases');
+      
     } catch (error) {
       console.error("Error al iniciar sesión:", error);
       setStatus({ type: 'error', message: error.message });

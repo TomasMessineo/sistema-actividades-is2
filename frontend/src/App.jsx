@@ -3,9 +3,9 @@ import AvailableClassesView from './views/student/availableClassesView.jsx'
 import ClassCalendarView from './views/admin/classCalendarView.jsx'
 import MyClassesView from './views/student/myClassesView.jsx'
 import StudentStatsView from './views/admin/studentStatsView.jsx'
-import LandingPage from './views/LandingPage';
-import LoginPage from './views/LoginPage';
-import RegisterPage from './views/RegisterPage';
+import LandingPage from './views/general/LandingPage.jsx';
+import LoginPage from './views/general/LoginPage.jsx';
+import RegisterPage from './views/general/RegisterPage.jsx';
 import ProfileView from './views/general/profileView.jsx'
 import './App.css'
 
