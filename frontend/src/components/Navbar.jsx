@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
-import logoImg from '../assets/images/logo.svg';
+import logoImg from '../assets/logo.svg';
 import '../styles/Navbar.css';
 function Navbar() {
   const [scrolled, setScrolled] = useState(false);
