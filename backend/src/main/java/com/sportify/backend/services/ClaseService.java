@@ -23,11 +23,11 @@ public class ClaseService {
         }
 
     public List<clase> listFromActivity(Actividad actividad) {
-        return return claseRepository.findByActividad(actividad).orElseThrow(() -> new RuntimeException("No hay clases para esa actividad"))
+        return claseRepository.findByActividad(actividad).orElseThrow(() -> new RuntimeException("No hay clases para esa actividad"))
     }
 
     public List<clase> listFromActivityId(Integer actividadId) {
-        return return claseRepository.findByActividadId(actividadId).orElseThrow(() -> new RuntimeException("No hay clases para esa actividad"))
+        return claseRepository.findByActividadId(actividadId).orElseThrow(() -> new RuntimeException("No hay clases para esa actividad"))
     }
 
     // 2. AGREGAR / GUARDAR
