@@ -59,7 +59,7 @@ function RegisterPage() {
 
       console.log("Usuario registrado con éxito:", responseData);
       setStatus({ type: 'success', message: '¡Usuario registrado con éxito! (se debería redirigir a la sección de actividades según la historia de usuario, hacer después)' });
-      
+
     } catch (error) {
       // Como apiClient ya se encargó de entender el error (internet cortado, DNI repetido,
       // mail repetido, edad inválida status 500, etc) y nos lanzó un Error nativo de JS con el mensaje
@@ -77,7 +77,7 @@ function RegisterPage() {
         </svg>
         Volver
       </Link>
-      
+
       {/* Sección Izquierda (Imagen y Branding) */}
       <div className="auth-sidebar hide-on-mobile">
         <div className="auth-sidebar-overlay"></div>
@@ -95,7 +95,7 @@ function RegisterPage() {
             <h2>Crear Cuenta</h2>
             <p className="auth-subtitle">Unite a Sportify y transformá tu cuerpo hoy mismo.</p>
           </div>
-          
+
           {status.message && (
             <div className={`auth-status ${status.type}`}>
               {status.message}

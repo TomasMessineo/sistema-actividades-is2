@@ -24,11 +24,12 @@ public class AlumnoService {
 
     // 2. AGREGAR / GUARDAR
     public Alumno guardar(Alumno alumno) {
-        
+
         // Delegamos todas las validaciones de negocio a nuestra clase especializada
         alumnoValidator.validarRegistro(alumno);
-        
-        // Si no se arrojó ninguna excepción, se crea o actualiza el alumno sin problemas
+
+        // Si no se arrojó ninguna excepción, se crea o actualiza el alumno sin
+        // problemas
         return alumnoRepository.save(alumno);
     }
 
@@ -40,5 +41,18 @@ public class AlumnoService {
     // 4. ELIMINAR
     public void eliminar(Integer id) {
         alumnoRepository.deleteById(id);
+    }
+
+    // 5. INICIAR SESIÓN
+    public Alumno iniciarSesion(String email, String password) {
+        Alumno alumno = alumnoRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Los datos ingresados son inválidos, debe intentarse nuevamente."));
+
+        if (!alumno.getPassword().equals(password)) {
+            throw new IllegalArgumentException("Los datos ingresados son inválidos, debe intentarse nuevamente.");
+        }
+
+        return alumno;
     }
 }
