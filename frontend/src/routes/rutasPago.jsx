@@ -10,12 +10,12 @@ import VistaVerificarPago from '../views/pago/VistaVerificarPago.jsx';
 function RutasPago() {
   return (
     <Routes>
-      <Route path="/pago" element={<VistaSelectorPago />} />
-      <Route path="/pago/tarjeta" element={<VistaFormularioTarjeta />} />
-      <Route path="/pago/mercadopago" element={<VistaMercadoPago />} />
-      <Route path="/pago/exitoso" element={<VistaPagoExitoso />} />
-      <Route path="/pago/fallido" element={<VistaPagoFallido />} />
-      <Route path="/pago/verificar" element={<VistaVerificarPago />} />
+      <Route path="/" element={<VistaSelectorPago />} />
+      <Route path="/tarjeta" element={<VistaFormularioTarjeta />} />
+      <Route path="/mercadopago" element={<VistaMercadoPago />} />
+      <Route path="/exitoso" element={<VistaPagoExitoso />} />
+      <Route path="/fallido" element={<VistaPagoFallido />} />
+      <Route path="/verificar" element={<VistaVerificarPago />} />
     </Routes>
   );
 }

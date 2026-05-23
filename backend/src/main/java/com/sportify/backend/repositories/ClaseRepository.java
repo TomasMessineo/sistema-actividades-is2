@@ -9,14 +9,12 @@ import java.util.List;
 
 @Repository
 public interface ClaseRepository extends JpaRepository<Clase, Integer> {
+    // Métodos agregados
     List<Clase> findByProfesorId(int idProfesor);
     List<Clase> findByActividadIdActividad(int idActividad);
-    List<Clase> findByFecha(LocalDate fecha);
     List<Clase> findByPrecio(double precio);
 
-@Repository
-public interface ClaseRepository extends JpaRepository<Clase, Integer> {
-    // Esta interfaz queda vacía. JPA se encarga de todo el CRUD automáticamente.
+    // Métodos existentes
     List<Clase> findByFecha(LocalDate fecha);
     List<Clase> findByActividad(Actividad actividad);
     List<Clase> findByActividad_IdActividad(Integer actividadId);
