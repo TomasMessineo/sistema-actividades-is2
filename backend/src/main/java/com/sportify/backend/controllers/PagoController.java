@@ -50,9 +50,8 @@ public class PagoController {
 
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(
-                    new PagoResponse(0, Pago.EstadoPago.FALLIDO, null, 0, 
-                            "Error: " + e.getMessage(), null)
-            );
+                    new PagoResponse(0, Pago.EstadoPago.FALLIDO, null, 0,
+                            "Error: " + e.getMessage(), null));
         }
     }
 
@@ -96,5 +95,4 @@ public class PagoController {
         }
     }
 
-    
 }

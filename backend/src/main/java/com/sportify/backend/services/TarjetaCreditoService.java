@@ -27,8 +27,7 @@ public class TarjetaCreditoService {
                     idTransaccion,
                     pago.getValor(),
                     "Pago con tarjeta procesado correctamente",
-                    null
-            );
+                    null);
         } catch (Exception e) {
             pagoService.actualizarEstadoPago(pago.getIdPago(), Pago.EstadoPago.FALLIDO, null);
             throw new RuntimeException(e.getMessage());
@@ -45,29 +44,47 @@ public class TarjetaCreditoService {
         if (!esCvvValido(solicitud.getCvv())) {
             throw new RuntimeException("error por CVV inválido");
         }
+
+        // Bypass de Luhn para pruebas de desarrollo
+        String nombre = solicitud.getNombreTitular().toUpperCase();
+        if (nombre.equals("APRO") || nombre.equals("CONT") || nombre.equals("CALL")) {
+            return;
+        }
+
         if (!esNumeroTarjetaValido(solicitud.getNumeroTarjeta())) {
-            throw new RuntimeException("error por número de tarjeta inexistente");
+            throw new RuntimeException("Error por número de tarjeta inexistente");
         }
     }
 
     private String procesarPagoConBanco(PagoRequest solicitud) {
         String numero = solicitud.getNumeroTarjeta().replaceAll("\\s+", "");
+        String nombre = solicitud.getNombreTitular().toUpperCase();
 
-        // Tarjetas de prueba para simular respuestas del banco
+        // Simulaciones basadas en el nombre del titular (para pruebas)
+        if (nombre.equals("CONT")) {
+            throw new RuntimeException("Error por fondos insuficientes");
+        }
+        if (nombre.equals("CALL")) {
+            throw new RuntimeException("Error por autorización rechazada");
+        }
+
+        // Tarjetas de prueba tradicionales para simular respuestas del banco
         if (numero.equals("4000000000000002")) {
-            throw new RuntimeException("error por fondos insuficientes");
+            throw new RuntimeException("Error por fondos insuficientes");
         }
         if (numero.equals("4000000000000119")) {
-            throw new RuntimeException("error por conexión no establecida");
+            throw new RuntimeException("Error por conexión no establecida");
         }
 
         return "TARJETA_" + UUID.randomUUID().toString();
     }
 
     private boolean esNumeroTarjetaValido(String numero) {
-        if (numero == null || numero.isEmpty()) return false;
+        if (numero == null || numero.isEmpty())
+            return false;
         numero = numero.replaceAll("\\s+", "");
-        if (!Pattern.matches("\\d{13,19}", numero)) return false;
+        if (!Pattern.matches("\\d{13,19}", numero))
+            return false;
 
         int suma = 0;
         boolean alternar = false;
@@ -75,7 +92,8 @@ public class TarjetaCreditoService {
             int digito = Character.getNumericValue(numero.charAt(i));
             if (alternar) {
                 digito *= 2;
-                if (digito > 9) digito -= 9;
+                if (digito > 9)
+                    digito -= 9;
             }
             suma += digito;
             alternar = !alternar;
@@ -84,7 +102,8 @@ public class TarjetaCreditoService {
     }
 
     private boolean esFechaVencimientoValida(String fecha) {
-        if (fecha == null || !fecha.matches("\\d{2}/\\d{2}")) return false;
+        if (fecha == null || !fecha.matches("\\d{2}/\\d{2}"))
+            return false;
         int mes = Integer.parseInt(fecha.split("/")[0]);
         return mes >= 1 && mes <= 12;
     }

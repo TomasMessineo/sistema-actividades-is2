@@ -14,7 +14,7 @@ import java.util.Map;
 import com.sportify.backend.dtos.LoginDTO;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/auth")
 @CrossOrigin(origins = "http://localhost:5173")
 public class AuthController {
     @Autowired
@@ -32,14 +32,14 @@ public class AuthController {
                     .password(registroDTO.getPassword())
                     .fechaNacimiento(registroDTO.getFechaNacimiento())
                     .build();
-            
+
             Alumno alumnoRegistrado = alumnoService.guardar(nuevoAlumno);
-            return new ResponseEntity<>(alumnoRegistrado, HttpStatus.CREATED);  
+            return new ResponseEntity<>(alumnoRegistrado, HttpStatus.CREATED);
 
         } catch (IllegalArgumentException e) {
             return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(e.getMessage());
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(e.getMessage());
         }
     }
 
@@ -50,8 +50,8 @@ public class AuthController {
             return ResponseEntity.ok(alumno);
         } catch (IllegalArgumentException e) {
             return ResponseEntity
-                .status(HttpStatus.UNAUTHORIZED)
-                .body(e.getMessage());
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body(e.getMessage());
         }
     }
 }

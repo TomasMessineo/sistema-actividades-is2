@@ -33,13 +33,24 @@ function VistaVerificarPago() {
   };
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+    <div className="pago-page">
       <div className="pago-container" style={{ textAlign: 'center' }}>
-        <h2>Verificando pago...</h2>
-        <p style={{ color: 'var(--gris-texto)', marginTop: '16px' }}>
-          Por favor esperá, estamos confirmando tu pago.
-        </p>
-        <div style={{ marginTop: '30px', fontSize: '2rem' }}>⏳</div>
+        <div className="pago-header">
+          <h2>Verificando pago...</h2>
+          <p>Por favor esperá, estamos confirmando tu pago.</p>
+        </div>
+        <div style={{ marginTop: '40px', display: 'flex', justifyContent: 'center' }}>
+          <div style={{
+            width: '40px', height: '40px',
+            border: '3px solid rgba(255,255,255,0.1)',
+            borderTopColor: 'var(--primary)',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }}></div>
+        </div>
+        <style>{`
+          @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        `}</style>
       </div>
     </div>
   );

@@ -116,6 +116,23 @@
   color: var(--primary, #00FF88) !important;
 }
 
+/* Botón Cerrar Sesión */
+.navbar__link-logout {
+  color: #F9F7F2 !important;
+  font-weight: 600;
+  transition: all var(--transition-fast);
+}
+
+.navbar--scrolled .navbar__link-logout {
+  color: #1C1C1C !important;
+}
+
+.navbar__link-logout:hover {
+  background: rgba(239, 68, 68, 0.1) !important;
+  color: #ef4444 !important;
+  transform: scale(1.02);
+}
+
 /* Botón Registrarme */
 .navbar__cta {
   font-size: 14px;

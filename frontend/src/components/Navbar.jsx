@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 import logoImg from '../assets/images/logo.svg';
 import '../styles/Navbar.css';
+
 function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const { isAuthenticated, role, logout } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -50,12 +53,36 @@ function Navbar() {
         </ul>
 
         <div className="navbar__actions" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <Link to="/login" className="navbar__link" id="nav-login">
-            Iniciar Sesión
-          </Link>
-          <Link to="/register" className="navbar__cta" id="nav-cta-register">
-            Registrarme
-          </Link>
+          {isAuthenticated ? (
+            <>
+              <button 
+                onClick={() => {
+                  logout();
+                  window.location.href = '/'; // Recargar estado completo
+                }} 
+                className="navbar__link navbar__link-logout" 
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit' }}
+              >
+                Cerrar Sesión
+              </button>
+              <Link 
+                to={role === 'ALUMNO' ? '/misClases' : '/'} 
+                className="navbar__cta" 
+                id="nav-cta-panel"
+              >
+                Ir al Panel
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className="navbar__link" id="nav-login">
+                Iniciar Sesión
+              </Link>
+              <Link to="/register" className="navbar__cta" id="nav-cta-register">
+                Registrarme
+              </Link>
+            </>
+          )}
         </div>
 
         <button
