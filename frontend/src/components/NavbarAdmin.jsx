@@ -31,42 +31,19 @@ function Navbar() {
 
         <ul className={`navbar__links ${menuOpen ? 'navbar__links--open' : ''}`} id="navbar-links">
           <li>
-            <Link to="/" className="navbar__link" id="nav-inicio" onClick={() => {
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-              setMenuOpen(false);
-            }}>Inicio</Link>
+            <Link to="/alumnos" className="navbar__link" id="nav-inicio">Ver alumnos</Link>
           </li>
           <li>
-            <a href="/#info" className="navbar__link" id="nav-info" onClick={(e) => {
-              if (window.location.pathname === '/') {
-                e.preventDefault();
-                scrollTo('info');
-              } else {
-                setMenuOpen(false);
-              }
-            }}>Información general</a>
+            <Link href="/calendario" className="navbar__link" id="nav-info"> Calendario </Link>
           </li>
         </ul>
 
         <div className="navbar__actions" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <Link to="/login" className="navbar__link" id="nav-login">
-            Iniciar Sesión
-          </Link>
-          <Link to="/register" className="navbar__cta" id="nav-cta-register">
-            Registrarme
+          <Link to="/perfil" className="navbar__link" id="nav-login">
+            Mi Perfil
           </Link>
         </div>
 
-        <button
-          className={`navbar__hamburger ${menuOpen ? 'navbar__hamburger--open' : ''}`}
-          onClick={() => setMenuOpen(!menuOpen)}
-          aria-label="Toggle menu"
-          id="navbar-hamburger"
-        >
-          <span></span>
-          <span></span>
-          <span></span>
-        </button>
       </div>
     </nav>
   );

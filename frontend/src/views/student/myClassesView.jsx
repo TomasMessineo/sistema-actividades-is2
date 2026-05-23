@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import Navbar from '../components/Navbar.jsx'
+import Navbar from '../../components/NavbarAlumno.jsx'
 
 function MyClassesView() {
   const mainRef = useRef(null)
