@@ -13,5 +13,5 @@ public interface ClaseRepository extends JpaRepository<Clase, Integer> {
     // Esta interfaz queda vacía. JPA se encarga de todo el CRUD automáticamente.
     List<Clase> findByFecha(LocalDate fecha);
     List<Clase> findByActividad(Actividad actividad);
-    List<Clase> findByActividadId(Integer actividadId);
+    List<Clase> findByActividad_IdActividad(Integer actividadId);
 }

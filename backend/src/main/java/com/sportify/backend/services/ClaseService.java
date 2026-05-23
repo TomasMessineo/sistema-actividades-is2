@@ -29,7 +29,7 @@ public class ClaseService {
     }
 
     public List<Clase> listFromActivityId(Integer actividadId) {
-        return claseRepository.findByActividadId(actividadId);
+        return claseRepository.findByActividad_IdActividad(actividadId);
     }
 
     // 2. AGREGAR / GUARDAR
