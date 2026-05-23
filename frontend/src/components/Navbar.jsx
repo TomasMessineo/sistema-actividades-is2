@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
-import logoImg from '../assets/images/logo.svg';
 import '../styles/Navbar.css';
 function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -27,7 +26,7 @@ function Navbar() {
     <nav className={`navbar ${scrolled ? 'navbar--scrolled' : ''}`} id="navbar">
       <div className="navbar__container">
         <Link to="/" className="navbar__logo" id="navbar-logo" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-          <img src={logoImg} alt="Sportify Logo" className="navbar__logo-img" />
+          <span className="navbar__logo-text">Sportify</span>
         </Link>
 
         <ul className={`navbar__links ${menuOpen ? 'navbar__links--open' : ''}`} id="navbar-links">

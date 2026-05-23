@@ -1,10 +1,12 @@
 package com.sportify.backend.service;
 
+import com.sportify.backend.entities.Actividad;
 import com.sportify.backend.entities.Clase;
 import com.sportify.backend.repository.ClaseRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -18,16 +20,16 @@ public class ClaseService {
         return claseRepository.findAll();
     }
 
-    public List<clase> listFromDate(LocalDate fecha) {
-        return claseRepository.findByFecha(fecha).orElseThrow(() -> new RuntimeException("No hay clases para esa fecha"))
+    public List<Clase> listFromDate(LocalDate fecha) {
+        return claseRepository.findByFecha(fecha);
         }
 
-    public List<clase> listFromActivity(Actividad actividad) {
-        return claseRepository.findByActividad(actividad).orElseThrow(() -> new RuntimeException("No hay clases para esa actividad"))
+    public List<Clase> listFromActivity(Actividad actividad) {
+        return claseRepository.findByActividad(actividad);
     }
 
-    public List<clase> listFromActivityId(Integer actividadId) {
-        return claseRepository.findByActividadId(actividadId).orElseThrow(() -> new RuntimeException("No hay clases para esa actividad"))
+    public List<Clase> listFromActivityId(Integer actividadId) {
+        return claseRepository.findByActividadId(actividadId);
     }
 
     // 2. AGREGAR / GUARDAR
