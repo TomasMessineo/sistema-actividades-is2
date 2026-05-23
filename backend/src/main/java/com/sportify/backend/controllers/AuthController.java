@@ -11,6 +11,8 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.sportify.backend.dtos.LoginDTO;
+
 @RestController
 @RequestMapping("/api/auth")
 @CrossOrigin(origins = "http://localhost:5173")
@@ -37,6 +39,18 @@ public class AuthController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
+                .body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> iniciarSesion(@RequestBody LoginDTO loginDTO) {
+        try {
+            Alumno alumno = alumnoService.iniciarSesion(loginDTO.getEmail(), loginDTO.getPassword());
+            return ResponseEntity.ok(alumno);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
                 .body(e.getMessage());
         }
     }
