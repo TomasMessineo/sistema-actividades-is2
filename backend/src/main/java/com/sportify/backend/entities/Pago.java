@@ -1,14 +1,22 @@
 package com.sportify.backend.entities;
 
-import jakarta.persistence.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.time.LocalDate;
-
-
 
 @Entity
 @Getter
@@ -24,6 +32,10 @@ public class Pago {
 
     private LocalDate fecha;
 
+    private LocalDateTime fechaCreacion;
+
+    private LocalDateTime fechaActualizacion;
+
     @ManyToOne
     @JoinColumn(name = "alumno_id")
     private Alumno alumno;
@@ -37,8 +49,9 @@ public class Pago {
 
     public enum TipoClase {
         INDIVIDUAL,
-        ABONADA
+        ABONADO
     }
+
     @Enumerated(EnumType.STRING)
     private TipoPago tipoPago;
 
@@ -47,4 +60,28 @@ public class Pago {
         TARJETADECREDITO
     }
 
+    @Enumerated(EnumType.STRING)
+    private EstadoPago estado; // NUEVO
+
+    public enum EstadoPago {
+        PENDIENTE,
+        COMPLETADO,
+        FALLIDO
+    }
+
+    private String idTransaccion; //  NUEVO (ID de Mercado Pago o proveedor)
+
+    private String descripcion; // NUEVO
+
+    @PrePersist
+    protected void onCreate() {
+        fechaCreacion = LocalDateTime.now();
+        fechaActualizacion = LocalDateTime.now();
+        estado = EstadoPago.PENDIENTE;
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        fechaActualizacion = LocalDateTime.now();
+    }
 }
