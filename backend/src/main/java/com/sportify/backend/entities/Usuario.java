@@ -28,4 +28,5 @@ public abstract class Usuario {
 
     private String password;
 
+    private boolean activo = true;
 }

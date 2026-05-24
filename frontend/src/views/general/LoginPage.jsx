@@ -3,10 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
-import { apiFetch } from '../services/apiClient';
-import { useAuth } from '../context/AuthContext';
-import '../styles/Auth.css';
-
+import { apiFetch } from '../../services/apiClient';
+import { useAuth } from '../../context/AuthContext';
+import '../../styles/Auth.css';
 const schema = yup.object({
   email: yup.string()
     .email('Por favor, ingrese un correo electrónico válido')
@@ -17,9 +16,9 @@ const schema = yup.object({
 
 function LoginPage() {
   const [status, setStatus] = useState({ type: '', message: '' });
+  const navigate = useNavigate();
 
   const { login } = useAuth();
-  const navigate = useNavigate();
 
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: yupResolver(schema),
@@ -42,7 +41,8 @@ function LoginPage() {
 
       console.log("Inicio de sesión exitoso:", responseData);
       login(responseData); // Guarda en Context y localStorage
-      setStatus({ type: 'success', message: '¡Inicio de sesión exitoso! (Redirigiendo...)' });
+      
+      setStatus({ type: 'success', message: '¡Inicio de sesión exitoso!' });
       
       // Redirigir según el rol
       setTimeout(() => {
@@ -52,7 +52,7 @@ function LoginPage() {
           navigate('/misClases');
         }
       }, 500);
-
+      
     } catch (error) {
       console.error("Error al iniciar sesión:", error);
       setStatus({ type: 'error', message: error.message });

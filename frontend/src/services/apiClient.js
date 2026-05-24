@@ -45,7 +45,7 @@ export const apiFetch = async (endpoint, options = {}) => {
   } catch (error) {
     // Si fue un problema de Red (el backend está apagado o internet cortado)
     if (error.name === 'TypeError' || error.message.includes('fetch')) {
-      throw new Error('No se pudo conectar con el servidor. Revisá tu conexión a internet o el estado del backend.');
+      throw new Error('No se pudo conectar con el servidor. Revisá tu conexión a internet.');
     }
     // Si era nuestro error custom de la respuesta !ok, lo re-lanzamos para que la UI lo agarre
     throw error;

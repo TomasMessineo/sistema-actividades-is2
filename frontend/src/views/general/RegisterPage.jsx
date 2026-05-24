@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
-import { apiFetch } from '../services/apiClient'; // <-- Importamos nuestro nuevo cliente base
-import heroImage from '../assets/images/musculacion.png'; // Importamos la imagen para la pantalla dividida
-import '../styles/Auth.css';
+import { apiFetch } from '../../services/apiClient'; // <-- Importamos nuestro nuevo cliente base
+import heroImage from '../../assets/images/musculacion.png'; // Importamos la imagen para la pantalla dividida
+import '../../styles/Auth.css';
 
 // 1. Definimos el esquema de validación con Yup
 const schema = yup.object({
@@ -31,6 +31,7 @@ const schema = yup.object({
 
 function RegisterPage() {
   const [status, setStatus] = useState({ type: '', message: '' });
+  const navigate = useNavigate();
 
   // 2. Inicializamos React Hook Form asegurándonos de que solo valide al presionar Submit
   const { register, handleSubmit, formState: { errors } } = useForm({
@@ -58,7 +59,8 @@ function RegisterPage() {
       });
 
       console.log("Usuario registrado con éxito:", responseData);
-      setStatus({ type: 'success', message: '¡Usuario registrado con éxito! (se debería redirigir a la sección de actividades según la historia de usuario, hacer después)' });
+      setStatus({ type: 'success', message: '¡Usuario registrado con éxito!' });
+      navigate('/misclases');
 
     } catch (error) {
       // Como apiClient ya se encargó de entender el error (internet cortado, DNI repetido,

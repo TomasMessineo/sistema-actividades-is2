@@ -31,10 +31,10 @@ Para probar el flujo de compra sin usar dinero real, Mercado Pago provee **Cuent
 ### 1. Crear Cuentas de Prueba
 1. Ve al [Panel de Desarrolladores > Cuentas de prueba](https://www.mercadopago.com.ar/developers/panel/test-accounts).
 2. Crea **dos** cuentas de prueba:
-   - **Cuenta Vendedor:** Esta cuenta simula ser "Sportify". De esta cuenta debes sacar el `Access Token` (`APP_USR-5132305887017959-052318-1776b7a7ab81d88581be8b9c82aba765-3423172584`).
+   - **Cuenta Vendedor:** Esta cuenta simula ser "Sportify". De esta cuenta debes sacar el `Access Token`
    - **Cuenta Comprador:** Esta cuenta simula ser el alumno. 
-     - **Usuario:** `TESTUSER132738334313658044`
-     - **Contraseña:** `XzaP1bN4GJ`
+     - **Usuario:** `Ver en página`
+     - **Contraseña:** `Ver en página`
 
 ### 2. Probar el Checkout
 Cuando el frontend te redirija al entorno de Mercado Pago (o cuando escanees el QR / abras el link):
