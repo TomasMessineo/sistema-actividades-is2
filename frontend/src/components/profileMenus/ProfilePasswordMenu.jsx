@@ -1,14 +1,23 @@
 import { useState } from 'react';
 import ProfileMenuShell from './ProfileMenuShell';
 
-function ProfilePasswordMenu({ onSave, onCancel }) {
+function ProfilePasswordMenu({ onSave, onCancel, submitError, isSubmitting }) {
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [currentPasswordError, setCurrentPasswordError] = useState('');
   const [newPasswordError, setNewPasswordError] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
 
   const handleSubmit = (event) => {
     event.preventDefault();
+
+    if (!currentPassword) {
+      setCurrentPasswordError('Debes ingresar tu contraseña actual');
+      return;
+    }
+
+    setCurrentPasswordError('');
 
     if (!newPassword) {
       setNewPasswordError('La contraseña es obligatoria');
@@ -17,6 +26,11 @@ function ProfilePasswordMenu({ onSave, onCancel }) {
 
     if (newPassword.length < 5) {
       setNewPasswordError('La contraseña debe tener al menos 5 caracteres');
+      return;
+    }
+
+    if (newPassword === currentPassword) {
+      setNewPasswordError('La nueva contraseña no puede ser igual a la actual');
       return;
     }
 
@@ -33,12 +47,23 @@ function ProfilePasswordMenu({ onSave, onCancel }) {
     }
 
     setConfirmPasswordError('');
-    onSave({ newPassword, confirmPassword });
+    onSave({ currentPassword, newPassword, confirmPassword });
   };
 
   return (
-    <ProfileMenuShell title="Contraseña" description="Abrí el flujo para actualizar tu contraseña.">
+    <ProfileMenuShell title="Contraseña" description="Abrí el flujo para actualizar tu contraseña." onCancel={onCancel}>
       <form className="auth-form profile-focus-form" onSubmit={handleSubmit}>
+        <div className="profile-edit-field">
+          <label htmlFor="profile-current-password">Contraseña actual</label>
+          <input
+            id="profile-current-password"
+            type="password"
+            value={currentPassword}
+            onChange={(event) => setCurrentPassword(event.target.value)}
+            placeholder="Ingresá tu contraseña actual"
+          />
+          {currentPasswordError && <span className="field-error-text">{currentPasswordError}</span>}
+        </div>
         <div className="profile-edit-field">
           <label htmlFor="profile-new-password">Nueva contraseña</label>
           <input
@@ -65,8 +90,11 @@ function ProfilePasswordMenu({ onSave, onCancel }) {
           <button type="button" className="profile-action-menu-option profile-focus-cancel-button" onClick={onCancel}>
             Cancelar
           </button>
-          <button type="submit" className="auth-submit profile-focus-save-button">Guardar cambios</button>
+          <button type="submit" className="auth-submit profile-focus-save-button" disabled={isSubmitting}>
+            {isSubmitting ? 'Guardando...' : 'Guardar cambios'}
+          </button>
         </div>
+        {submitError && <div className="field-error-text">{submitError}</div>}
       </form>
     </ProfileMenuShell>
   );

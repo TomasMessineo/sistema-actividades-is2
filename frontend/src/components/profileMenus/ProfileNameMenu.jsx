@@ -3,7 +3,7 @@ import ProfileMenuShell from './ProfileMenuShell';
 
 const nameRegex = /^[A-Za-zÁÉÍÓÚáéíóúÑñ ]+$/;
 
-function ProfileNameMenu({ initialFirstName, initialLastName, onSave, onCancel }) {
+function ProfileNameMenu({ initialFirstName, initialLastName, onSave, onCancel, submitError, isSubmitting }) {
   const [firstName, setFirstName] = useState(initialFirstName);
   const [lastName, setLastName] = useState(initialLastName);
   const [firstNameError, setFirstNameError] = useState('');
@@ -54,7 +54,7 @@ function ProfileNameMenu({ initialFirstName, initialLastName, onSave, onCancel }
   };
 
   return (
-    <ProfileMenuShell title="Nombre completo" description="Abrí el flujo para editar tu nombre.">
+    <ProfileMenuShell title="Nombre completo" description="Abrí el flujo para editar tu nombre." onCancel={onCancel}>
       <form className="auth-form profile-focus-form" onSubmit={handleSubmit}>
         <div className="profile-edit-field">
           <label htmlFor="profile-first-name">Nuevo nombre</label>
@@ -82,8 +82,11 @@ function ProfileNameMenu({ initialFirstName, initialLastName, onSave, onCancel }
           <button type="button" className="profile-action-menu-option profile-focus-cancel-button" onClick={onCancel}>
             Cancelar
           </button>
-          <button type="submit" className="auth-submit profile-focus-save-button">Guardar cambios</button>
+          <button type="submit" className="auth-submit profile-focus-save-button" disabled={isSubmitting}>
+            {isSubmitting ? 'Guardando...' : 'Guardar cambios'}
+          </button>
         </div>
+        {submitError && <div className="field-error-text">{submitError}</div>}
       </form>
     </ProfileMenuShell>
   );

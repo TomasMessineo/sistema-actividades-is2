@@ -7,6 +7,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import java.time.LocalDateTime;
+
 @Entity
 @Inheritance(strategy = InheritanceType.JOINED)
 @Getter
@@ -27,6 +30,11 @@ public abstract class Usuario {
     private String email;
 
     private String password;
+
+    private LocalDateTime fechaUltimoCambioPassword;
+
+    @OneToOne(mappedBy = "usuario", cascade = CascadeType.ALL, optional = true)
+    private FotoDePerfil fotoDePerfil;
 
     private boolean activo = true;
 }
