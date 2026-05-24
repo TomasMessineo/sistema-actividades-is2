@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import '../../styles/Profile.css';
 
 function ProfileMenuShell({ title, description, children }) {
   const navigate = useNavigate();
