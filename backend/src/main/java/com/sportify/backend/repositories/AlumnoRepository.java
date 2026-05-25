@@ -17,4 +17,5 @@ public interface AlumnoRepository extends JpaRepository<Alumno, Integer> {
 
     Optional<Alumno> findByEmail(String email);
 
+
 }
