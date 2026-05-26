@@ -1,0 +1,46 @@
+.available-classes-page {
+  height: 100dvh;
+  background:
+    radial-gradient(circle at top left, rgba(34, 197, 94, 0.14), transparent 35%),
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.12), transparent 30%),
+    linear-gradient(180deg, #0b1117 0%, #0f1720 100%);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.available-classes-page main {
+  flex: 1;
+  min-height: 0;
+  padding: 7.5rem 1.5rem 1.5rem;
+  max-width: 1280px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.available-classes-page h1 {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-heading);
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  color: var(--text-primary);
+}
+
+.available-classes-page .page-lead {
+  margin: 0 0 1.75rem;
+  color: var(--text-secondary);
+  max-width: 760px;
+  line-height: 1.6;
+}
+
+.calendar-status {
+  margin: 0 0 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.calendar-status--error {
+  color: #fca5a5;
+}

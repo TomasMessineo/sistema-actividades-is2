@@ -40,6 +40,8 @@ public class Clase {
 
     private LocalDate fecha;
 
+    private Integer hora;
+
     private double precio;
 
     private boolean cancelada = false;

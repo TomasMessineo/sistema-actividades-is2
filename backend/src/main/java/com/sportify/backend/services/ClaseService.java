@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class ClaseService {
@@ -18,6 +19,19 @@ public class ClaseService {
     // 1. LISTAR
     public List<Clase> listAll() {
         return claseRepository.findAll();
+    }
+    
+    public List<Clase> listForAlumno(Integer alumnoId) {
+        if (alumnoId == null) {
+            return List.of();
+        }
+        
+        return listAll().stream()
+                .filter(clase -> clase.getListaAsistencia() != null
+                        && clase.getListaAsistencia().getAlumnos() != null
+                        && clase.getListaAsistencia().getAlumnos().stream()
+                        .anyMatch(alumno -> alumno.getId() == alumnoId))
+                .collect(Collectors.toList());
     }
 
     public List<Clase> listFromDate(LocalDate fecha) {
