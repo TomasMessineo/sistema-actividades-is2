@@ -1,8 +1,8 @@
-package com.sportify.backend.service;
+package com.sportify.backend.services;
 
 import com.sportify.backend.entities.Actividad;
 import com.sportify.backend.entities.Clase;
-import com.sportify.backend.repository.ClaseRepository;
+import com.sportify.backend.repositories.ClaseRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

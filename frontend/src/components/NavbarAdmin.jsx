@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import logoSvg from '../assets/logo.svg';
 
 import '../styles/Navbar.css';
 function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const { logout } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -40,6 +42,16 @@ function Navbar() {
         </ul>
 
         <div className="navbar__actions" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <button 
+            onClick={() => {
+              logout();
+              window.location.href = '/';
+            }} 
+            className="navbar__link navbar__link-logout" 
+            style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit' }}
+          >
+            Cerrar Sesión
+          </button>
           <Link to="/perfil" className="navbar__link" id="nav-login">
             Mi Perfil
           </Link>

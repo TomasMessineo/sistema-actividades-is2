@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 import logoImg from '../assets/logo.svg';
 import '../styles/Navbar.css';
+
 function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const { isAuthenticated, role, logout } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
