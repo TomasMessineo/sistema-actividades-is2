@@ -66,7 +66,7 @@ function Navbar() {
                 Cerrar Sesión
               </button>
               <Link 
-                to={role === 'ALUMNO' ? '/misClases' : '/'} 
+                to={role === 'ALUMNO' ? '/misClases' : '/alumnos'} 
                 className="navbar__cta" 
                 id="nav-cta-panel"
               >

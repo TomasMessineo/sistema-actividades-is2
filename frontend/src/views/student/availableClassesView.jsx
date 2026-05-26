@@ -107,6 +107,8 @@ function AvailableClassesView() {
           day,
           hour: item.hora,
           activity: item.actividad,
+          inscritos: item.inscritos ?? 0,
+          cupo: item.cupo ?? 0,
         }
       })
       .filter(Boolean)

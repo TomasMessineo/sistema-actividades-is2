@@ -42,14 +42,25 @@ const getClassesAtSlot = (classes, dayKey, hour) => {
 
 const formatHourRange = (hour) => `${String(hour).padStart(2, '0')}:00 - ${String(hour + 1).padStart(2, '0')}:00`;
 
-function AvailableClassesCalendar({ weekLabel, onPreviousWeek, onNextWeek, classes = [] }) {
+const formatCapacity = (inscritos, cupo) => `${inscritos ?? 0}/${cupo ?? 0}`;
+
+function AvailableClassesCalendar({
+  weekLabel,
+  onPreviousWeek,
+  onNextWeek,
+  classes = [],
+  showCapacity = false,
+  headerAction = null,
+}) {
   return (
     <section className="available-classes-calendar" aria-label="Calendario de clases disponibles">
       <div className="calendar-intro">
-        <div>
-          <p className="calendar-kicker">Disponibilidad semanal</p>
-          <h2>Clases por día y hora</h2>
-        </div>
+        {headerAction || (
+          <div>
+            <p className="calendar-kicker">Disponibilidad semanal</p>
+            <h2>Clases por día y hora</h2>
+          </div>
+        )}
         <div className="calendar-week-controls" aria-label="Navegación de semana">
           <button type="button" className="calendar-week-button" onClick={onPreviousWeek} aria-label="Semana anterior">
             &lt;
@@ -83,6 +94,9 @@ function AvailableClassesCalendar({ weekLabel, onPreviousWeek, onNextWeek, class
                     <article key={classItem.id} className={`calendar-class-card calendar-class-card--${resolveColorByActivity(classItem.activity, index)}`}>
                       <span className="calendar-class-time">{formatHourRange(hour)}</span>
                       <strong>{normalizeActivityName(classItem.activity)}</strong>
+                      {showCapacity && (
+                        <span className="calendar-class-capacity">{formatCapacity(classItem.inscritos, classItem.cupo)}</span>
+                      )}
                     </article>
                   ))}
                 </div>

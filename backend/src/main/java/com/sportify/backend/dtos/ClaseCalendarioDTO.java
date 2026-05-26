@@ -9,6 +9,7 @@ public class ClaseCalendarioDTO {
     private LocalDate fecha;
     private Integer hora;
     private String actividad;
+    private int inscritos;
     private int cupo;
     private double precio;
     private boolean cancelada;
@@ -16,11 +17,12 @@ public class ClaseCalendarioDTO {
     public ClaseCalendarioDTO() {
     }
 
-    public ClaseCalendarioDTO(int idClase, LocalDate fecha, Integer hora, String actividad, int cupo, double precio, boolean cancelada) {
+    public ClaseCalendarioDTO(int idClase, LocalDate fecha, Integer hora, String actividad, int inscritos, int cupo, double precio, boolean cancelada) {
         this.idClase = idClase;
         this.fecha = fecha;
         this.hora = hora;
         this.actividad = actividad;
+        this.inscritos = inscritos;
         this.cupo = cupo;
         this.precio = precio;
         this.cancelada = cancelada;
@@ -36,6 +38,9 @@ public class ClaseCalendarioDTO {
                 clase.getFecha(),
                 clase.getHora(),
                 actividadNombre,
+            clase.getListaAsistencia() != null && clase.getListaAsistencia().getAlumnos() != null
+                ? clase.getListaAsistencia().getAlumnos().size()
+                : 0,
                 clase.getCupo(),
                 clase.getPrecio(),
                 clase.isCancelada()
@@ -72,6 +77,14 @@ public class ClaseCalendarioDTO {
 
     public void setActividad(String actividad) {
         this.actividad = actividad;
+    }
+
+    public int getInscritos() {
+        return inscritos;
+    }
+
+    public void setInscritos(int inscritos) {
+        this.inscritos = inscritos;
     }
 
     public int getCupo() {
