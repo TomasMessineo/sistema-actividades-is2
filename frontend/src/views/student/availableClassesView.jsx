@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Navbar from '../../components/NavbarAlumno.jsx'
 import AvailableClassesCalendar from '../../components/AvailableClassesCalendar.jsx'
+import { useAuth } from '../../context/AuthContext'
 import { listarClases } from '../../services/claseService'
 import '../../styles/AvailableClasses.css'
 
@@ -51,6 +52,7 @@ function AvailableClassesView() {
   const [classes, setClasses] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const { user, loading: authLoading } = useAuth()
 
   const weekLabel = useMemo(() => {
     const currentWeek = new Date()
@@ -74,12 +76,16 @@ function AvailableClassesView() {
   }, [weekStart])
 
   useEffect(() => {
+    if (authLoading) {
+      return
+    }
+
     const loadClasses = async () => {
       setLoading(true)
       setError('')
 
       try {
-        const response = await listarClases()
+        const response = await listarClases(user?.id)
         setClasses(Array.isArray(response) ? response : [])
       } catch (loadError) {
         setError(loadError.message || 'No se pudieron cargar las clases.')
@@ -89,7 +95,7 @@ function AvailableClassesView() {
     }
 
     loadClasses()
-  }, [])
+  }, [authLoading, user?.id])
 
   const calendarClasses = useMemo(() => {
     return classes
