@@ -131,6 +131,7 @@ function AvailableClassesView() {
           onPreviousWeek={() => setWeekOffset((current) => current - 1)}
           onNextWeek={() => setWeekOffset((current) => current + 1)}
           classes={calendarClasses}
+          showFullBadge
         />
       </main>
     </div>

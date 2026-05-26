@@ -50,6 +50,7 @@ function AvailableClassesCalendar({
   onNextWeek,
   classes = [],
   showCapacity = false,
+  showFullBadge = false,
   headerAction = null,
 }) {
   return (
@@ -92,6 +93,11 @@ function AvailableClassesCalendar({
                 <div key={`${day.key}-${hour}`} className="calendar-slot" role="cell">
                   {slotClasses.map((classItem, index) => (
                     <article key={classItem.id} className={`calendar-class-card calendar-class-card--${resolveColorByActivity(classItem.activity, index)}`}>
+                      {showFullBadge && Number(classItem.inscritos) >= Number(classItem.cupo) && (
+                        <span className="calendar-class-full-badge" aria-label="Clase completa" title="Clase completa">
+                          !
+                        </span>
+                      )}
                       <span className="calendar-class-time">{formatHourRange(hour)}</span>
                       <strong>{normalizeActivityName(classItem.activity)}</strong>
                       {showCapacity && (
