@@ -50,12 +50,36 @@ function Navbar() {
         </ul>
 
         <div className="navbar__actions" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <Link to="/login" className="navbar__link" id="nav-login">
-            Iniciar Sesión
-          </Link>
-          <Link to="/register" className="navbar__cta" id="nav-cta-register">
-            Registrarme
-          </Link>
+          {isAuthenticated ? (
+            <>
+              <button 
+                onClick={() => {
+                  logout();
+                  window.location.href = '/'; // Recargar estado completo
+                }} 
+                className="navbar__link navbar__link-logout" 
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit' }}
+              >
+                Cerrar Sesión
+              </button>
+              <Link 
+                to={role === 'ALUMNO' ? '/misClases' : '/alumnos'} 
+                className="navbar__cta" 
+                id="nav-cta-panel"
+              >
+                Ir al Panel
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className="navbar__link" id="nav-login">
+                Iniciar Sesión
+              </Link>
+              <Link to="/register" className="navbar__cta" id="nav-cta-register">
+                Registrarme
+              </Link>
+            </>
+          )}
         </div>
 
         <button

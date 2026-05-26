@@ -39,7 +39,19 @@ function LoginPage() {
 
       console.log("Inicio de sesión exitoso:", responseData);
       setStatus({ type: 'success', message: '¡Inicio de sesión exitoso!' });
+<<<<<<< Updated upstream
       navigate('/misclases');
+=======
+      
+      // Redirigir según el rol
+      setTimeout(() => {
+        if (responseData.rol === 'ADMIN' || responseData.rol === 'PROFESOR') {
+          navigate('/alumnos');
+        } else {
+          navigate('/misClases');
+        }
+      }, 500);
+>>>>>>> Stashed changes
       
     } catch (error) {
       console.error("Error al iniciar sesión:", error);
