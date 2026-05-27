@@ -26,9 +26,9 @@ import lombok.Setter;
 public class Pago {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    private int idPago;
+    private Integer idPago;
 
-    private double valor;
+    private Double valor;
 
     private LocalDate fecha;
 

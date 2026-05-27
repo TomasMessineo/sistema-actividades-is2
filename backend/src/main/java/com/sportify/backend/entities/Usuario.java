@@ -17,7 +17,7 @@ public abstract class Usuario {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    private int id;
+    private Integer id;
 
     private String nombre;
     private String apellido;
@@ -28,5 +28,5 @@ public abstract class Usuario {
 
     private String password;
 
-    private boolean activo = true;
+    private Boolean activo = true;
 }

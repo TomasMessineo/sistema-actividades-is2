@@ -1,6 +1,6 @@
 package com.sportify.backend.entities;
 
-
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -11,13 +11,15 @@ import java.time.LocalDate;
 import java.util.List;
 
 @Entity
-@Getter@Setter
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 public class Clase {
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    private int idClase;
+    private Integer idClase;
 
     @ManyToOne
     @JoinColumn(name = "profesor_id")
@@ -27,6 +29,7 @@ public class Clase {
     @JoinColumn(name = "actividad_id")
     private Actividad actividad;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "clase")
     private List<Pago> pagos;
 
@@ -36,12 +39,29 @@ public class Clase {
     @OneToOne(mappedBy = "clase", cascade = CascadeType.ALL)
     private ListaAsistencia listaAsistencia;
 
-    private int cupo;
+    private Integer cupo;
 
     private LocalDate fecha;
 
-    private double precio;
+    private Integer hora;
 
-    private boolean cancelada = false;
+    @Column(nullable = false)
+    private Double precio;
 
+    public void prePersistPrecio(){
+        if (this.precio == null){
+            this.precio = 0.0;
+        }
+    }
+
+
+    @Column(nullable = false)
+    private Boolean cancelada = false;
+
+    @PrePersist
+    public void prePersistCancelada() {
+        if (this.cancelada == null) {
+            this.cancelada = false;
+        }
+    }
 }

@@ -39,6 +39,9 @@ function Navbar() {
           <li>
             <Link to="/clasesDisponibles" className="navbar__link" id="nav-info"> Clases Disponibles </Link>
           </li>
+          <li>
+              <Link to="/historialPagos" className="navbar__link" id="nav-historial-pagos"onClick={() => setMenuOpen(false)} >Ver historial de pagos</Link>
+          </li>
         </ul>
 
         <div className="navbar__actions" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
