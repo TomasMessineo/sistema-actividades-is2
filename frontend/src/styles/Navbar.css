@@ -57,7 +57,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 40px;
+  gap: 16px;
   width: 100%;
   max-width: 1700px;
   margin: 0 auto;
@@ -76,9 +76,12 @@
   width: auto;
 }
 
+.navbar__logo {
+  flex: 1;
+}
+
 .navbar__logo:hover {
   transform: scale(1.03);
-  /* Un zoom más sutil y delicado */
 }
 
 /* Enlaces */
@@ -112,7 +115,11 @@
 }
 
 .navbar__actions {
-  flex-shrink: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
 }
 
 /* ── Badge de créditos ─────────────────────────────────── */
@@ -247,6 +254,87 @@
 .navbar__creditos-tooltip-balance strong {
   color: #00FF88;
   font-weight: 700;
+}
+
+/* ── Contacto tooltip ──────────────────────────────────── */
+.navbar__contacto-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.navbar__contacto-tooltip {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%) translateY(-6px);
+  width: 230px;
+  background: rgba(12, 12, 12, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  padding: 14px 16px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 200;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.navbar__contacto-tooltip::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 8px;
+  height: 8px;
+  background: rgba(12, 12, 12, 0.98);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.navbar__contacto-wrapper:hover .navbar__contacto-tooltip,
+.navbar__contacto-wrapper:focus-within .navbar__contacto-tooltip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+
+.navbar__contacto-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 0 0 10px 0;
+}
+
+.navbar__contacto-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  color: rgba(249, 247, 242, 0.75);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.2s ease;
+  white-space: nowrap;
+}
+
+.navbar__contacto-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+a.navbar__contacto-item:hover {
+  color: var(--primary);
+}
+
+.navbar__contacto-item--static {
+  cursor: default;
 }
 
 /* Botón Iniciar Sesión */

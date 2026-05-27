@@ -44,12 +44,12 @@ function Hero() {
         </p>
 
         <div className="hero__actions reveal reveal-delay-3">
-          <Link to="/info" className="hero__btn hero__btn--primary" id="hero-cta-explorar">
+          <a href="#disciplines" className="hero__btn hero__btn--primary" id="hero-cta-explorar">
             <span>Explorar Disciplinas</span>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M5 12h14M12 5l7 7-7 7" />
             </svg>
-          </Link>
+          </a>
           <a href="#about" className="hero__btn hero__btn--outline" id="hero-cta-info">
             <span>Más información</span>
           </a>
