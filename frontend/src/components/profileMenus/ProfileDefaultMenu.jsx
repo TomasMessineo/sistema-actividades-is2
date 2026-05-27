@@ -7,6 +7,7 @@ function ProfileDefaultMenu({
   profileNoticeVariant,
   profileData,
   passwordChangeSummary,
+  aptoMedicoStatus,
   onBack,
   onChangePhoto,
   onChangeMedical,
@@ -41,7 +42,11 @@ function ProfileDefaultMenu({
                 </button>
               </div>
               <div className="profile-avatar-block">
-                <div className="profile-avatar-wrapper profile-medical-wrapper">
+                <div
+                  className={`profile-avatar-wrapper profile-medical-wrapper profile-medical-wrapper--${aptoMedicoStatus?.state || 'red'}`}
+                  data-tooltip={aptoMedicoStatus?.tooltip || 'No tenés apto médico'}
+                  aria-label={aptoMedicoStatus?.tooltip || 'Subido sin apto médico'}
+                >
                   <img src={aptoImage} alt="Apto medico" className="profile-avatar-image" />
                 </div>
                 <button type="button" className="profile-avatar-action" aria-label="Subir nuevo apto" onClick={onChangeMedical}>

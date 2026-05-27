@@ -4,7 +4,7 @@
     radial-gradient(circle at top left, rgba(34, 197, 94, 0.14), transparent 35%),
     radial-gradient(circle at top right, rgba(59, 130, 246, 0.12), transparent 30%),
     linear-gradient(180deg, #0b1117 0%, #0f1720 100%);
-  overflow: hidden;
+  overflow: visible;
   display: flex;
   flex-direction: column;
 }

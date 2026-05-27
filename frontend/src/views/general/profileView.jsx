@@ -16,6 +16,95 @@ import '../../styles/Auth.css';
 import '../../styles/Profile.css';
 import aptoImage from '../../assets/apto.svg';
 
+const ONE_MONTH_IN_MS = 30 * 24 * 60 * 60 * 1000;
+const ELEVEN_MONTHS_IN_MS = 11 * ONE_MONTH_IN_MS;
+const ONE_YEAR_IN_MS = 365 * 24 * 60 * 60 * 1000;
+
+const parseAptoDate = (value) => {
+  if (!value) {
+    return null;
+  }
+
+  const parsedDate = new Date(`${value}T00:00:00`);
+  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+};
+
+const formatTimeUntilExpiration = (expirationDate) => {
+  if (!expirationDate) {
+    return 'No tenés apto médico';
+  }
+
+  const diffInMs = expirationDate.getTime() - Date.now();
+  const absDiffInDays = Math.max(1, Math.round(Math.abs(diffInMs) / (24 * 60 * 60 * 1000)));
+
+  if (absDiffInDays >= 365) {
+    const years = Math.round(absDiffInDays / 365);
+    return diffInMs >= 0
+      ? `Vence en ${years} ${years === 1 ? 'año' : 'años'}`
+      : `Venció hace ${years} ${years === 1 ? 'año' : 'años'}`;
+  }
+
+  if (absDiffInDays >= 30) {
+    const months = Math.round(absDiffInDays / 30);
+    return diffInMs >= 0
+      ? `Vence en ${months} ${months === 1 ? 'mes' : 'meses'}`
+      : `Venció hace ${months} ${months === 1 ? 'mes' : 'meses'}`;
+  }
+
+  return diffInMs >= 0
+    ? `Vence en ${absDiffInDays} ${absDiffInDays === 1 ? 'día' : 'días'}`
+    : `Venció hace ${absDiffInDays} ${absDiffInDays === 1 ? 'día' : 'días'}`;
+};
+
+const getAptoMedicoStatusText = (expirationDate) => formatTimeUntilExpiration(expirationDate);
+
+const getAptoMedicoState = (aptosMedicos) => {
+  const latestApto = Array.isArray(aptosMedicos) && aptosMedicos.length > 0
+    ? aptosMedicos
+        .filter((apto) => apto?.fechaDeVencimiento)
+        .slice()
+        .sort((left, right) => {
+          const leftDate = parseAptoDate(left.fechaDeVencimiento);
+          const rightDate = parseAptoDate(right.fechaDeVencimiento);
+
+          return (rightDate?.getTime() || 0) - (leftDate?.getTime() || 0);
+        })[0]
+    : null;
+
+  if (!latestApto) {
+    return {
+      state: 'red',
+      tooltip: 'No tenés apto médico',
+    };
+  }
+
+  const expirationDate = parseAptoDate(latestApto.fechaDeVencimiento);
+
+  if (!expirationDate) {
+    return {
+      state: 'red',
+      tooltip: 'No tenés apto médico',
+    };
+  }
+
+  const uploadDate = new Date(expirationDate);
+  uploadDate.setFullYear(uploadDate.getFullYear() - 1);
+
+  const ageInMs = Date.now() - uploadDate.getTime();
+
+  let state = 'green';
+  if (ageInMs > ONE_YEAR_IN_MS) {
+    state = 'red';
+  } else if (ageInMs > ELEVEN_MONTHS_IN_MS) {
+    state = 'yellow';
+  }
+
+  return {
+    state,
+    tooltip: getAptoMedicoStatusText(expirationDate),
+  };
+};
+
 function ProfileView() {
   const navigate = useNavigate();
   const { user, login, logout } = useAuth();
@@ -78,6 +167,8 @@ function ProfileView() {
     rol: 'Alumno',
     telefono: '+54 9 221 555-0101',
   };
+
+  const aptoMedicoStatus = getAptoMedicoState(user?.aptosMedicos);
 
   const passwordChangeSummary = getPasswordChangeSummary(user?.fechaUltimoCambioPassword);
 
@@ -196,6 +287,7 @@ function ProfileView() {
       profileNoticeVariant={profileNoticeVariant}
       profileData={profileData}
       passwordChangeSummary={passwordChangeSummary}
+      aptoMedicoStatus={aptoMedicoStatus}
       onBack={() => navigate(-1)}
       onChangePhoto={() => setActiveMenu('photo')}
       onChangeMedical={() => setActiveMenu('medical')}

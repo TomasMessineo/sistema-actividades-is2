@@ -36,10 +36,83 @@
 }
 
 .profile-medical-wrapper {
-  border-color: var(--primary);
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: visible;
+  z-index: 1;
+}
+
+.profile-medical-wrapper--red {
+  border-color: rgba(239, 68, 68, 0.95);
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.18), var(--shadow-md);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.profile-medical-wrapper--yellow {
+  border-color: rgba(250, 204, 21, 0.95);
+  box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.18), var(--shadow-md);
+  background: rgba(250, 204, 21, 0.08);
+}
+
+.profile-medical-wrapper--green {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px rgba(0, 255, 136, 0.16), var(--shadow-md);
+  background: rgba(0, 255, 136, 0.08);
+}
+
+.profile-medical-wrapper:hover {
+  transform: translateY(-2px) scale(1.01);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+  z-index: 2;
+}
+
+.profile-medical-wrapper::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 14px);
+  transform: translateX(-50%) translateY(6px);
+  max-width: 220px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(10, 10, 11, 0.96);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+  z-index: 20;
+}
+
+.profile-medical-wrapper::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  width: 10px;
+  height: 10px;
+  transform: translateX(-50%) rotate(45deg) translateY(6px);
+  background: rgba(10, 10, 11, 0.96);
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+  z-index: 19;
+}
+
+.profile-medical-wrapper:hover::after,
+.profile-medical-wrapper:hover::before,
+.profile-medical-wrapper:focus-visible::after,
+.profile-medical-wrapper:focus-visible::before {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
 .profile-medical-wrapper .profile-avatar-image {
