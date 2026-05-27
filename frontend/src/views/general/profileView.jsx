@@ -9,7 +9,7 @@ import ProfileMedicalMenu from '../../components/profileMenus/ProfileMedicalMenu
 import ProfilePaymentsMenu from '../../components/profileMenus/ProfilePaymentsMenu';
 import ProfileDefaultMenu from '../../components/profileMenus/ProfileDefaultMenu';
 import { useAuth } from '../../context/AuthContext';
-import { actualizarPerfilAlumno, actualizarFotoPerfilAlumno } from '../../services/alumnoService';
+import { actualizarAptoMedicoAlumno, actualizarFotoPerfilAlumno, actualizarPerfilAlumno, listarAptosMedicosAlumno } from '../../services/alumnoService';
 import getPasswordChangeSummary from '../../utils/getPasswordChangeSummary';
 import userImage from '../../assets/user.svg';
 import '../../styles/Auth.css';
@@ -56,8 +56,6 @@ const formatTimeUntilExpiration = (expirationDate) => {
     : `Venció hace ${absDiffInDays} ${absDiffInDays === 1 ? 'día' : 'días'}`;
 };
 
-const getAptoMedicoStatusText = (expirationDate) => formatTimeUntilExpiration(expirationDate);
-
 const getAptoMedicoState = (aptosMedicos) => {
   const latestApto = Array.isArray(aptosMedicos) && aptosMedicos.length > 0
     ? aptosMedicos
@@ -101,7 +99,7 @@ const getAptoMedicoState = (aptosMedicos) => {
 
   return {
     state,
-    tooltip: getAptoMedicoStatusText(expirationDate),
+    tooltip: formatTimeUntilExpiration(expirationDate),
   };
 };
 
@@ -117,6 +115,8 @@ function ProfileView() {
   const [isSaving, setIsSaving] = useState(false);
   const [profileNotice, setProfileNotice] = useState('');
   const [profileNoticeVariant, setProfileNoticeVariant] = useState('error');
+  const [aptosMedicos, setAptosMedicos] = useState([]);
+  const [medicalSaving, setMedicalSaving] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -128,6 +128,34 @@ function ProfileView() {
     setEmail(user.email || 'juan.perez@sportify.com');
     setProfileImageSrc(user.fotoDePerfil?.url || userImage);
   }, [user]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setAptosMedicos([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    const cargarAptos = async () => {
+      try {
+        const response = await listarAptosMedicosAlumno(user.id);
+        if (!cancelled) {
+          setAptosMedicos(Array.isArray(response) ? response : []);
+        }
+      } catch {
+        if (!cancelled) {
+          setAptosMedicos([]);
+        }
+      }
+    };
+
+    cargarAptos();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
   useEffect(() => {
     return () => {
@@ -168,7 +196,7 @@ function ProfileView() {
     telefono: '+54 9 221 555-0101',
   };
 
-  const aptoMedicoStatus = getAptoMedicoState(user?.aptosMedicos);
+  const aptoMedicoStatus = getAptoMedicoState(aptosMedicos);
 
   const passwordChangeSummary = getPasswordChangeSummary(user?.fechaUltimoCambioPassword);
 
@@ -272,7 +300,29 @@ function ProfileView() {
   }
 
   if (activeMenu === 'medical') {
-    return <ProfileMedicalMenu onCancel={() => handleCancelMenu('el apto médico')} />;
+    return (
+      <ProfileMedicalMenu
+        onCancel={() => handleCancelMenu('el apto médico')}
+        onSave={async (selectedFile) => {
+          setProfileError('');
+          setMedicalSaving(true);
+
+          try {
+            const updatedApto = await actualizarAptoMedicoAlumno(user.id, selectedFile);
+            setAptosMedicos((current) => [updatedApto, ...current.filter((item) => item.idAptoMedico !== updatedApto.idAptoMedico)]);
+            setProfileNotice('Se subió el apto médico correctamente');
+            setProfileNoticeVariant('success');
+            setActiveMenu(null);
+          } catch (error) {
+            setProfileError(error.message);
+          } finally {
+            setMedicalSaving(false);
+          }
+        }}
+        submitError={profileError}
+        isSubmitting={medicalSaving}
+      />
+    );
   }
 
   if (activeMenu === 'payments') {

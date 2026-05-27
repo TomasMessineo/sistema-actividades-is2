@@ -1,9 +1,12 @@
 package com.sportify.backend.services;
 
+import com.sportify.backend.dtos.AptoMedicoDTO;
 import com.sportify.backend.dtos.ActualizarPerfilAlumnoDTO;
+import com.sportify.backend.entities.AptoMedico;
 import com.sportify.backend.entities.FotoDePerfil;
 import com.sportify.backend.entities.Alumno;
 import com.sportify.backend.repositories.AlumnoRepository;
+import com.sportify.backend.repositories.AptoMedicoRepository;
 import com.sportify.backend.validations.AlumnoValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -17,6 +20,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -24,10 +28,15 @@ import java.util.UUID;
 public class AlumnoService {
 
     private static final Path PROFILE_PICTURES_DIR = Paths.get("..", "profile-pictures").normalize();
+    private static final Path APTOS_MEDICOS_DIR = Paths.get("..", "aptos-medicos").normalize();
     private static final long MAX_PROFILE_PICTURE_SIZE = 2 * 1024 * 1024;
+    private static final long MAX_APTO_MEDICO_SIZE = 3 * 1024 * 1024;
 
     @Autowired
     private AlumnoRepository alumnoRepository;
+
+    @Autowired
+    private AptoMedicoRepository aptoMedicoRepository;
 
     @Autowired
     private AlumnoValidator alumnoValidator;
@@ -161,6 +170,46 @@ public class AlumnoService {
         return alumnoRepository.save(alumno);
     }
 
+    public AptoMedicoDTO subirAptoMedico(Integer id, MultipartFile archivo) throws IOException {
+        Alumno alumno = buscarPorId(id);
+
+        if (archivo == null || archivo.isEmpty()) {
+            throw new IllegalArgumentException("Debes seleccionar un archivo para subirlo.");
+        }
+
+        validarAptoMedico(archivo);
+
+        Files.createDirectories(APTOS_MEDICOS_DIR);
+
+        String originalFilename = archivo.getOriginalFilename();
+        String fileExtension = obtenerExtensionAptoMedico(originalFilename, archivo.getContentType());
+        String storedFileName = UUID.randomUUID() + fileExtension;
+        Path storedFilePath = APTOS_MEDICOS_DIR.resolve(storedFileName);
+
+        try (InputStream inputStream = archivo.getInputStream()) {
+            Files.copy(inputStream, storedFilePath, StandardCopyOption.REPLACE_EXISTING);
+        }
+
+        AptoMedico aptoMedico = new AptoMedico();
+        aptoMedico.setAlumno(alumno);
+        aptoMedico.setFechaDeVencimiento(LocalDate.now().plusYears(1));
+        aptoMedico.setUrl(ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/aptos-medicos/")
+                .path(storedFileName)
+                .toUriString());
+
+        AptoMedico aptoMedicoGuardado = aptoMedicoRepository.save(aptoMedico);
+        return AptoMedicoDTO.fromEntity(aptoMedicoGuardado);
+    }
+
+    public List<AptoMedicoDTO> listarAptosMedicos(Integer id) {
+        buscarPorId(id);
+
+        return aptoMedicoRepository.findByAlumno_IdOrderByFechaDeVencimientoDesc(id).stream()
+                .map(AptoMedicoDTO::fromEntity)
+                .toList();
+    }
+
     private void validarFotoDePerfil(MultipartFile archivo) {
         if (archivo.getSize() > MAX_PROFILE_PICTURE_SIZE) {
             throw new IllegalArgumentException("La imagen no puede superar los 2 MB");
@@ -172,5 +221,34 @@ public class AlumnoService {
                 && !contentType.equals("image/webp"))) {
             throw new IllegalArgumentException("Solo se permiten imágenes PNG, JPG o WEBP");
         }
+    }
+
+    private void validarAptoMedico(MultipartFile archivo) {
+        if (archivo.getSize() > MAX_APTO_MEDICO_SIZE) {
+            throw new IllegalArgumentException("El apto médico no puede superar los 3 MB");
+        }
+
+        String contentType = archivo.getContentType();
+        if (contentType == null || (!contentType.equals("image/png")
+                && !contentType.equals("image/jpeg")
+                && !contentType.equals("application/pdf"))) {
+            throw new IllegalArgumentException("Solo se permiten archivos PNG, JPG o PDF");
+        }
+    }
+
+    private String obtenerExtensionAptoMedico(String originalFilename, String contentType) {
+        if (originalFilename != null && originalFilename.contains(".")) {
+            return originalFilename.substring(originalFilename.lastIndexOf('.')).toLowerCase();
+        }
+
+        if ("image/png".equals(contentType)) {
+            return ".png";
+        }
+
+        if ("image/jpeg".equals(contentType)) {
+            return ".jpg";
+        }
+
+        return ".pdf";
     }
 }

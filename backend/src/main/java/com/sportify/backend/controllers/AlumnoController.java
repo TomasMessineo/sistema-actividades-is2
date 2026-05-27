@@ -1,6 +1,7 @@
 package com.sportify.backend.controllers;
 
 import com.sportify.backend.dtos.ClaseCalendarioDTO;
+import com.sportify.backend.dtos.AptoMedicoDTO;
 import com.sportify.backend.services.ClaseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -47,6 +48,11 @@ public class AlumnoController {
                 .toList();
     }
 
+    @GetMapping("/{id}/aptos-medicos")
+    public List<AptoMedicoDTO> listarAptosMedicosDelAlumno(@PathVariable Integer id) {
+        return alumnoService.listarAptosMedicos(id);
+    }
+
     @GetMapping
     public ResponseEntity<?> listarAlumnos() {
         try {
@@ -86,6 +92,17 @@ public class AlumnoController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("No se pudo subir la foto de perfil.");
+        }
+    }
+
+    @PostMapping(value = "/{id}/apto-medico", consumes = "multipart/form-data")
+    public ResponseEntity<?> subirAptoMedico(@PathVariable Integer id, @RequestParam("file") MultipartFile file) {
+        try {
+            return ResponseEntity.ok(alumnoService.subirAptoMedico(id, file));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("No se pudo subir el apto médico.");
         }
     }
 }

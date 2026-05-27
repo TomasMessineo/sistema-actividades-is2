@@ -13,5 +13,8 @@ public class WebConfig implements WebMvcConfigurer {
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry.addResourceHandler("/profile-pictures/**")
                 .addResourceLocations(Paths.get("..", "profile-pictures").toAbsolutePath().normalize().toUri().toString());
+
+        registry.addResourceHandler("/aptos-medicos/**")
+                .addResourceLocations(Paths.get("..", "aptos-medicos").toAbsolutePath().normalize().toUri().toString());
     }
 }

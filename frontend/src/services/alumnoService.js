@@ -16,3 +16,17 @@ export const actualizarFotoPerfilAlumno = (id, file) => {
     body: formData,
   });
 };
+
+export const listarAptosMedicosAlumno = (id) => {
+  return apiFetch(`/alumnos/${id}/aptos-medicos`);
+};
+
+export const actualizarAptoMedicoAlumno = (id, file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  return apiFetch(`/alumnos/${id}/apto-medico`, {
+    method: 'POST',
+    body: formData,
+  });
+};
