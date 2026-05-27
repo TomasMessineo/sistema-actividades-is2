@@ -18,9 +18,11 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
-public class Alumno extends Usuario {
+public class Alumno extends com.sportify.backend.entities.Usuario {
 
     private LocalDate fechaNacimiento;
+
+    private int Creditos;
 
     @JsonIgnore
     @ManyToMany(mappedBy = "alumnos")

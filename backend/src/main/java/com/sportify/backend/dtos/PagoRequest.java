@@ -13,6 +13,7 @@ import lombok.Setter;
 @AllArgsConstructor
 public class PagoRequest {
 
+    private Integer idPago;
     private Integer idAlumno;
     private Pago.TipoClase tipoPago;
     private Pago.TipoPago metodoPago;

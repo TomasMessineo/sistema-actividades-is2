@@ -37,8 +37,14 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('sportify_user');
   };
 
+  const updateUser = (updatedFields) => {
+    const updated = { ...user, ...updatedFields };
+    setUser(updated);
+    localStorage.setItem('sportify_user', JSON.stringify(updated));
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, role, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, role, loading, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

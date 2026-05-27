@@ -18,7 +18,7 @@ public class AptoMedico {
     @GeneratedValue (strategy = GenerationType.AUTO)
     private int idAptoMedico;
 
-    private LocalDate fecha;
+    private LocalDate fechaDeVencimiento;
     private String url;
 
     @ManyToOne

@@ -20,27 +20,27 @@
 
 .navbar--scrolled {
   padding: 0px 0;
-  background: rgba(255, 255, 255, 0.800);
+  background: rgba(20, 20, 20, 0.75);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 .navbar--scrolled .navbar__link {
-  color: #1C1C1C;
+  color: #F9F7F2;
 }
 
 .navbar--scrolled #nav-login {
-  color: #1C1C1C !important;
+  color: #F9F7F2 !important;
 }
 
 .navbar--scrolled #nav-login:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(255, 255, 255, 0.08);
   color: var(--primary, #00FF88) !important;
 }
 
 .navbar--scrolled .navbar__hamburger span {
-  background: #1C1C1C;
+  background: #F9F7F2;
 }
 
 .navbar__container {
@@ -62,13 +62,11 @@
 
 .navbar__logo-img {
   height: 90px;
-  /* Logo grande, tal cual te gustó */
   width: auto;
 }
 
 .navbar__logo:hover {
   transform: scale(1.03);
-  /* Un zoom más sutil y delicado */
 }
 
 /* Enlaces */
@@ -83,7 +81,6 @@
   background: none;
   border: none;
   color: #F9F7F2;
-  /* Blanco/crema para contrastar con el fondo negro */
   font-family: var(--font-body);
   font-size: 15px;
   font-weight: 600;
@@ -96,7 +93,6 @@
 
 .navbar__link:hover {
   color: var(--primary, #00FF88);
-  /* Verde vibrante al hover */
   background: rgba(255, 255, 255, 0.08);
   /* Fondo claro con opacidad */
 }
@@ -124,7 +120,7 @@
 }
 
 .navbar--scrolled .navbar__link-logout {
-  color: #1C1C1C !important;
+  color: #F9F7F2 !important;
 }
 
 .navbar__link-logout:hover {
@@ -140,16 +136,13 @@
   padding: 10px 24px;
   border-radius: var(--radius-full);
   background: var(--primary, #00FF88);
-  /* Botón verde */
   color: #1C1C1C;
-  /* Texto oscuro */
   transition: all var(--transition-fast);
   letter-spacing: 0.02em;
 }
 
 .navbar__cta:hover {
   background: #F9F7F2;
-  /* Fondo claro al hover */
   color: #1C1C1C;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 255, 136, 0.3);
@@ -172,7 +165,6 @@
   width: 24px;
   height: 2px;
   background: #F9F7F2;
-  /* Líneas claras */
   border-radius: 2px;
   transition: all 0.3s ease;
 }
@@ -188,6 +180,147 @@
 .navbar__hamburger--open span:nth-child(3) {
   transform: rotate(-45deg) translate(5px, -5px);
 }
+
+/* ── Acciones del navbar ───────────────────────────────── */
+.navbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ── Badge de créditos ─────────────────────────────────── */
+.navbar__creditos {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: rgba(0, 255, 136, 0.12);
+  color: #00FF88;
+  border: 1px solid rgba(0, 255, 136, 0.3);
+  border-radius: var(--radius-full, 999px);
+  padding: 6px 14px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: default;
+  user-select: none;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  letter-spacing: 0.01em;
+}
+
+.navbar__creditos:hover {
+  background-color: rgba(0, 255, 136, 0.2);
+  border-color: rgba(0, 255, 136, 0.5);
+}
+
+.navbar--scrolled .navbar__creditos {
+  background-color: rgba(0, 255, 136, 0.15);
+  border-color: rgba(0, 255, 136, 0.4);
+}
+
+/* Wrapper para posicionar el tooltip */
+.navbar__creditos-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+/* Tooltip */
+.navbar__creditos-tooltip {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 230px;
+  background: rgba(12, 12, 12, 0.98);
+  border: 1px solid rgba(0, 255, 136, 0.2);
+  border-radius: 14px;
+  padding: 14px 16px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-6px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 200;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  text-align: left;
+}
+
+.navbar__creditos-wrapper:hover .navbar__creditos-tooltip {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Flecha del tooltip */
+.navbar__creditos-tooltip::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  right: 18px;
+  width: 8px;
+  height: 8px;
+  background: rgba(12, 12, 12, 0.98);
+  border-top: 1px solid rgba(0, 255, 136, 0.2);
+  border-left: 1px solid rgba(0, 255, 136, 0.2);
+  transform: rotate(45deg);
+}
+
+.navbar__creditos-tooltip-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  color: #00FF88;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin: 0 0 10px 0;
+}
+
+.navbar__creditos-tooltip-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 10px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.navbar__creditos-tooltip-list li {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: rgba(249, 247, 242, 0.7);
+  font-weight: 500;
+  line-height: 1.4;
+  padding-left: 12px;
+  position: relative;
+}
+
+.navbar__creditos-tooltip-list li::before {
+  content: '·';
+  position: absolute;
+  left: 2px;
+  color: #00FF88;
+  font-size: 16px;
+  line-height: 1;
+  top: -1px;
+}
+
+.navbar__creditos-tooltip-balance {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: rgba(249, 247, 242, 0.5);
+  margin: 0;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.navbar__creditos-tooltip-balance strong {
+  color: #00FF88;
+  font-weight: 700;
+}
+/* ─────────────────────────────────────────────────────── */
 
 /* Mobile */
 @media (max-width: 768px) {
@@ -206,7 +339,6 @@
     right: 0;
     bottom: 0;
     background: #1C1C1C;
-    /* Fondo oscuro para el menú móvil */
     flex-direction: column;
     justify-content: center;
     gap: 12px;
