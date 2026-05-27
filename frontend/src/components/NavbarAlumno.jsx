@@ -56,11 +56,11 @@ function NavbarAlumno() {
         <div className="navbar__actions">
           {user && (
             <span className="navbar__creditos-wrapper">
-              <span className="navbar__creditos">
+              <span className="navbar__creditos" tabIndex={0} aria-describedby="creditos-tooltip">
                 <CreditIcon />
                 {creditos} {creditos === 1 ? 'crédito' : 'créditos'}
               </span>
-              <div className="navbar__creditos-tooltip" role="tooltip">
+                <div id="creditos-tooltip" className="navbar__creditos-tooltip" role="tooltip">
                 <p className="navbar__creditos-tooltip-title">
                   <CreditIcon /> Créditos Sportify
                 </p>

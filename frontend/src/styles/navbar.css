@@ -246,9 +246,11 @@
   text-align: left;
 }
 
-.navbar__creditos-wrapper:hover .navbar__creditos-tooltip {
+.navbar__creditos:hover + .navbar__creditos-tooltip,
+.navbar__creditos:focus + .navbar__creditos-tooltip {
   opacity: 1;
   transform: translateY(0);
+  pointer-events: auto;
 }
 
 /* Flecha del tooltip */

@@ -4,8 +4,6 @@ import AvailableClassesCalendar from '../../components/AvailableClassesCalendar.
 import { useAuth } from '../../context/AuthContext'
 import { listarClases } from '../../services/claseService'
 import '../../styles/AvailableClasses.css'
-
-export default AvailableClassesView;
 import PopupInscripcionClase from '../../components/PopupInscripcionClase.jsx'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios';
@@ -125,6 +123,53 @@ function AvailableClassesView() {
       .filter(Boolean)
   }, [classes, weekStart, weekEnd])
 
+  // Popup state for test sign-up
+  const navigate = useNavigate()
+  const [mostrarPopup, setMostrarPopup] = useState(false)
+  const [idClaseSeleccionada, setIdClaseSeleccionada] = useState(null)
+  const [precioDiarioActual, setPrecioDiarioActual] = useState(0)
+  const [precioMensualActual, setPrecioMensualActual] = useState(0)
+
+  const abrirPopup = (clase) => {
+    // clase may be the minimal calendar item; find the full entity
+    const full = classes.find((c) => c.idClase === clase.id) || clase
+    setIdClaseSeleccionada(full.idClase || full.id)
+    setPrecioDiarioActual(full.precio || full.costoDiario || 0)
+    setPrecioMensualActual(full.precioMensual || full.costoMensual || full.precio || 0)
+    setMostrarPopup(true)
+  }
+
+  const manejarInscripcion = async (tipoInscripcion) => {
+    try {
+      const response = await axios.post('http://localhost:8080/api/inscripciones/iniciar', {
+        idAlumno: user?.id || 1,
+        idClase: idClaseSeleccionada,
+        tipoClase: tipoInscripcion === 'mensual' ? 'ABONADO' : 'INDIVIDUAL',
+        metodoPago: tipoInscripcion === 'credito' ? 'CREDITOS' : null
+      })
+
+      setMostrarPopup(false)
+
+      if (tipoInscripcion === 'credito') {
+        // update local user credits if response contains remaining credits
+        // assume response.data.creditosRestantes
+        // navigate or show confirmation
+        alert('¡Inscripción confirmada! Usaste un crédito.')
+        return
+      }
+
+      navigate('/pago', {
+        state: {
+          idPago: response.data.idPago,
+          monto: tipoInscripcion === 'mensual' ? precioMensualActual : precioDiarioActual,
+          tipoPago: tipoInscripcion === 'mensual' ? 'ABONADO' : 'INDIVIDUAL'
+        }
+      })
+    } catch (error) {
+      alert(error.response?.data || 'No se pudo iniciar la inscripción.')
+    }
+  }
+
   return (
     <div className="available-classes-page" ref={mainRef}>
       <Navbar />
@@ -137,13 +182,22 @@ function AvailableClassesView() {
           onNextWeek={() => setWeekOffset((current) => current + 1)}
           classes={calendarClasses}
           showFullBadge
+          onClassClick={abrirPopup}
+        />
+        <PopupInscripcionClase
+          isOpen={mostrarPopup}
+          onClose={() => setMostrarPopup(false)}
+          onConfirm={manejarInscripcion}
+          precioDiario={precioDiarioActual}
+          precioMensual={precioMensualActual}
+          creditos={user?.creditos || 0}
         />
       </main>
     </div>
   );
 }
-
-
+export default AvailableClassesView
+/*
 function AvailableClassesView() {
     const mainRef = useRef(null)
     const navigate = useNavigate()
@@ -236,4 +290,4 @@ function AvailableClassesView() {
     )
 }
 
-export default AvailableClassesView
+*/

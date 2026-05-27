@@ -52,6 +52,7 @@ function AvailableClassesCalendar({
   showCapacity = false,
   showFullBadge = false,
   headerAction = null,
+  onClassClick = null,
 }) {
   return (
     <section className="available-classes-calendar" aria-label="Calendario de clases disponibles">
@@ -92,7 +93,15 @@ function AvailableClassesCalendar({
               return (
                 <div key={`${day.key}-${hour}`} className="calendar-slot" role="cell">
                   {slotClasses.map((classItem, index) => (
-                    <article key={classItem.id} className={`calendar-class-card calendar-class-card--${resolveColorByActivity(classItem.activity, index)}`}>
+                    <article
+                      key={classItem.id}
+                      className={`calendar-class-card calendar-class-card--${resolveColorByActivity(classItem.activity, index)}`}
+                      onClick={() => onClassClick?.(classItem)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClassClick?.(classItem) }}
+                      style={{ cursor: onClassClick ? 'pointer' : 'default' }}
+                    >
                       {showFullBadge && Number(classItem.inscritos) >= Number(classItem.cupo) && (
                         <span className="calendar-class-full-badge" aria-label="Clase completa" title="Clase completa">
                           !
