@@ -42,12 +42,11 @@ function VistaSelectorPago() {
         <div className="botones-grupo">
           <button
             className={metodoPago === 'MERCADOPAGO' ? 'seleccionado' : ''}
-            onClick={() => setMetodoPago('MERCADOPAGO')}
-          >
+            onClick={() => setMetodoPago('MERCADOPAGO')}>
             <div className="icon-container" style={{ background: 'rgba(0,158,227,0.1)', borderColor: 'rgba(0,158,227,0.2)' }}>
-              <img src={mpLogo} alt="Mercado Pago" width="28" />
+              <img src={mpLogo} alt="Mercado Pago" width="80" />
             </div>
-            <span className="metodo-texto">MercadoPago (Dinero en cuenta o Tarjetas)</span>
+            <span className="metodo-texto">MercadoPago</span>
           </button>
           
           <button
@@ -57,7 +56,7 @@ function VistaSelectorPago() {
             <div className="icon-container">
               <span style={{ fontSize: '24px' }}>💳</span>
             </div>
-            <span className="metodo-texto">Tarjeta de Crédito / Débito</span>
+            <span className="metodo-texto">Tarjeta de Crédito</span>
           </button>
         </div>
 
