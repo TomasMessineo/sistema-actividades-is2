@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Navbar from '../../components/NavbarAdmin.jsx'
 import AvailableClassesCalendar from '../../components/AvailableClassesCalendar.jsx'
+import CrearClaseModal from '../../components/CrearClaseModal.jsx'
+import ModificarClaseModal from '../../components/ModificarClaseModal.jsx'
 import { listarClases } from '../../services/claseService'
 import '../../styles/AvailableClasses.css'
 
@@ -51,6 +53,23 @@ function ClassCalendarView() {
   const [classes, setClasses] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [modalCrearAbierto, setModalCrearAbierto] = useState(false)
+  const [modalModificarAbierto, setModalModificarAbierto] = useState(false)
+  const [claseSeleccionada, setClaseSeleccionada] = useState(null)
+
+  const cargarClases = async () => {
+    setLoading(true)
+    setError('')
+
+    try {
+      const response = await listarClases()
+      setClasses(Array.isArray(response) ? response : [])
+    } catch (loadError) {
+      setError(loadError.message || 'No se pudieron cargar las clases.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const weekLabel = useMemo(() => {
     const currentWeek = new Date()
@@ -74,22 +93,19 @@ function ClassCalendarView() {
   }, [weekStart])
 
   useEffect(() => {
-    const loadClasses = async () => {
-      setLoading(true)
-      setError('')
-
-      try {
-        const response = await listarClases()
-        setClasses(Array.isArray(response) ? response : [])
-      } catch (loadError) {
-        setError(loadError.message || 'No se pudieron cargar las clases.')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadClasses()
+    cargarClases()
   }, [])
+
+  const abrirModificarClase = (clase) => {
+    const claseCompleta = classes.find((item) => item.idClase === clase.id) ?? clase
+    setClaseSeleccionada(claseCompleta)
+    setModalModificarAbierto(true)
+  }
+
+  const cerrarModificarClase = () => {
+    setModalModificarAbierto(false)
+    setClaseSeleccionada(null)
+  }
 
   const calendarClasses = useMemo(() => {
     return classes
@@ -121,12 +137,21 @@ function ClassCalendarView() {
         {loading && <p className="calendar-status">Cargando clases...</p>}
         {!loading && error && <p className="calendar-status calendar-status--error">{error}</p>}
         <AvailableClassesCalendar
-          headerAction={<button type="button" className="calendar-create-button">Crear clase nueva</button>}
+          headerAction={(
+            <button
+              type="button"
+              className="calendar-create-button"
+              onClick={() => setModalCrearAbierto(true)}
+            >
+              Crear clase nueva
+            </button>
+          )}
           weekLabel={weekLabel}
           onPreviousWeek={() => setWeekOffset((current) => current - 1)}
           onNextWeek={() => setWeekOffset((current) => current + 1)}
           classes={calendarClasses}
           showCapacity
+          onClassClick={abrirModificarClase}
         />
       </main>
 

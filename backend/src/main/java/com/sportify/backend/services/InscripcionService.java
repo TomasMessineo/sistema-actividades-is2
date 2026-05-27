@@ -49,7 +49,7 @@ public class InscripcionService {
                 }
                 alumno.setCreditos(alumno.getCreditos() - 1);
                 alumnoRepository.save(alumno);
-                pago.setValor(0);
+                pago.setValor(0.0);
                 pago.setEstado(Pago.EstadoPago.COMPLETADO);
                 pago.setDescripcion("Inscripción con crédito");
                 Pago pagoGuardado = pagoRepository.save(pago);

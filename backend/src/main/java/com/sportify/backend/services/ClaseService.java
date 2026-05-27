@@ -23,6 +23,10 @@ public class ClaseService {
     public List<Clase> listarClases() {
         return claseRepository.findAll();
     }
+
+    private List<Clase> listAll() {
+        return listarClases();
+    }
     
     public List<Clase> listForAlumno(Integer alumnoId) {
         if (alumnoId == null) {

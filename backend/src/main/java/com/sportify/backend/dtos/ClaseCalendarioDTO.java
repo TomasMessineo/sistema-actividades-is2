@@ -43,7 +43,7 @@ public class ClaseCalendarioDTO {
                 : 0,
                 clase.getCupo(),
                 clase.getPrecio(),
-                clase.isCancelada()
+                clase.getCancelada()
         );
     }
 

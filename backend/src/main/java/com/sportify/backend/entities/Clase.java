@@ -1,12 +1,22 @@
 package com.sportify.backend.entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import jakarta.persistence.*;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Column;
+import jakarta.persistence.PrePersist;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import java.time.LocalTime;
+
 import java.time.LocalDate;
 import java.util.List;
 
@@ -46,24 +56,17 @@ public class Clase {
     private Integer hora;
 
     @Column(nullable = false)
-    private double precio;
-
-    private LocalTime hora; //no hay horario de hora fin, porque en teoria todas las clases son de 1h.
-
-    private boolean cancelada = false;
-
-    public void prePersistPrecio(){
-        if (this.precio == null){
-            this.precio = 0.0;
-        }
-    }
-
+    private Double precio;
 
     @Column(nullable = false)
     private Boolean cancelada = false;
 
     @PrePersist
-    public void prePersistCancelada() {
+    public void prePersist() {
+        if (this.precio == null) {
+            this.precio = 0.0;
+        }
+
         if (this.cancelada == null) {
             this.cancelada = false;
         }

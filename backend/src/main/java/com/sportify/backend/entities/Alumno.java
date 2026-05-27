@@ -22,7 +22,8 @@ public class Alumno extends com.sportify.backend.entities.Usuario {
 
     private LocalDate fechaNacimiento;
 
-    private int Creditos;
+    @Column(name = "creditos")
+    private Integer creditos = 0;
 
     @JsonIgnore
     @ManyToMany(mappedBy = "alumnos")
@@ -43,6 +44,14 @@ public class Alumno extends com.sportify.backend.entities.Usuario {
     @Transient
     public String getRol() {
         return "ALUMNO";
+    }
+
+    @PostLoad
+    @PrePersist
+    public void normalizarCreditos() {
+        if (creditos == null) {
+            creditos = 0;
+        }
     }
 
 }
