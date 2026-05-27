@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -30,6 +31,7 @@ public class AuthController {
                     .dni(registroDTO.getDni())
                     .email(registroDTO.getEmail())
                     .password(registroDTO.getPassword())
+                    .fechaUltimoCambioPassword(LocalDateTime.now())
                     .fechaNacimiento(registroDTO.getFechaNacimiento())
                     .build();
 
