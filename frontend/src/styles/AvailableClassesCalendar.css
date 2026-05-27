@@ -1,50 +1,3 @@
-.available-classes-page {
-  height: 100dvh;
-  background:
-    radial-gradient(circle at top left, rgba(34, 197, 94, 0.14), transparent 35%),
-    radial-gradient(circle at top right, rgba(59, 130, 246, 0.12), transparent 30%),
-    linear-gradient(180deg, #0b1117 0%, #0f1720 100%);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.available-classes-page main {
-  flex: 1;
-  min-height: 0;
-  padding: 7.5rem 1.5rem 1.5rem;
-  max-width: 1280px;
-  margin: 0 auto;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.available-classes-page h1 {
-  margin: 0 0 0.75rem;
-  font-family: var(--font-heading);
-  font-size: clamp(2rem, 4vw, 3.25rem);
-  color: var(--text-primary);
-}
-
-.available-classes-page .page-lead {
-  margin: 0 0 1.75rem;
-  color: var(--text-secondary);
-  max-width: 760px;
-  line-height: 1.6;
-}
-
-.calendar-status {
-  margin: 0 0 0.75rem;
-  color: var(--text-secondary);
-  font-weight: 600;
-}
-
-.calendar-status--error {
-  color: #fca5a5;
-}
-
 .available-classes-calendar {
   margin-top: 0.75rem;
   padding: 18px;
@@ -63,6 +16,19 @@
   justify-content: space-between;
   gap: 18px;
   margin-bottom: 18px;
+}
+
+.calendar-create-button {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  padding: 0.8rem 1.1rem;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: default;
 }
 
 .calendar-kicker {
@@ -179,6 +145,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  position: relative;
   height: 100%;
   padding: 12px;
   border-radius: 14px;
@@ -192,12 +159,37 @@
   margin-top: 8px;
 }
 
+.calendar-class-full-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #facc15;
+  color: #111827;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 4px 10px rgba(250, 204, 21, 0.35);
+}
+
 .calendar-class-time {
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   opacity: 0.8;
+}
+
+.calendar-class-capacity {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  opacity: 0.82;
 }
 
 .calendar-class-card--mint {
