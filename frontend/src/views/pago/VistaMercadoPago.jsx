@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import pagoService from '../../services/pagoService';
+import api from '../../services/api';
 import '../../styles/pago.css';
 import mpLogo from '../../assets/images/MP_RGB_HANDSHAKE_color_horizontal.svg';
 
@@ -11,35 +12,76 @@ function VistaMercadoPago() {
   const { metodoPago, tipoPago, idAlumno, idClase, monto } = location.state || {};
 
   const [urlPago, setUrlPago] = useState(null);
+  const [idPago, setIdPago] = useState(null);
+  const intervaloRef = useRef(null);
+
   const esCelular = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
   useEffect(() => {
-    procesarPago();
+    let montado = true;
+
+    // Resetear el estado para descartar cualquier valor restaurado por React 18 StrictMode
+    setUrlPago(null);
+    setIdPago(null);
+
+    const iniciar = async () => {
+      try {
+        const respuesta = await pagoService.procesarPago({
+          idAlumno: idAlumno || 1,
+          tipoPago: tipoPago || 'INDIVIDUAL',
+          metodoPago: metodoPago || 'MERCADOPAGO',
+          idClase: idClase || 1,
+          monto: monto || 1.00,
+          emailAlumno: 'alumno@example.com',
+        });
+
+        if (!montado) return;
+
+        if (respuesta.urlRedireccion) {
+          setIdPago(respuesta.idPago);
+          if (esCelular) {
+            window.location.href = respuesta.urlRedireccion;
+          } else {
+            setUrlPago(respuesta.urlRedireccion);
+          }
+        } else {
+          navigate('/pago/fallido', { state: { error: 'No se pudo conectar con Mercado Pago' } });
+        }
+      } catch (error) {
+        if (!montado) return;
+        navigate('/pago/fallido', { state: { error: 'Error de conexión con Mercado Pago' } });
+      }
+    };
+
+    iniciar();
+
+    return () => {
+      montado = false;
+      if (intervaloRef.current) clearInterval(intervaloRef.current);
+    };
   }, []);
 
-  const procesarPago = async () => {
+  // Inicia polling cuando se obtiene el idPago
+  useEffect(() => {
+    if (intervaloRef.current) clearInterval(intervaloRef.current);
+    if (idPago && !esCelular) {
+      intervaloRef.current = setInterval(() => verificarEstado(idPago), 4000);
+      return () => clearInterval(intervaloRef.current);
+    }
+  }, [idPago]);
+
+  const verificarEstado = async (id) => {
     try {
-      const respuesta = await pagoService.procesarPago({
-        idAlumno: idAlumno || 402, // 402 es el ID de prueba en la DB
-        tipoPago: tipoPago || 'ABONADO', // ABONADO no requiere idClase en el backend
-        metodoPago: metodoPago || 'MERCADOPAGO',
-        idClase: idClase || 1,
-        monto: monto || 150.00,
-        emailAlumno: 'alumno@example.com',
-      });
-
-      if (respuesta.urlRedireccion) {
-        if (esCelular) {
-          window.location.href = respuesta.urlRedireccion;
-        } else {
-          setUrlPago(respuesta.urlRedireccion);
-        }
-      } else {
-        navigate('/pago/fallido', { state: { error: 'No se pudo conectar con Mercado Pago' } });
+      const respuesta = await api.get(`/pagos/detalle/${id}`);
+      if (respuesta.data.estado === 'COMPLETADO') {
+        clearInterval(intervaloRef.current);
+        navigate('/pago/exitoso');
+      } else if (respuesta.data.estado === 'FALLIDO') {
+        clearInterval(intervaloRef.current);
+        navigate('/pago/fallido', { state: { error: 'El pago fue rechazado' } });
       }
-
     } catch (error) {
-      navigate('/pago/fallido', { state: { error: 'Error de conexión con Mercado Pago' } });
+      // Silencioso, sigue intentando
     }
   };
 
@@ -72,17 +114,16 @@ function VistaMercadoPago() {
               </a>
             </p>
 
-            {/* Herramientas de Desarrollo / Testing */}
             <div style={{ marginTop: '32px', padding: '16px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', border: '1px dashed rgba(255,255,255,0.2)' }}>
               <h4 style={{ color: 'var(--text-secondary)', marginBottom: '12px', fontSize: '12px', textTransform: 'uppercase' }}>🛠 Herramientas de Prueba</h4>
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                <button 
+                <button
                   onClick={() => navigate('/pago/exitoso')}
                   style={{ background: 'rgba(34, 197, 94, 0.2)', color: '#4ade80', border: '1px solid #4ade80', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px' }}
                 >
                   Simular Éxito
                 </button>
-                <button 
+                <button
                   onClick={() => navigate('/pago/fallido')}
                   style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', border: '1px solid #ef4444', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px' }}
                 >

@@ -17,9 +17,9 @@ public class AlumnoService {
     @Autowired
     private AlumnoValidator alumnoValidator;
 
-    // 1. LISTAR
+    // 1. LISTAR (solo activos)
     public List<Alumno> listarTodos() {
-        return alumnoRepository.findAll();
+        return alumnoRepository.findByActivoTrue();
     }
 
     // 2. AGREGAR / GUARDAR
@@ -38,9 +38,12 @@ public class AlumnoService {
         return alumnoRepository.findById(id).orElseThrow(() -> new RuntimeException("Alumno no encontrado"));
     }
 
-    // 4. ELIMINAR
-    public void eliminar(Integer id) {
-        alumnoRepository.deleteById(id);
+    // 4. ELIMINAR (borrado lógico)
+    public void desactivar(Integer id) {
+        Alumno alumno = alumnoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Alumno no encontrado"));
+        alumno.setActivo(false);
+        alumnoRepository.save(alumno);
     }
 
     // 5. INICIAR SESIÓN

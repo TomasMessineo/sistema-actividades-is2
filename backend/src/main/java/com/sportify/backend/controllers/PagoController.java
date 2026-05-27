@@ -59,7 +59,23 @@ public class PagoController {
     public ResponseEntity<?> obtenerPago(@PathVariable int idPago) {
         try {
             Pago pago = pagoService.obtenerPagoPorId(idPago);
-            return ResponseEntity.ok(pago);
+
+            if (pago.getEstado() == Pago.EstadoPago.PENDIENTE && pago.getIdTransaccion() != null) {
+                Pago.EstadoPago estadoMP = mercadoPagoService.verificarPorPreferencia(pago.getIdTransaccion(), pago.getIdPago());
+                if (estadoMP != Pago.EstadoPago.PENDIENTE) {
+                    pagoService.actualizarEstadoPago(pago.getIdPago(), estadoMP, pago.getIdTransaccion());
+                    pago.setEstado(estadoMP);
+                }
+            }
+
+            return ResponseEntity.ok(new PagoResponse(
+                pago.getIdPago(),
+                pago.getEstado(),
+                pago.getIdTransaccion(),
+                pago.getValor(),
+                "OK",
+                null
+            ));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
