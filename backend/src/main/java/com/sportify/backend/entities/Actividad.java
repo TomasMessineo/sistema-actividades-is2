@@ -1,6 +1,7 @@
 package com.sportify.backend.entities;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -17,7 +18,7 @@ public class Actividad {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    private int idActividad;
+    private Integer idActividad;
 
     @Enumerated(EnumType.STRING)
     private TipoActividad tipo;
@@ -28,6 +29,7 @@ public class Actividad {
         FUNCIONAL
     }
 
+    @JsonIgnore
     @OneToMany(mappedBy = "actividad")
     private List<Clase> clases;
 

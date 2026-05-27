@@ -51,6 +51,9 @@ function NavbarAlumno() {
               Clases Disponibles
             </Link>
           </li>
+          <li>
+              <Link to="/historialPagos" className="navbar__link" id="nav-historial-pagos"onClick={() => setMenuOpen(false)} >Ver historial de pagos</Link>
+          </li>
         </ul>
 
         <div className="navbar__actions">

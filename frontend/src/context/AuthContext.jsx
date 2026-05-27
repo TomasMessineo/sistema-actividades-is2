@@ -4,30 +4,55 @@ const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
 
+const normalizarRol = (rol) => {
+  const rolNormalizado = (rol || '').toUpperCase();
+
+  if (rolNormalizado === 'ADMIN') return 'ADMINISTRADOR';
+  if (rolNormalizado === 'ADMINISTRADOR') return 'ADMINISTRADOR';
+  if (rolNormalizado === 'PROFESOR') return 'PROFESOR';
+  if (rolNormalizado === 'ALUMNO') return 'ALUMNO';
+
+  console.warn('Rol no reconocido o ausente:', rol);
+  return null;
+};
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [role, setRole] = useState(null);
-  const [loading, setLoading] = useState(true); // Para esperar a que lea el localStorage
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Recuperar la sesión al cargar la página
     const storedUser = localStorage.getItem('sportify_user');
+
     if (storedUser) {
       const parsedUser = JSON.parse(storedUser);
-      setUser(parsedUser);
+      const rolNormalizado = normalizarRol(parsedUser.rol || parsedUser.role);
+
+      setUser({
+        ...parsedUser,
+        rol: rolNormalizado
+      });
+
       setIsAuthenticated(true);
-      setRole(parsedUser.rol || 'ALUMNO'); // Fallback si no viene el rol
+      setRole(rolNormalizado);
     }
+
     setLoading(false);
   }, []);
 
   const login = (userData) => {
-    // Asumimos que userData viene completo del backend (incluyendo el rol)
-    setUser(userData);
+    const rolNormalizado = normalizarRol(userData.rol || userData.role);
+
+    const userNormalizado = {
+      ...userData,
+      rol: rolNormalizado
+    };
+
+    setUser(userNormalizado);
     setIsAuthenticated(true);
-    setRole(userData.rol || 'ALUMNO');
-    localStorage.setItem('sportify_user', JSON.stringify(userData));
+    setRole(rolNormalizado);
+
+    localStorage.setItem('sportify_user', JSON.stringify(userNormalizado));
   };
 
   const logout = () => {

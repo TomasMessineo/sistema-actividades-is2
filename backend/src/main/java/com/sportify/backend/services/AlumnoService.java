@@ -60,6 +60,16 @@ public class AlumnoService {
         alumno.setActivo(false);
         alumnoRepository.save(alumno);
     }
+    // 4. ELIMINAR
+    public void eliminarAlumno(Integer id) {
+            Alumno temp= this.alumnoRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Alumno no encontrado"));
+
+            temp.setActivo(false);
+            alumnoRepository.save(temp);
+
+        }
+
 
     // 5. INICIAR SESIÓN
     public Alumno iniciarSesion(String email, String password) {

@@ -129,6 +129,25 @@ function ClassCalendarView() {
           showCapacity
         />
       </main>
+
+      <CrearClaseModal
+        abierto={modalCrearAbierto}
+        onCerrar={() => setModalCrearAbierto(false)}
+        onClaseCreada={() => {
+          setModalCrearAbierto(false)
+          cargarClases()
+        }}
+      />
+
+      <ModificarClaseModal
+        abierto={modalModificarAbierto}
+        claseSeleccionada={claseSeleccionada}
+        onCerrar={cerrarModificarClase}
+        onClaseModificada={() => {
+          cerrarModificarClase()
+          cargarClases()
+        }}
+      />
     </div>
   )
 }
