@@ -1,5 +1,6 @@
 package com.sportify.backend.services;
 
+import java.time.LocalDate;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -68,6 +69,11 @@ public class TarjetaCreditoService {
             throw new RuntimeException("Error por autorización rechazada");
         }
 
+        // CVV de prueba para simular CVV inválido
+        if (solicitud.getCvv().equals("000")) {
+            throw new RuntimeException("Error por CVV inválido");
+        }
+
         // Tarjetas de prueba tradicionales para simular respuestas del banco
         if (numero.equals("4000000000000002")) {
             throw new RuntimeException("Error por fondos insuficientes");
@@ -104,8 +110,17 @@ public class TarjetaCreditoService {
     private boolean esFechaVencimientoValida(String fecha) {
         if (fecha == null || !fecha.matches("\\d{2}/\\d{2}"))
             return false;
+
         int mes = Integer.parseInt(fecha.split("/")[0]);
-        return mes >= 1 && mes <= 12;
+        int anio = 2000 + Integer.parseInt(fecha.split("/")[1]);
+
+        if (mes < 1 || mes > 12)
+            return false;
+
+        LocalDate hoy = LocalDate.now();
+        LocalDate vencimiento = LocalDate.of(anio, mes, 1).plusMonths(1).minusDays(1);
+
+        return !vencimiento.isBefore(hoy);
     }
 
     private boolean esCvvValido(String cvv) {

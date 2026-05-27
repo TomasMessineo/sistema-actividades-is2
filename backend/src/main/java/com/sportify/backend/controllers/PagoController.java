@@ -101,6 +101,16 @@ public class PagoController {
         }
     }
 
+    @PatchMapping("/{idPago}/expirar")
+    public ResponseEntity<?> expirarPago(@PathVariable int idPago) {
+        try {
+            pagoService.actualizarEstado(idPago, Pago.EstadoPago.FALLIDO);
+            return ResponseEntity.ok("Pago expirado");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @GetMapping("/verificar/{idPago}")
     public ResponseEntity<?> verificarPago(@PathVariable String idPago) {
         try {

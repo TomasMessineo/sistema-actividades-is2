@@ -54,6 +54,15 @@ public class PagoService {
         return pagoRepository.save(pago);
     }
 
+    public Pago actualizarEstado(int idPago, Pago.EstadoPago estado) {
+        Pago pago = pagoRepository.findById(idPago)
+                .orElseThrow(() -> new RuntimeException("Pago no encontrado"));
+
+        pago.setEstado(estado);
+
+        return pagoRepository.save(pago);
+    }
+
     public Pago obtenerPagoPorId(int idPago) {
         return pagoRepository.findById(idPago)
                 .orElseThrow(() -> new RuntimeException("Pago no encontrado"));
