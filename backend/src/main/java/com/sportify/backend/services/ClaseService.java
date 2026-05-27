@@ -4,9 +4,11 @@ import com.sportify.backend.entities.Actividad;
 import com.sportify.backend.entities.Alumno;
 import com.sportify.backend.entities.Clase;
 import com.sportify.backend.entities.ListaAsistencia;
+import com.sportify.backend.repositories.AlumnoRepository;
 import com.sportify.backend.repositories.ClaseRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -18,6 +20,9 @@ public class ClaseService {
 
     @Autowired
     private ClaseRepository claseRepository;
+
+    @Autowired
+    private AlumnoRepository alumnoRepository;
 
     // 1. LISTAR
     public List<Clase> listarClases() {
@@ -34,6 +39,7 @@ public class ClaseService {
         }
         
         return listAll().stream()
+                .filter(clase -> !Boolean.TRUE.equals(clase.getCancelada()))
                 .filter(clase -> clase.getListaAsistencia() != null
                         && clase.getListaAsistencia().getAlumnos() != null
                         && clase.getListaAsistencia().getAlumnos().stream()
@@ -43,10 +49,13 @@ public class ClaseService {
 
     public List<Clase> listAvailableForAlumno(Integer alumnoId) {
         if (alumnoId == null) {
-            return listAll();
+            return listAll().stream()
+                    .filter(clase -> !Boolean.TRUE.equals(clase.getCancelada()))
+                    .collect(Collectors.toList());
         }
 
         return listAll().stream()
+                .filter(clase -> !Boolean.TRUE.equals(clase.getCancelada()))
                 .filter(clase -> !isAlumnoEnrolled(clase, alumnoId))
                 .collect(Collectors.toList());
     }
@@ -62,7 +71,7 @@ public class ClaseService {
     }
 
     public List<Clase> listarClasesDeUnaFechaYHora(LocalDate fecha, int hora) {
-        return claseRepository.findByFechaAndHora(fecha, hora);
+        return claseRepository.findByFechaAndHoraAndCanceladaFalse(fecha, hora);
     }
 
     public List<Clase> listarClasesDeUnaActividad(Actividad actividad) {
@@ -210,6 +219,29 @@ public class ClaseService {
             claseExistente.setProfesor(claseActualizada.getProfesor());
         }
 
+        return claseRepository.save(claseExistente);
+    }
+
+    @Transactional
+    public Clase cancelarClase(Integer id) {
+        Clase claseExistente = claseRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Clase no encontrada"));
+
+        if (Boolean.TRUE.equals(claseExistente.getCancelada())) {
+            throw new RuntimeException("La clase ya se encuentra cancelada");
+        }
+
+        ListaAsistencia listaAsistencia = claseExistente.getListaAsistencia();
+        if (listaAsistencia != null && listaAsistencia.getAlumnos() != null && !listaAsistencia.getAlumnos().isEmpty()) {
+            listaAsistencia.getAlumnos().forEach(alumno -> {
+                Integer creditosActuales = alumno.getCreditos() == null ? 0 : alumno.getCreditos();
+                alumno.setCreditos(creditosActuales + 1);
+            });
+
+            alumnoRepository.saveAll(listaAsistencia.getAlumnos());
+        }
+
+        claseExistente.setCancelada(true);
         return claseRepository.save(claseExistente);
     }
 

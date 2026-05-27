@@ -18,6 +18,7 @@ public interface ClaseRepository extends JpaRepository<Clase, Integer> {
     List<Clase> findByActividadIdActividad(int idActividad);
     List<Clase> findByPrecio(double precio);
     List<Clase> findByFechaAndHora(LocalDate fecha, int hora);
+    List<Clase> findByFechaAndHoraAndCanceladaFalse(LocalDate fecha, int hora);
     // Métodos existentes
     List<Clase> findByFecha(LocalDate fecha);
     List<Clase> findByActividad(Actividad actividad);

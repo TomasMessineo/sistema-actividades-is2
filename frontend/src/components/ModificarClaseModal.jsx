@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import '../styles/ModificarClaseModal.css'
+import { cancelarClase as cancelarClaseApi } from '../services/claseService'
 
 const HORAS = Array.from({ length: 17 }, (_, i) => i + 6)
 
@@ -24,6 +25,8 @@ function ModificarClaseModal({
   const [error, setError] = useState('')
   const [mostrarExito, setMostrarExito] = useState(false)
   const [claseModificada, setClaseModificada] = useState(null)
+  const [accionEnProceso, setAccionEnProceso] = useState(false)
+  const [mostrarConfirmacionCancelacion, setMostrarConfirmacionCancelacion] = useState(false)
 
   useEffect(() => {
     if (abierto && claseSeleccionada) {
@@ -40,6 +43,8 @@ function ModificarClaseModal({
       setError('')
       setMostrarExito(false)
       setClaseModificada(null)
+      setAccionEnProceso(false)
+      setMostrarConfirmacionCancelacion(false)
       cargarProfesores()
     }
   }, [abierto, claseSeleccionada])
@@ -237,6 +242,44 @@ function ModificarClaseModal({
     }
   }
 
+  const cancelarClase = async () => {
+    const idClase = obtenerIdClase()
+
+    if (!idClase) {
+      setError('No se pudo identificar la clase seleccionada.')
+      return
+    }
+
+    setAccionEnProceso(true)
+    setError('')
+
+    try {
+      const response = await cancelarClaseApi(idClase)
+      const data = await leerRespuesta(response)
+
+      if (!response.ok) {
+        throw new Error(obtenerMensajeError(data, 'No se pudo cancelar la clase.'))
+      }
+
+      setClaseModificada(data)
+      setMostrarExito(true)
+    } catch (err) {
+      setError(err.message || 'Ocurrió un error al cancelar la clase.')
+    } finally {
+      setAccionEnProceso(false)
+    }
+  }
+
+  const abrirConfirmacionCancelacion = () => {
+    setError('')
+    setMostrarConfirmacionCancelacion(true)
+  }
+
+  const cerrarConfirmacionCancelacion = () => {
+    setMostrarConfirmacionCancelacion(false)
+    setError('La clase no se canceló.')
+  }
+
   const cerrarPopupExito = () => {
     setMostrarExito(false)
 
@@ -342,6 +385,15 @@ function ModificarClaseModal({
               </button>
 
               <button
+                type="button"
+                className="modificar-clase-modal__button modificar-clase-modal__button--danger"
+                onClick={abrirConfirmacionCancelacion}
+                disabled={cargando || cargandoProfesores || accionEnProceso || Boolean(claseSeleccionada.cancelada)}
+              >
+                {claseSeleccionada.cancelada ? 'Clase cancelada' : accionEnProceso ? 'Cancelando...' : 'Cancelar clase'}
+              </button>
+
+              <button
                 type="submit"
                 className="modificar-clase-modal__button modificar-clase-modal__button--primary"
                 disabled={cargando || cargandoProfesores}
@@ -410,6 +462,40 @@ function ModificarClaseModal({
               >
                 Aceptar
               </button>
+            </div>
+          </div>
+        )}
+
+        {mostrarConfirmacionCancelacion && (
+          <div className="modificar-clase-modal__confirmation-overlay" onClick={cerrarConfirmacionCancelacion}>
+            <div className="modificar-clase-modal__confirmation-box" onClick={(event) => event.stopPropagation()}>
+              <p className="modificar-clase-modal__confirmation-label">Confirmar cancelación</p>
+              <h3>¿Cancelar esta clase?</h3>
+              <p>
+                La clase quedará cancelada y no aparecerá para los alumnos.
+              </p>
+
+              <div className="modificar-clase-modal__confirmation-actions">
+                <button
+                  type="button"
+                  className="modificar-clase-modal__button modificar-clase-modal__button--secondary"
+                  onClick={cerrarConfirmacionCancelacion}
+                >
+                  Volver
+                </button>
+
+                <button
+                  type="button"
+                  className="modificar-clase-modal__button modificar-clase-modal__button--danger"
+                  onClick={async () => {
+                    setMostrarConfirmacionCancelacion(false)
+                    await cancelarClase()
+                  }}
+                  disabled={accionEnProceso}
+                >
+                  {accionEnProceso ? 'Cancelando...' : 'Confirmar'}
+                </button>
+              </div>
             </div>
           </div>
         )}

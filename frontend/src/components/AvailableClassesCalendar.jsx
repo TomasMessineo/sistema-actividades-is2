@@ -51,6 +51,7 @@ function AvailableClassesCalendar({
   classes = [],
   showCapacity = false,
   showFullBadge = false,
+  showCancelledState = false,
   headerAction = null,
   onClassClick = null,
 }) {
@@ -95,7 +96,7 @@ function AvailableClassesCalendar({
                   {slotClasses.map((classItem, index) => (
                     <article
                       key={classItem.id}
-                      className={`calendar-class-card calendar-class-card--${resolveColorByActivity(classItem.activity, index)}`}
+                      className={`calendar-class-card ${showCancelledState && classItem.cancelada ? 'calendar-class-card--cancelled' : `calendar-class-card--${resolveColorByActivity(classItem.activity, index)}`}`}
                       onClick={() => onClassClick?.(classItem)}
                       role="button"
                       tabIndex={0}

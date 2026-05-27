@@ -8,3 +8,9 @@ export const listarClases = (alumnoId) => {
 export const listarClasesDelAlumno = (alumnoId) => {
   return apiFetch(`/alumnos/${alumnoId}/clases`);
 };
+
+export const cancelarClase = (idClase) => {
+  return apiFetch(`/clases/${idClase}/cancelar`, {
+    method: 'PATCH',
+  });
+};

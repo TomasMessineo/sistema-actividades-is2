@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -69,6 +70,16 @@ public class ClaseController {
         try {
             Clase claseModificada = claseService.modificarClase(claseActualizada, id);
             return ResponseEntity.ok(claseModificada);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PatchMapping("/{id}/cancelar")
+    public ResponseEntity<?> cancelarClase(@PathVariable Integer id) {
+        try {
+            Clase claseCancelada = claseService.cancelarClase(id);
+            return ResponseEntity.ok(claseCancelada);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

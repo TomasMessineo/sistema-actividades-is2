@@ -125,6 +125,7 @@ function ClassCalendarView() {
           activity: item.actividad,
           inscritos: item.inscritos ?? 0,
           cupo: item.cupo ?? 0,
+          cancelada: Boolean(item.cancelada),
         }
       })
       .filter(Boolean)
@@ -151,6 +152,7 @@ function ClassCalendarView() {
           onNextWeek={() => setWeekOffset((current) => current + 1)}
           classes={calendarClasses}
           showCapacity
+          showCancelledState
           onClassClick={abrirModificarClase}
         />
       </main>
