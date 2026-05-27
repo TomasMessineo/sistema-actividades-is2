@@ -2,7 +2,9 @@ package com.sportify.backend.services;
 
 import com.sportify.backend.entities.Alumno;
 import com.sportify.backend.entities.Clase;
+import com.sportify.backend.entities.ListaAsistencia;
 import com.sportify.backend.entities.Pago;
+import com.sportify.backend.repositories.ListaAsistenciaRepository;
 import com.sportify.backend.repositories.PagoRepository;
 import com.sportify.backend.repositories.AlumnoRepository;
 import com.sportify.backend.repositories.ClaseRepository;
@@ -10,6 +12,7 @@ import com.sportify.backend.dtos.PagoRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -19,13 +22,24 @@ public class PagoService {
     private PagoRepository pagoRepository;
 
     @Autowired
-    private AlumnoRepository alumnoRepository;  // ← Cambié nombre
+    private AlumnoRepository alumnoRepository;
 
     @Autowired
-    private ClaseRepository claseRepository;    // ← Cambié nombre
+    private ClaseRepository claseRepository;
+
+    @Autowired
+    private ListaAsistenciaRepository listaAsistenciaRepository;
 
     public Pago crearPago(PagoRequest solicitud) {
-        Alumno alumno = alumnoRepository.findById(solicitud.getIdAlumno()) 
+        // Si viene idPago, actualizar el pago pendiente existente en lugar de crear uno nuevo
+        if (solicitud.getIdPago() != null && solicitud.getIdPago() > 0) {
+            Pago pago = pagoRepository.findById(solicitud.getIdPago())
+                    .orElseThrow(() -> new RuntimeException("Pago no encontrado"));
+            pago.setTipoPago(solicitud.getMetodoPago());
+            return pagoRepository.save(pago);
+        }
+
+        Alumno alumno = alumnoRepository.findById(solicitud.getIdAlumno())
                 .orElseThrow(() -> new RuntimeException("Alumno no encontrado"));
 
         Pago pago = new Pago();
@@ -50,8 +64,38 @@ public class PagoService {
 
         pago.setEstado(estado);
         pago.setIdTransaccion(idTransaccion);
+        Pago pagoActualizado = pagoRepository.save(pago);
 
-        return pagoRepository.save(pago);
+        if (estado == Pago.EstadoPago.COMPLETADO) {
+            registrarAsistencia(pagoActualizado);
+        }
+
+        return pagoActualizado;
+    }
+
+    public void registrarAsistencia(Pago pago) {
+        if (pago.getClase() == null || pago.getAlumno() == null) return;
+
+        ListaAsistencia lista = listaAsistenciaRepository
+                .findByClaseIdClase(pago.getClase().getIdClase())
+                .orElseGet(() -> {
+                    ListaAsistencia nueva = new ListaAsistencia();
+                    nueva.setClase(pago.getClase());
+                    nueva.setAlumnos(new ArrayList<>());
+                    return nueva;
+                });
+
+        if (lista.getAlumnos() == null) {
+            lista.setAlumnos(new ArrayList<>());
+        }
+
+        boolean yaInscripto = lista.getAlumnos().stream()
+                .anyMatch(a -> a.getId() == pago.getAlumno().getId());
+
+        if (!yaInscripto) {
+            lista.getAlumnos().add(pago.getAlumno());
+            listaAsistenciaRepository.save(lista);
+        }
     }
 
     public Pago obtenerPagoPorId(int idPago) {

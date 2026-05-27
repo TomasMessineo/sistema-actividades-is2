@@ -6,7 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
+import java.time.LocalTime;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -41,6 +41,8 @@ public class Clase {
     private LocalDate fecha;
 
     private double precio;
+
+    private LocalTime hora; //no hay horario de hora fin, porque en teoria todas las clases son de 1h.
 
     private boolean cancelada = false;
 

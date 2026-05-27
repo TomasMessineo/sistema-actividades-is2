@@ -1,18 +1,15 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import ProfileEditButton from '../../components/ProfileEditButton';
+import { useAuth } from '../../context/AuthContext';
 import userImage from '../../assets/user.svg';
 import '../../styles/Auth.css';
 import aptoImage from '../../assets/apto.svg';
 
 function ProfileView() {
   const navigate = useNavigate();
-  const profileData = {
-    nombre: 'Juan Perez',
-    usuario: 'juanperez',
-    email: 'juan.perez@sportify.com',
-    rol: 'Alumno',
-    telefono: '+54 9 221 555-0101',
-  };
+  const { user } = useAuth();
+
+  const creditos = user?.creditos ?? 0;
 
   return (
     <div className="auth-page centered-layout">
@@ -59,27 +56,50 @@ function ProfileView() {
                 <span className="profile-label">Nombre completo</span>
                 <ProfileEditButton ariaLabel="Modificar nombre completo" className="profile-item-edit-button" />
               </div>
-              <span className="profile-value">{profileData.nombre}</span>
+              <span className="profile-value">
+                {user ? `${user.nombre} ${user.apellido}` : '—'}
+              </span>
             </div>
+
             <div className="profile-field">
               <div className="profile-field-head">
                 <span className="profile-label">Email</span>
                 <ProfileEditButton ariaLabel="Modificar email" className="profile-item-edit-button" />
               </div>
-              <span className="profile-value">{profileData.email}</span>
+              <span className="profile-value">{user?.email ?? '—'}</span>
             </div>
+
             <div className="profile-field">
               <div className="profile-field-head">
                 <span className="profile-label">Contraseña</span>
                 <ProfileEditButton ariaLabel="Modificar contraseña" className="profile-item-edit-button" />
               </div>
               <div className="profile-password-meta">
-                <span>Tu ultimo cambio de contraseña fue hace {'<tiempo>'}</span>
+                <span>Cambiá tu contraseña cuando lo necesites</span>
                 <span className="profile-info-wrapper" tabIndex="0" aria-label="Informacion de seguridad">
                   <span className="profile-info-icon" aria-hidden="true">i</span>
-                  <span className="profile-info-tooltip" role="tooltip">recomendamos cambiar la contraseña 1 vez al año</span>
+                  <span className="profile-info-tooltip" role="tooltip">Recomendamos cambiar la contraseña al menos una vez al año</span>
                 </span>
               </div>
+            </div>
+
+            <div className="profile-field profile-field--creditos">
+              <div className="profile-field-head">
+                <span className="profile-label">Créditos disponibles</span>
+                <span className="profile-info-wrapper" tabIndex="0" aria-label="¿Qué son los créditos?">
+                  <span className="profile-info-icon" aria-hidden="true">i</span>
+                  <span className="profile-info-tooltip" role="tooltip">
+                    Son acumulativos durante el período. Los no utilizados se pierden al cambio de período.
+                  </span>
+                </span>
+              </div>
+              <span className="profile-value profile-creditos-value">
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true" style={{ display: 'inline', verticalAlign: 'middle', marginRight: '5px', color: '#00FF88' }}>
+                  <polygon points="6.5,0.8 11.8,3.5 11.8,9.5 6.5,12.2 1.2,9.5 1.2,3.5" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinejoin="round" />
+                  <circle cx="6.5" cy="6.5" r="2" fill="currentColor" />
+                </svg>
+                {creditos} {creditos === 1 ? 'crédito' : 'créditos'}
+              </span>
             </div>
           </div>
           <div className="auth-footer">
