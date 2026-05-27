@@ -19,7 +19,7 @@ function RutasApp() {
       <Route path="/register" element={<RegisterPage />} />
       
       {/* Rutas Protegidas - Alumnos */}
-      <Route element={<ProtectedRoute allowedRoles={['ALUMNO']} />}>
+      <Route element={<ProtectedRoute allowedRoles={['ALUMNO', 'ADMINISTRADOR']} />}>
         <Route path="/perfil" element={<ProfileView />} />
         <Route path="/clasesDisponibles" element={<AvailableClassesView />} />
         <Route path="/misClases" element={<MyClassesView />} />
