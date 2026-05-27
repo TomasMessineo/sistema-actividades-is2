@@ -1,14 +1,21 @@
 /* STUDENT STATS CSS - Admin Panel */
 
 .alumnos-page {
-  min-height: 100vh;
+  height: 100dvh;
   background: var(--bg-primary);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .alumnos-main {
-  padding: 2.5rem 1.5rem;
+  flex: 1;
+  min-height: 0;
+  padding: 8.25rem 1.5rem 1.5rem;
   max-width: 960px;
   margin: 0 auto;
+  box-sizing: border-box;
+  overflow: auto;
 }
 
 /* Header */
