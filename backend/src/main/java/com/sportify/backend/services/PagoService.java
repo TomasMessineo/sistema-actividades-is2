@@ -11,11 +11,13 @@ import com.sportify.backend.repositories.ClaseRepository;
 import com.sportify.backend.dtos.PagoRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@Transactional
 public class PagoService {
 
     @Autowired

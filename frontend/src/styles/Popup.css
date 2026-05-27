@@ -135,6 +135,14 @@
     color: #888;
 }
 
+.btn-price--credito {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: #00FF88;
+    font-weight: 600;
+}
+
 /* Badge de créditos dentro del popup */
 .popup-creditos-badge {
     display: inline-flex;
@@ -180,4 +188,63 @@
 
 .btn-opt-primary-chic.btn-credito .btn-price {
     color: rgba(0, 255, 136, 0.6);
+}
+
+.popup-llena-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(239, 68, 68, 0.1);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+}
+
+.btn-opt-primary-chic.btn-espera {
+    border-color: rgba(251, 191, 36, 0.25);
+    background: rgba(251, 191, 36, 0.04);
+}
+
+.btn-opt-primary-chic.btn-espera:hover {
+    border-color: rgba(251, 191, 36, 0.45);
+    background: rgba(251, 191, 36, 0.09);
+}
+
+.btn-opt-primary-chic.btn-espera .btn-tile-icon {
+    background: rgba(251, 191, 36, 0.08);
+    border-color: rgba(251, 191, 36, 0.15);
+}
+
+.btn-opt-primary-chic.btn-espera .btn-title {
+    color: #fbbf24;
+}
+
+.btn-opt-primary-chic.btn-espera .btn-price {
+    color: rgba(251, 191, 36, 0.55);
+}
+
+.btn-opt-primary-chic.btn-espera:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+
+.popup-error {
+    background: rgba(255, 80, 80, 0.12);
+    border: 1px solid rgba(255, 80, 80, 0.35);
+    border-radius: 8px;
+    color: #ff8080;
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 9px 12px;
+    margin-bottom: 1rem;
+    line-height: 1.4;
+    text-align: left;
 }

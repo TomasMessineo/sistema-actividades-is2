@@ -91,7 +91,7 @@ function AvailableClassesCalendar({
               const slotClasses = getClassesAtSlot(classes, day.key, hour);
 
               return (
-                <div key={`${day.key}-${hour}`} className="calendar-slot" role="cell">
+                <div key={`${day.key}-${hour}`} className="calendar-slot" data-count={slotClasses.length} role="cell">
                   {slotClasses.map((classItem, index) => (
                     <article
                       key={classItem.id}

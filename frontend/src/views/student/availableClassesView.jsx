@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext'
 import { listarClases } from '../../services/claseService'
 import '../../styles/AvailableClasses.css'
 import PopupInscripcionClase from '../../components/PopupInscripcionClase.jsx'
+import PopupListaEspera from '../../components/PopupListaEspera.jsx'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios';
 
@@ -55,7 +56,7 @@ function AvailableClassesView() {
   const [classes, setClasses] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const { user, loading: authLoading } = useAuth()
+  const { user, loading: authLoading, updateUser } = useAuth()
 
   const weekLabel = useMemo(() => {
     const currentWeek = new Date()
@@ -123,38 +124,94 @@ function AvailableClassesView() {
       .filter(Boolean)
   }, [classes, weekStart, weekEnd])
 
-  // Popup state for test sign-up
+
+  /*Precios hardcodeados por actividad :
+
+  ┌───────────┬────────┬─────────┐
+  │ Actividad │ Diario │ Mensual │
+  ├───────────┼────────┼─────────┤
+  │ Yoga      │ $3.000 │ $20.000 │
+  ├───────────┼────────┼─────────┤
+  │ Pilates   │ $3.500 │ $22.000 │
+  ├───────────┼────────┼─────────┤
+  │ Funcional │ $2.500 │ $18.000 │
+  Cuando lo definamos los precios como van solo cambiar abrirPopup para leer los precios de clase.precios en vez de
+  la constante PRECIOS-ACTIVIDAD
+  */
+  const PRECIOS_ACTIVIDAD = {
+    YOGA:      { diario: 3000,  mensual: 20000 },
+    PILATES:   { diario: 3500,  mensual: 22000 },
+    FUNCIONAL: { diario: 2500,  mensual: 18000 },
+  }
+
   const navigate = useNavigate()
+
+  // popup inscripcion
   const [mostrarPopup, setMostrarPopup] = useState(false)
   const [idClaseSeleccionada, setIdClaseSeleccionada] = useState(null)
   const [precioDiarioActual, setPrecioDiarioActual] = useState(0)
   const [precioMensualActual, setPrecioMensualActual] = useState(0)
+  const [claseInfo, setClaseInfo] = useState(null)
+  const [errorInscripcion, setErrorInscripcion] = useState('')
+
+  // popup lista de espera
+  const [mostrarPopupEspera, setMostrarPopupEspera] = useState(false)
+  const [errorEspera, setErrorEspera] = useState('')
+  const [cargandoEspera, setCargandoEspera] = useState(false)
 
   const abrirPopup = (clase) => {
-    // clase may be the minimal calendar item; find the full entity
-    const full = classes.find((c) => c.idClase === clase.id) || clase
-    setIdClaseSeleccionada(full.idClase || full.id)
-    setPrecioDiarioActual(full.precio || full.costoDiario || 0)
-    setPrecioMensualActual(full.precioMensual || full.costoMensual || full.precio || 0)
-    setMostrarPopup(true)
+    const estaLlena = Number(clase.inscritos) >= Number(clase.cupo)
+    const activityKey = (clase.activity || '').toString().toUpperCase()
+    const precios = PRECIOS_ACTIVIDAD[activityKey] || { diario: 0, mensual: 0 }
+
+    setIdClaseSeleccionada(clase.id)
+    setClaseInfo({ actividad: clase.activity, hora: clase.hour })
+    setPrecioDiarioActual(precios.diario)
+    setPrecioMensualActual(precios.mensual)
+    setErrorInscripcion('')
+    setErrorEspera('')
+
+    if (estaLlena) {
+      setMostrarPopupEspera(true)
+    } else {
+      setMostrarPopup(true)
+    }
+  }
+
+  const cerrarPopup = () => {
+    setMostrarPopup(false)
+    setErrorInscripcion('')
+  }
+
+  const cerrarPopupEspera = () => {
+    setMostrarPopupEspera(false)
+    setErrorEspera('')
   }
 
   const manejarInscripcion = async (tipoInscripcion) => {
     try {
+      const usarCredito = tipoInscripcion === 'individual' && (user?.creditos ?? 0) > 0
+
       const response = await axios.post('http://localhost:8080/api/inscripciones/iniciar', {
         idAlumno: user?.id || 1,
         idClase: idClaseSeleccionada,
         tipoClase: tipoInscripcion === 'mensual' ? 'ABONADO' : 'INDIVIDUAL',
-        metodoPago: tipoInscripcion === 'credito' ? 'CREDITOS' : null
+        metodoPago: usarCredito ? 'CREDITOS' : null
       })
 
       setMostrarPopup(false)
+      setErrorInscripcion('')
 
-      if (tipoInscripcion === 'credito') {
-        // update local user credits if response contains remaining credits
-        // assume response.data.creditosRestantes
-        // navigate or show confirmation
-        alert('¡Inscripción confirmada! Usaste un crédito.')
+      if (usarCredito) {
+        if (response.data.creditosRestantes != null) {
+          updateUser({ creditos: response.data.creditosRestantes })
+        }
+        navigate('/pago/exitoso', {
+          state: {
+            titulo: '¡Inscripción confirmada!',
+            descripcion: 'Usaste un crédito. Tu lugar está reservado.',
+          }
+        })
         return
       }
 
@@ -165,8 +222,34 @@ function AvailableClassesView() {
           tipoPago: tipoInscripcion === 'mensual' ? 'ABONADO' : 'INDIVIDUAL'
         }
       })
-    } catch (error) {
-      alert(error.response?.data || 'No se pudo iniciar la inscripción.')
+    } catch (err) {
+      const mensaje = err.response?.data || err.message || 'No se pudo iniciar la inscripción.'
+      setErrorInscripcion(mensaje)
+    }
+  }
+
+  const manejarListaEspera = async () => {
+    setCargandoEspera(true)
+    setErrorEspera('')
+    try {
+      await axios.post('http://localhost:8080/api/lista-espera/inscribir', {
+        idAlumno: user?.id || 1,
+        idClase: idClaseSeleccionada,
+      })
+      setMostrarPopupEspera(false)
+      navigate('/pago/exitoso', {
+        state: {
+          titulo: '¡Te anotamos!',
+          descripcion: 'Quedaste en la lista de espera. Te avisamos si se libera un cupo.',
+          destino: '/clasesDisponibles',
+          labelBoton: 'Ver clases disponibles',
+        }
+      })
+    } catch (err) {
+      const mensaje = err.response?.data || err.message || 'No se pudo inscribir en lista de espera.'
+      setErrorEspera(mensaje)
+    } finally {
+      setCargandoEspera(false)
     }
   }
 
@@ -186,11 +269,21 @@ function AvailableClassesView() {
         />
         <PopupInscripcionClase
           isOpen={mostrarPopup}
-          onClose={() => setMostrarPopup(false)}
+          onClose={cerrarPopup}
           onConfirm={manejarInscripcion}
           precioDiario={precioDiarioActual}
           precioMensual={precioMensualActual}
           creditos={user?.creditos || 0}
+          error={errorInscripcion}
+          claseInfo={claseInfo}
+        />
+        <PopupListaEspera
+          isOpen={mostrarPopupEspera}
+          onClose={cerrarPopupEspera}
+          onConfirm={manejarListaEspera}
+          error={errorEspera}
+          claseInfo={claseInfo}
+          cargando={cargandoEspera}
         />
       </main>
     </div>

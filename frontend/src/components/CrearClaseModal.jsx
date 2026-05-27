@@ -9,6 +9,8 @@ const ACTIVIDADES = [
   { id: 3, nombre: 'Funcional' }
 ]
 
+const HORAS = Array.from({ length: 17 }, (_, i) => i + 6)
+
 function CrearClaseModal({
   abierto,
   onCerrar,
@@ -313,16 +315,17 @@ function CrearClaseModal({
 
             <label className="crear-clase-modal__field">
               <span>Hora</span>
-              <input
-                type="number"
+              <select
                 name="hora"
                 value={form.hora}
                 onChange={manejarCambio}
-                min="0"
-                max="23"
-                placeholder="Ej: 16"
                 required
-              />
+              >
+                <option value="">Seleccionar hora</option>
+                {HORAS.map((h) => (
+                  <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
+                ))}
+              </select>
             </label>
 
             <label className="crear-clase-modal__field">

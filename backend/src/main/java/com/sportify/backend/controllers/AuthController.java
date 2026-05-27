@@ -82,6 +82,11 @@ public class AuthController {
             respuesta.put("email", usuario.getEmail());
             respuesta.put("rol", rol);
 
+            if ("ALUMNO".equals(rol)) {
+                alumnoRepository.findById(usuario.getId())
+                        .ifPresent(alumno -> respuesta.put("creditos", alumno.getCreditos()));
+            }
+
             return ResponseEntity.ok(respuesta);
 
         } catch (IllegalArgumentException e) {

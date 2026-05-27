@@ -28,7 +28,7 @@ function NavbarAlumno() {
   const creditos = user?.creditos ?? 0;
 
   return (
-    <nav className={`navbar ${scrolled ? 'navbar--scrolled' : ''}`} id="navbar">
+    <nav className={`navbar navbar--alumno ${scrolled ? 'navbar--scrolled' : ''}`} id="navbar">
       <div className="navbar__container">
 
         <Link

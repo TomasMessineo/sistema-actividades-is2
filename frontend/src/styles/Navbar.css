@@ -20,27 +20,37 @@
 
 .navbar--scrolled {
   padding: 0px 0;
-  background: rgba(255, 255, 255, 0.800);
+  background: rgba(18, 18, 18, 0.92);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .navbar--scrolled .navbar__link {
-  color: #1C1C1C;
+  color: #F9F7F2;
 }
 
 .navbar--scrolled #nav-login {
-  color: #1C1C1C !important;
+  color: #F9F7F2 !important;
 }
 
 .navbar--scrolled #nav-login:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(255, 255, 255, 0.08);
   color: var(--primary, #00FF88) !important;
 }
 
 .navbar--scrolled .navbar__hamburger span {
-  background: #1C1C1C;
+  background: #F9F7F2;
+}
+
+/* Fondo más claro en páginas internas para que el logo negro se vea */
+.navbar--alumno {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.navbar--alumno.navbar--scrolled {
+  background: rgba(255, 255, 255, 0.22);
 }
 
 .navbar__container {

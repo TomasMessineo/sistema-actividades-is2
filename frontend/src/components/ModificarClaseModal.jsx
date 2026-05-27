@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import '../styles/ModificarClaseModal.css'
 
+const HORAS = Array.from({ length: 17 }, (_, i) => i + 6)
+
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8080/api').replace(/\/$/, '')
 
 function ModificarClaseModal({
@@ -288,16 +290,17 @@ function ModificarClaseModal({
 
             <label className="modificar-clase-modal__field">
               <span>Hora</span>
-              <input
-                type="number"
+              <select
                 name="hora"
                 value={form.hora}
                 onChange={manejarCambio}
-                min="0"
-                max="23"
-                placeholder="Ej: 18"
                 required
-              />
+              >
+                <option value="">Seleccionar hora</option>
+                {HORAS.map((h) => (
+                  <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
+                ))}
+              </select>
             </label>
 
             <label className="modificar-clase-modal__field modificar-clase-modal__field--full">

@@ -10,6 +10,7 @@ import com.sportify.backend.repositories.ClaseRepository;
 import com.sportify.backend.repositories.PagoRepository;
 import com.sportify.backend.validations.InscripcionValidator;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 
@@ -31,6 +32,7 @@ public class InscripcionService {
         this.pagoService = pagoService;
     }
 
+    @Transactional
     public InscripcionResponse iniciarInscripcion(InscripcionRequest request) {
         try {
             inscripcionValidator.InscripcionValidatorAll(request);

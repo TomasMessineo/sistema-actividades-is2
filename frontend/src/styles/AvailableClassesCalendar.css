@@ -129,10 +129,13 @@
 }
 
 .calendar-slot {
-  min-height: 56px;
-  padding: 8px 0 10px;
+  min-height: 80px;
+  padding: 6px 4px 8px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   background: transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .calendar-slot-empty {
@@ -146,17 +149,42 @@
   flex-direction: column;
   gap: 4px;
   position: relative;
-  height: 100%;
-  padding: 12px;
-  border-radius: 14px;
+  flex: 1;
+  padding: 10px 11px;
+  border-radius: 12px;
   color: #06111d;
   font-size: 13px;
   font-weight: 600;
-  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
 }
 
-.calendar-class-card + .calendar-class-card {
-  margin-top: 8px;
+/* 2-3 clases: pills horizontales compactos */
+.calendar-slot[data-count="2"] .calendar-class-card,
+.calendar-slot[data-count="3"] .calendar-class-card {
+  flex-direction: row;
+  align-items: center;
+  flex: unset;
+  height: 32px;
+  padding: 0 30px 0 10px;
+  border-radius: 8px;
+  gap: 0;
+}
+
+.calendar-slot[data-count="2"] .calendar-class-time,
+.calendar-slot[data-count="3"] .calendar-class-time {
+  display: none;
+}
+
+.calendar-slot[data-count="2"] .calendar-class-full-badge,
+.calendar-slot[data-count="3"] .calendar-class-full-badge {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.calendar-slot[data-count="3"] .calendar-class-card {
+  height: 28px;
+  font-size: 11.5px;
+  border-radius: 7px;
 }
 
 .calendar-class-full-badge {
