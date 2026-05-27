@@ -33,16 +33,14 @@ public class ClaseCalendarioDTO {
                 ? clase.getActividad().getTipo().name()
                 : "CLASE";
 
-        int inscritos = clase.getListaAsistencia() != null && clase.getListaAsistencia().getAlumnos() != null
-                ? clase.getListaAsistencia().getAlumnos().size()
-                : 0;
-
         return new ClaseCalendarioDTO(
                 clase.getIdClase(),
                 clase.getFecha(),
                 clase.getHora(),
                 actividadNombre,
-                inscritos,
+            clase.getListaAsistencia() != null && clase.getListaAsistencia().getAlumnos() != null
+                ? clase.getListaAsistencia().getAlumnos().size()
+                : 0,
                 clase.getCupo(),
                 clase.getPrecio(),
                 clase.isCancelada()

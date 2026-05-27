@@ -1,6 +1,7 @@
 package com.sportify.backend.services;
 
 import com.sportify.backend.entities.Actividad;
+import com.sportify.backend.entities.Alumno;
 import com.sportify.backend.entities.Clase;
 import com.sportify.backend.repositories.ClaseRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +33,26 @@ public class ClaseService {
                         && clase.getListaAsistencia().getAlumnos().stream()
                         .anyMatch(alumno -> alumno.getId() == alumnoId))
                 .collect(Collectors.toList());
+    }
+
+    public List<Clase> listAvailableForAlumno(Integer alumnoId) {
+        if (alumnoId == null) {
+            return listAll();
+        }
+
+        return listAll().stream()
+                .filter(clase -> !isAlumnoEnrolled(clase, alumnoId))
+                .collect(Collectors.toList());
+    }
+
+    private boolean isAlumnoEnrolled(Clase clase, Integer alumnoId) {
+        if (clase.getListaAsistencia() == null || clase.getListaAsistencia().getAlumnos() == null) {
+            return false;
+        }
+
+        return clase.getListaAsistencia().getAlumnos().stream()
+                .map(Alumno::getId)
+                .anyMatch(id -> id == alumnoId);
     }
 
     public List<Clase> listFromDate(LocalDate fecha) {

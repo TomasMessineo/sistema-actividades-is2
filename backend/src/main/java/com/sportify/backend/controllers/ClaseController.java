@@ -5,6 +5,7 @@ import com.sportify.backend.services.ClaseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -19,8 +20,8 @@ public class ClaseController {
     private ClaseService claseService;
 
     @GetMapping
-    public List<ClaseCalendarioDTO> listarClasesCalendario() {
-        return claseService.listAll().stream()
+    public List<ClaseCalendarioDTO> listar(@RequestParam(value = "alumnoId", required = false) Integer alumnoId) {
+        return claseService.listAvailableForAlumno(alumnoId).stream()
                 .map(ClaseCalendarioDTO::fromEntity)
                 .toList();
     }
