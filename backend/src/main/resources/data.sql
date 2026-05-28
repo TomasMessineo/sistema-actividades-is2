@@ -219,12 +219,38 @@ VALUES (5, '2099-12-31', 'http://prueba/apto5.pdf', 6)
 -- =========================
 -- REAJUSTE DE SECUENCIAS
 -- =========================
--- Al insertar IDs manualmente (1, 2, 3...), la secuencia interna de Postgres queda desfasada.
--- Esto asegura que los nuevos registros creados desde la app empiecen a partir de 100, evitando colisiones.
+-- Recreamos cada secuencia con INCREMENT BY 1 (alineado con allocationSize=1 en las entidades)
+-- y la posicionamos dinámicamente sobre el máximo ID existente en la tabla.
+-- Esto es seguro incluso si ddl-auto=create no limpió la tabla (p.ej. por FKs que impiden el DROP).
 
-ALTER SEQUENCE IF EXISTS usuario_seq RESTART WITH 100;
-ALTER SEQUENCE IF EXISTS actividad_seq RESTART WITH 100;
-ALTER SEQUENCE IF EXISTS clase_seq RESTART WITH 100;
-ALTER SEQUENCE IF EXISTS apto_medico_seq RESTART WITH 100;
-ALTER SEQUENCE IF EXISTS pago_seq RESTART WITH 100;
-ALTER SEQUENCE IF EXISTS lista_asistencia_seq RESTART WITH 100;
+DROP SEQUENCE IF EXISTS clase_seq;
+CREATE SEQUENCE clase_seq INCREMENT BY 1 START WITH 1;
+SELECT setval('clase_seq', GREATEST(COALESCE((SELECT MAX(id_clase) FROM clase), 0), 5) + 1, false);
+
+DROP SEQUENCE IF EXISTS usuario_seq;
+CREATE SEQUENCE usuario_seq INCREMENT BY 1 START WITH 1;
+SELECT setval('usuario_seq', GREATEST(COALESCE((SELECT MAX(id) FROM usuario), 0), 8) + 1, false);
+
+DROP SEQUENCE IF EXISTS actividad_seq;
+CREATE SEQUENCE actividad_seq INCREMENT BY 1 START WITH 1;
+SELECT setval('actividad_seq', GREATEST(COALESCE((SELECT MAX(id_actividad) FROM actividad), 0), 3) + 1, false);
+
+DROP SEQUENCE IF EXISTS apto_medico_seq;
+CREATE SEQUENCE apto_medico_seq INCREMENT BY 1 START WITH 1;
+SELECT setval('apto_medico_seq', GREATEST(COALESCE((SELECT MAX(id_apto_medico) FROM apto_medico), 0), 5) + 1, false);
+
+DROP SEQUENCE IF EXISTS pago_seq;
+CREATE SEQUENCE pago_seq INCREMENT BY 1 START WITH 1;
+SELECT setval('pago_seq', COALESCE((SELECT MAX(id_pago) FROM pago), 0) + 1, false);
+
+DROP SEQUENCE IF EXISTS lista_asistencia_seq;
+CREATE SEQUENCE lista_asistencia_seq INCREMENT BY 1 START WITH 1;
+SELECT setval('lista_asistencia_seq', COALESCE((SELECT MAX(id_lista_asistencia) FROM lista_asistencia), 0) + 1, false);
+
+DROP SEQUENCE IF EXISTS lista_espera_seq;
+CREATE SEQUENCE lista_espera_seq INCREMENT BY 1 START WITH 1;
+SELECT setval('lista_espera_seq', COALESCE((SELECT MAX(id_lista_espera) FROM lista_espera), 0) + 1, false);
+
+DROP SEQUENCE IF EXISTS foto_de_perfil_seq;
+CREATE SEQUENCE foto_de_perfil_seq INCREMENT BY 1 START WITH 1;
+SELECT setval('foto_de_perfil_seq', COALESCE((SELECT MAX(id_foto_de_perfil) FROM foto_de_perfil), 0) + 1, false);

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import '../styles/CrearClaseModal.css'
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8080/api').replace(/\/$/, '')
@@ -43,11 +43,17 @@ function CrearClaseModal({
   const [claseCreada, setClaseCreada] = useState(null)
   const [mostrarExito, setMostrarExito] = useState(false)
 
+  const horasDisponibles = useMemo(() => calcularHorasDisponibles(form.fecha), [form.fecha])
+
   useEffect(() => {
     if (abierto) {
+      const horas = calcularHorasDisponibles(fechaInicial)
+      const horaInicialNum = Number(horaInicial)
+      const horaValida = horas.includes(horaInicialNum) ? horaInicial : ''
+
       setForm({
         fecha: fechaInicial || '',
-        hora: horaInicial || '',
+        hora: horaValida,
         cupo: '',
         actividadId: '',
         profesorId: ''
@@ -134,6 +140,35 @@ function CrearClaseModal({
     }))
   }
 
+  const esFindeSemana = (fechaStr) => {
+    if (!fechaStr) return false
+    const dia = new Date(fechaStr + 'T00:00:00').getDay()
+    return dia === 0 || dia === 6
+  }
+
+  const manejarCambioFecha = (e) => {
+    const nuevaFecha = e.target.value
+
+    if (esFindeSemana(nuevaFecha)) {
+      setError('El gimnasio no opera los fines de semana. Seleccioná un día de lunes a viernes.')
+      setForm((prev) => ({ ...prev, fecha: '', hora: '' }))
+      return
+    }
+
+    setError('')
+    setForm((prev) => {
+      const horas = calcularHorasDisponibles(nuevaFecha)
+      const horaActual = Number(prev.hora)
+      const horaValida = horas.includes(horaActual)
+
+      return {
+        ...prev,
+        fecha: nuevaFecha,
+        hora: horaValida ? prev.hora : ''
+      }
+    })
+  }
+
   const limpiarFormulario = () => {
     setForm({
       fecha: fechaInicial || '',
@@ -203,8 +238,8 @@ function CrearClaseModal({
       return
     }
 
-    if (hora === null || hora < 0 || hora > 23) {
-      setError('Debe ingresar una hora válida entre 0 y 23.')
+    if (hora === null || !horasDisponibles.includes(hora)) {
+      setError('Debe seleccionar una hora válida para la fecha elegida.')
       setCargando(false)
       return
     }
@@ -239,9 +274,6 @@ function CrearClaseModal({
       }
     }
 
-    console.log('Clase enviada al backend:', nuevaClase)
-    console.log('JSON enviado:', JSON.stringify(nuevaClase))
-
     try {
       const response = await fetch(`${API_BASE_URL}/clases`, {
         method: 'POST',
@@ -252,9 +284,6 @@ function CrearClaseModal({
       })
 
       const data = await leerRespuesta(response)
-
-      console.log('Status creación clase:', response.status)
-      console.log('Respuesta creación clase:', data)
 
       if (!response.ok) {
         throw new Error(obtenerMensajeError(data, 'No se pudo crear la clase.'))
@@ -312,7 +341,7 @@ function CrearClaseModal({
         <div className="crear-clase-modal__content">
           <form className="crear-clase-modal__form" onSubmit={crearClase}>
             <label className="crear-clase-modal__field">
-              <span>Fecha</span>
+              <span>Fecha <small style={{ fontWeight: 400, opacity: 0.65 }}>(lun–vie)</small></span>
               <input
                 type="date"
                 name="fecha"
@@ -331,6 +360,7 @@ function CrearClaseModal({
                 name="hora"
                 value={form.hora}
                 onChange={manejarCambio}
+                disabled={!form.fecha || horasDisponibles.length === 0}
                 required
               >
                 <option value="">Seleccionar hora</option>
