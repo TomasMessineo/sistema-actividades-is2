@@ -9,7 +9,16 @@ const ACTIVIDADES = [
   { id: 3, nombre: 'Funcional' }
 ]
 
-const HORAS = Array.from({ length: 17 }, (_, i) => i + 6)
+const TODAS_LAS_HORAS = Array.from({ length: 13 }, (_, i) => i + 8)
+
+function getHorasDisponibles(fechaStr) {
+  const hoy = new Date().toISOString().split('T')[0];
+  if (fechaStr === hoy) {
+    const horaActual = new Date().getHours();
+    return TODAS_LAS_HORAS.filter((h) => h > horaActual);
+  }
+  return TODAS_LAS_HORAS;
+}
 
 function CrearClaseModal({
   abierto,
@@ -308,7 +317,10 @@ function CrearClaseModal({
                 type="date"
                 name="fecha"
                 value={form.fecha}
-                onChange={manejarCambio}
+                onChange={(e) => {
+                  setForm((prev) => ({ ...prev, fecha: e.target.value, hora: '' }));
+                }}
+                min={new Date().toISOString().split('T')[0]}
                 required
               />
             </label>
@@ -322,7 +334,7 @@ function CrearClaseModal({
                 required
               >
                 <option value="">Seleccionar hora</option>
-                {HORAS.map((h) => (
+                {getHorasDisponibles(form.fecha).map((h) => (
                   <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
                 ))}
               </select>
