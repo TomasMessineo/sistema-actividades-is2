@@ -9,23 +9,15 @@ const ACTIVIDADES = [
   { id: 3, nombre: 'Funcional' }
 ]
 
-const TODAS_LAS_HORAS = Array.from({ length: 17 }, (_, i) => i + 6)
+const TODAS_LAS_HORAS = Array.from({ length: 13 }, (_, i) => i + 8)
 
-const getTodayStr = () => new Date().toISOString().split('T')[0]
-
-// Devuelve la hora mínima permitida si la fecha es hoy (al menos 1 hora desde ahora)
-const calcularMinHoraHoy = () => {
-  const now = new Date()
-  return Math.ceil((now.getHours() * 60 + now.getMinutes() + 60) / 60)
-}
-
-const calcularHorasDisponibles = (fecha) => {
-  if (!fecha) return TODAS_LAS_HORAS
-  if (fecha === getTodayStr()) {
-    const minHora = calcularMinHoraHoy()
-    return TODAS_LAS_HORAS.filter((h) => h >= minHora)
+function getHorasDisponibles(fechaStr) {
+  const hoy = new Date().toISOString().split('T')[0];
+  if (fechaStr === hoy) {
+    const horaActual = new Date().getHours();
+    return TODAS_LAS_HORAS.filter((h) => h > horaActual);
   }
-  return TODAS_LAS_HORAS
+  return TODAS_LAS_HORAS;
 }
 
 function CrearClaseModal({
@@ -354,9 +346,10 @@ function CrearClaseModal({
                 type="date"
                 name="fecha"
                 value={form.fecha}
-                onChange={manejarCambioFecha}
-                min={getTodayStr()}
-                onKeyDown={(e) => { if (e.key !== 'Tab') e.preventDefault() }}
+                onChange={(e) => {
+                  setForm((prev) => ({ ...prev, fecha: e.target.value, hora: '' }));
+                }}
+                min={new Date().toISOString().split('T')[0]}
                 required
               />
             </label>
@@ -370,17 +363,10 @@ function CrearClaseModal({
                 disabled={!form.fecha || horasDisponibles.length === 0}
                 required
               >
-                {horasDisponibles.length === 0
-                  ? <option value="">No hay horarios disponibles para hoy</option>
-                  : (
-                    <>
-                      <option value="">Seleccionar hora</option>
-                      {horasDisponibles.map((h) => (
-                        <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
-                      ))}
-                    </>
-                  )
-                }
+                <option value="">Seleccionar hora</option>
+                {getHorasDisponibles(form.fecha).map((h) => (
+                  <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
+                ))}
               </select>
             </label>
 
