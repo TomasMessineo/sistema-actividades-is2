@@ -6,9 +6,11 @@ import mpLogo from '../../assets/images/MP_RGB_HANDSHAKE_color_horizontal.svg';
 function VistaSelectorPago() {
   const navigate = useNavigate();
   const location = useLocation();
+  const idPago = location.state?.idPago;
   const idAlumno = location.state?.idAlumno;
   const idClase = location.state?.idClase;
   const monto = location.state?.monto;
+  const tipoPago = location.state?.tipoPago;
 
   const [metodoPago, setMetodoPago] = useState(null);
 
@@ -18,9 +20,9 @@ function VistaSelectorPago() {
       return;
     }
     if (metodoPago === 'TARJETADECREDITO') {
-      navigate('/pago/tarjeta', { state: { metodoPago, idAlumno, idClase, monto } });
+      navigate('/pago/tarjeta', { state: { metodoPago, idPago, idAlumno, idClase, monto, tipoPago } });
     } else {
-      navigate('/pago/mercadopago', { state: { metodoPago, idAlumno, idClase, monto } });
+      navigate('/pago/mercadopago', { state: { metodoPago, idPago, idAlumno, idClase, monto, tipoPago } });
     }
   };
 
@@ -42,12 +44,11 @@ function VistaSelectorPago() {
         <div className="botones-grupo">
           <button
             className={metodoPago === 'MERCADOPAGO' ? 'seleccionado' : ''}
-            onClick={() => setMetodoPago('MERCADOPAGO')}
-          >
+            onClick={() => setMetodoPago('MERCADOPAGO')}>
             <div className="icon-container" style={{ background: 'rgba(0,158,227,0.1)', borderColor: 'rgba(0,158,227,0.2)' }}>
-              <img src={mpLogo} alt="Mercado Pago" width="28" />
+              <img src={mpLogo} alt="Mercado Pago" width="80" />
             </div>
-            <span className="metodo-texto">MercadoPago (Dinero en cuenta o Tarjetas)</span>
+            <span className="metodo-texto">MercadoPago</span>
           </button>
           
           <button
@@ -57,7 +58,7 @@ function VistaSelectorPago() {
             <div className="icon-container">
               <span style={{ fontSize: '24px' }}>💳</span>
             </div>
-            <span className="metodo-texto">Tarjeta de Crédito / Débito</span>
+            <span className="metodo-texto">Tarjeta de Crédito</span>
           </button>
         </div>
 

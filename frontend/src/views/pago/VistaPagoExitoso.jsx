@@ -1,8 +1,13 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import '../../styles/pago.css';
 
 function VistaPagoExitoso() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const titulo = location.state?.titulo || '¡Pago confirmado!';
+  const descripcion = location.state?.descripcion || 'Tu inscripción ha sido procesada exitosamente.';
+  const destino = location.state?.destino || '/misClases';
+  const labelBoton = location.state?.labelBoton || 'Ir a Mis Clases';
 
   return (
     <div className="pago-page">
@@ -10,14 +15,14 @@ function VistaPagoExitoso() {
         <div className="status-icon-wrapper success">
           ✓
         </div>
-        
+
         <div className="pago-header">
-          <h2>¡Pago confirmado!</h2>
-          <p>Tu inscripción ha sido procesada exitosamente.</p>
+          <h2>{titulo}</h2>
+          <p>{descripcion}</p>
         </div>
-        
-        <button className="btn-confirmar" onClick={() => navigate('/misclases')}>
-          Ir a Mis Clases
+
+        <button className="btn-confirmar" onClick={() => navigate(destino)}>
+          {labelBoton}
         </button>
       </div>
     </div>

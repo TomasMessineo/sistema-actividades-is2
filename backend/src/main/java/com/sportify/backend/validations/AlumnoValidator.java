@@ -19,6 +19,10 @@ public class AlumnoValidator {
         validarEmailDuplicado(alumno);
     }
 
+    public void validarEmailDisponibleParaEdicion(Alumno alumno) {
+        validarEmailDuplicado(alumno);
+    }
+
     private void validarEdad(LocalDate fechaNacimiento) {
         LocalDate hace16Anios = LocalDate.now().minusYears(16);
         if (fechaNacimiento != null && fechaNacimiento.isAfter(hace16Anios)) {
