@@ -10,6 +10,7 @@ const disciplines = [
     description: 'Movimientos dinámicos que mejoran tu rendimiento en la vida diaria.',
     image: funcionalImg,
     level: 'Todos los niveles',
+    tags: ['Alta intensidad', '60 min'],
   },
   {
     id: 'yoga',
@@ -17,6 +18,7 @@ const disciplines = [
     description: 'Conectá cuerpo y mente a través de posturas, respiración y meditación.',
     image: yogaImg,
     level: 'Todos los niveles',
+    tags: ['Intensidad suave', '60 min'],
   },
   {
     id: 'pilates',
@@ -24,6 +26,7 @@ const disciplines = [
     description: 'Fortalecé tu core, mejorá tu postura y flexibilidad con ejercicios controlados.',
     image: pilatesImg,
     level: 'Todos los niveles',
+    tags: ['Intensidad media', '60 min'],
   },
 ];
 
@@ -57,6 +60,14 @@ function Disciplines() {
                 />
                 <div className="discipline-card__image-overlay"></div>
                 <span className="discipline-card__level">{discipline.level}</span>
+
+                <div className="discipline-card__hover-panel">
+                  <div className="discipline-card__hover-tags">
+                    {discipline.tags.map((tag) => (
+                      <span key={tag} className="discipline-card__tag">{tag}</span>
+                    ))}
+                  </div>
+                </div>
               </div>
               <div className="discipline-card__content">
                 <h3 className="discipline-card__title">{discipline.title}</h3>
