@@ -9,7 +9,7 @@ const ACTIVIDADES = [
   { id: 3, nombre: 'Funcional' }
 ]
 
-const HORAS = Array.from({ length: 17 }, (_, i) => i + 6)
+const HORAS = Array.from({ length: 13 }, (_, i) => i + 8)
 
 function CrearClaseModal({
   abierto,
