@@ -6,6 +6,8 @@ import api from '../../services/api';
 import '../../styles/pago.css';
 import mpLogo from '../../assets/images/MP_RGB_HANDSHAKE_color_horizontal.svg';
 
+const DURACION = 60; // segundos
+
 function VistaMercadoPago() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -13,16 +15,25 @@ function VistaMercadoPago() {
 
   const [urlPago, setUrlPago] = useState(null);
   const [idPago, setIdPago] = useState(null);
+  const [expirado, setExpirado] = useState(false);
+  const [tiempoRestante, setTiempoRestante] = useState(DURACION);
+  const [reintentoKey, setReintentoKey] = useState(0);
+
   const intervaloRef = useRef(null);
+  const cuentaRegresivaRef = useRef(null);
+  const idPagoRef = useRef(null);
 
   const esCelular = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
+  // Crea el pago y genera el QR
   useEffect(() => {
     let montado = true;
 
-    // Resetear el estado para descartar cualquier valor restaurado por React 18 StrictMode
     setUrlPago(null);
     setIdPago(null);
+    setExpirado(false);
+    setTiempoRestante(DURACION);
+    idPagoRef.current = null;
 
     const iniciar = async () => {
       try {
@@ -38,6 +49,7 @@ function VistaMercadoPago() {
         if (!montado) return;
 
         if (respuesta.urlRedireccion) {
+          idPagoRef.current = respuesta.idPago;
           setIdPago(respuesta.idPago);
           if (esCelular) {
             window.location.href = respuesta.urlRedireccion;
@@ -47,7 +59,7 @@ function VistaMercadoPago() {
         } else {
           navigate('/pago/fallido', { state: { error: 'No se pudo conectar con Mercado Pago' } });
         }
-      } catch (error) {
+      } catch {
         if (!montado) return;
         navigate('/pago/fallido', { state: { error: 'Error de conexión con Mercado Pago' } });
       }
@@ -57,11 +69,12 @@ function VistaMercadoPago() {
 
     return () => {
       montado = false;
-      if (intervaloRef.current) clearInterval(intervaloRef.current);
+      clearInterval(intervaloRef.current);
+      clearInterval(cuentaRegresivaRef.current);
     };
-  }, []);
+  }, [reintentoKey]);
 
-  // Inicia polling cuando se obtiene el idPago
+  // Polling para detectar el pago
   useEffect(() => {
     if (intervaloRef.current) clearInterval(intervaloRef.current);
     if (idPago && !esCelular) {
@@ -70,20 +83,57 @@ function VistaMercadoPago() {
     }
   }, [idPago]);
 
+  // Countdown: arranca cuando aparece el QR
+  useEffect(() => {
+    if (!urlPago || esCelular) return;
+
+    cuentaRegresivaRef.current = setInterval(() => {
+      setTiempoRestante(prev => {
+        if (prev <= 1) {
+          clearInterval(cuentaRegresivaRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(cuentaRegresivaRef.current);
+  }, [urlPago]);
+
+  // Cuando el tiempo llega a 0, expira el pago
+  useEffect(() => {
+    if (tiempoRestante > 0 || !urlPago || expirado) return;
+
+    clearInterval(intervaloRef.current);
+    if (idPagoRef.current) {
+      api.patch(`/pagos/${idPagoRef.current}/expirar`).catch(() => {});
+    }
+    setExpirado(true);
+  }, [tiempoRestante, urlPago, expirado]);
+
   const verificarEstado = async (id) => {
     try {
       const respuesta = await api.get(`/pagos/detalle/${id}`);
       if (respuesta.data.estado === 'COMPLETADO') {
         clearInterval(intervaloRef.current);
+        clearInterval(cuentaRegresivaRef.current);
         navigate('/pago/exitoso');
       } else if (respuesta.data.estado === 'FALLIDO') {
         clearInterval(intervaloRef.current);
+        clearInterval(cuentaRegresivaRef.current);
         navigate('/pago/fallido', { state: { error: 'El pago fue rechazado' } });
       }
-    } catch (error) {
+    } catch {
       // Silencioso, sigue intentando
     }
   };
+
+  const reintentar = () => setReintentoKey(k => k + 1);
+
+  const minutos = Math.floor(tiempoRestante / 60);
+  const segundos = tiempoRestante % 60;
+  const tiempoFormato = `${minutos}:${segundos.toString().padStart(2, '0')}`;
+  const claseCountdown = tiempoRestante <= 10 ? 'critico' : tiempoRestante <= 30 ? 'warning' : '';
 
   return (
     <div className="pago-page">
@@ -95,7 +145,26 @@ function VistaMercadoPago() {
       </Link>
 
       <div className="pago-container" style={{ textAlign: 'center' }}>
-        {urlPago ? (
+        {!urlPago && !expirado ? (
+          <div style={{ padding: '40px 0' }}>
+            <div className="pago-header">
+              <h2>Conectando...</h2>
+              <p>Estamos procesando tu solicitud con Mercado Pago, por favor esperá.</p>
+            </div>
+            <div style={{ marginTop: '40px', display: 'flex', justifyContent: 'center' }}>
+              <div className="fintech-spinner" />
+            </div>
+          </div>
+        ) : expirado ? (
+          <div className="qr-expirado-wrapper">
+            <div className="qr-expirado-icono">⏱</div>
+            <h3>Se agotó el tiempo</h3>
+            <p>El código QR expiró. Generá uno nuevo para continuar.</p>
+            <button className="btn-reintentar" onClick={reintentar}>
+              Intentar de nuevo
+            </button>
+          </div>
+        ) : (
           <>
             <div className="pago-header">
               <img src={mpLogo} alt="Mercado Pago" height="32" style={{ marginBottom: '16px' }} />
@@ -107,7 +176,11 @@ function VistaMercadoPago() {
               <QRCodeSVG value={urlPago} size={220} />
             </div>
 
-            <p style={{ color: 'var(--text-muted)', marginTop: '24px', fontSize: '14px' }}>
+            <div className={`qr-countdown ${claseCountdown}`}>
+              Expira en <span>{tiempoFormato}</span>
+            </div>
+
+            <p style={{ color: 'var(--text-muted)', marginTop: '16px', fontSize: '14px' }}>
               ¿Estás navegando desde la PC?{' '}
               <a href={urlPago} style={{ color: 'var(--primary)', fontWeight: '600', textDecoration: 'none' }}>
                 Pagá desde el navegador
@@ -132,25 +205,6 @@ function VistaMercadoPago() {
               </div>
             </div>
           </>
-        ) : (
-          <div style={{ padding: '40px 0' }}>
-            <div className="pago-header">
-              <h2>Conectando...</h2>
-              <p>Estamos procesando tu solicitud con Mercado Pago, por favor esperá.</p>
-            </div>
-            <div style={{ marginTop: '40px', display: 'flex', justifyContent: 'center' }}>
-              <div style={{
-                width: '40px', height: '40px',
-                border: '3px solid rgba(255,255,255,0.1)',
-                borderTopColor: 'var(--primary)',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite'
-              }}></div>
-            </div>
-            <style>{`
-              @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-            `}</style>
-          </div>
         )}
       </div>
     </div>
