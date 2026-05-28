@@ -15,7 +15,8 @@ import java.time.LocalDate;
 public class AptoMedico {
 
     @Id
-    @GeneratedValue (strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "apto_medico_gen")
+    @SequenceGenerator(name = "apto_medico_gen", sequenceName = "apto_medico_seq", allocationSize = 1)
     private int idAptoMedico;
 
     private LocalDate fechaDeVencimiento;

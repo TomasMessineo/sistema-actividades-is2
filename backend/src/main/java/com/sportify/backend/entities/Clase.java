@@ -12,6 +12,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Column;
 import jakarta.persistence.PrePersist;
+import jakarta.persistence.SequenceGenerator;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -28,7 +29,8 @@ import java.util.List;
 public class Clase {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "clase_gen")
+    @SequenceGenerator(name = "clase_gen", sequenceName = "clase_seq", allocationSize = 1)
     private Integer idClase;
 
     @ManyToOne

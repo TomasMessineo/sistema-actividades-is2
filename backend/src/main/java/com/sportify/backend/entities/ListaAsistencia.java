@@ -14,7 +14,8 @@ public class ListaAsistencia {
 
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "lista_asistencia_gen")
+    @SequenceGenerator(name = "lista_asistencia_gen", sequenceName = "lista_asistencia_seq", allocationSize = 1)
     private int idListaAsistencia;
 
 

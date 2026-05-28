@@ -3,6 +3,7 @@ package com.sportify.backend.controllers;
 import com.sportify.backend.dtos.ClaseCalendarioDTO;
 import com.sportify.backend.entities.Clase;
 import com.sportify.backend.services.ClaseService;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -28,6 +29,7 @@ public class ClaseController {
     private ClaseService claseService;
 
     @GetMapping
+    @Transactional
     public List<ClaseCalendarioDTO> listar(@RequestParam(value = "alumnoId", required = false) Integer alumnoId) {
         return (alumnoId == null ? claseService.listarClases() : claseService.listAvailableForAlumno(alumnoId))
                 .stream()

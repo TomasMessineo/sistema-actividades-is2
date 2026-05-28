@@ -7,6 +7,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.SequenceGenerator;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -20,7 +21,8 @@ import lombok.Setter;
 public class FotoDePerfil {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "foto_perfil_gen")
+    @SequenceGenerator(name = "foto_perfil_gen", sequenceName = "foto_de_perfil_seq", allocationSize = 1)
     private int idFotoDePerfil;
 
     private String url;
