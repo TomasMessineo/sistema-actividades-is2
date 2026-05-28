@@ -105,7 +105,7 @@ const getAptoMedicoState = (aptosMedicos) => {
 
 function ProfileView() {
   const navigate = useNavigate();
-  const { user, login, logout } = useAuth();
+  const { user, login, logout, role } = useAuth();
   const [activeMenu, setActiveMenu] = useState(null);
   const [firstName, setFirstName] = useState(user?.nombre || 'Juan');
   const [lastName, setLastName] = useState(user?.apellido || 'Perez');
@@ -197,6 +197,7 @@ function ProfileView() {
   };
 
   const aptoMedicoStatus = getAptoMedicoState(aptosMedicos);
+  const canManageAptoMedico = role === 'ALUMNO';
 
   const passwordChangeSummary = getPasswordChangeSummary(user?.fechaUltimoCambioPassword);
 
@@ -299,7 +300,7 @@ function ProfileView() {
     );
   }
 
-  if (activeMenu === 'medical') {
+  if (activeMenu === 'medical' && canManageAptoMedico) {
     return (
       <ProfileMedicalMenu
         onCancel={() => handleCancelMenu('el apto médico')}
@@ -326,7 +327,7 @@ function ProfileView() {
   }
 
   if (activeMenu === 'payments') {
-    return <ProfilePaymentsMenu onCancel={() => handleCancelMenu('el historial de pagos')} />;
+    return <ProfilePaymentsMenu onCancel={() => setActiveMenu(null)} />;
   }
 
   return (
@@ -338,6 +339,7 @@ function ProfileView() {
       profileData={profileData}
       passwordChangeSummary={passwordChangeSummary}
       aptoMedicoStatus={aptoMedicoStatus}
+      canManageAptoMedico={canManageAptoMedico}
       onBack={() => navigate(-1)}
       onChangePhoto={() => setActiveMenu('photo')}
       onChangeMedical={() => setActiveMenu('medical')}

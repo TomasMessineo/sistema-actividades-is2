@@ -10,8 +10,6 @@ import LoginPage from '../views/general/LoginPage.jsx';
 import RegisterPage from '../views/general/RegisterPage.jsx';
 import ProfileView from '../views/general/profileView.jsx';
 
-import PaymentHistoryView from '../views/student/PaymentHistoryView.jsx';
-
 import ProtectedRoute from '../components/ProtectedRoute';
 
 function RutasApp() {
@@ -31,7 +29,6 @@ function RutasApp() {
       <Route element={<ProtectedRoute allowedRoles={['ALUMNO']} />}>
         <Route path="/clasesDisponibles" element={<AvailableClassesView />} />
         <Route path="/misClases" element={<MyClassesView />} />
-        <Route path="/historialPagos" element={<PaymentHistoryView />} />
       </Route>
 
       {/* Rutas protegidas - Admin/Profesores */}

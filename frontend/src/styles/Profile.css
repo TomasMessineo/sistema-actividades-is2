@@ -496,3 +496,132 @@
   background: var(--primary-subtle);
   color: var(--primary);
 }
+
+.profile-payments-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.profile-payments-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.profile-payments-label {
+  margin: 0 0 8px;
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.profile-payments-summary {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.profile-payments-refresh {
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--primary);
+  background: transparent;
+  color: var(--primary);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform var(--transition-fast), background var(--transition-fast), color var(--transition-fast), opacity var(--transition-fast);
+}
+
+.profile-payments-refresh:hover {
+  transform: translateY(-1px);
+  background: var(--primary-subtle);
+}
+
+.profile-payments-refresh:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+  transform: none;
+}
+
+.profile-payments-alert {
+  text-align: left;
+}
+
+.profile-payments-empty {
+  margin: 0;
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px dashed var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.profile-payments-list {
+  display: grid;
+  gap: 12px;
+}
+
+.profile-payments-item {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.profile-payments-item-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.profile-payments-item-label {
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.profile-payments-item-value {
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.profile-payments-status {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-accent, rgba(62, 207, 42, 0.35));
+  background: var(--primary-subtle, rgba(62, 207, 42, 0.12));
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+@media (max-width: 640px) {
+  .profile-payments-header {
+    flex-direction: column;
+  }
+
+  .profile-payments-refresh {
+    width: 100%;
+  }
+
+  .profile-payments-item {
+    grid-template-columns: 1fr;
+  }
+}
