@@ -1,7 +1,6 @@
 # Cómo levantar los servicios localmente
 
 1. Clonar el repositorio
-
 Abrí una terminal y ejecutá el comando git clone seguido de la URL de tu repositorio:
 ```bash
 git clone https://github.com/TomasMessineo/sistema-actividades-is2
@@ -36,8 +35,7 @@ docker ps
 
 **pgAdmin (Gestor DB):** http://localhost:8081
 
-**PostgreSQL (DB):** 
-_Conexión interna:_ db:5432
+**PostgreSQL (DB):** _Conexión interna:_ db:5432
 
 **Swagger (para ver APIs):** http://localhost:8080/swagger-ui/index.html
 

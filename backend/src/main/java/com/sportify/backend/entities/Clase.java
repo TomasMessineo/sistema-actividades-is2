@@ -1,0 +1,74 @@
+package com.sportify.backend.entities;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Column;
+import jakarta.persistence.PrePersist;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.time.LocalDate;
+import java.util.List;
+
+@Entity
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
+public class Clase {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private Integer idClase;
+
+    @ManyToOne
+    @JoinColumn(name = "profesor_id")
+    private Profesor profesor;
+
+    @ManyToOne
+    @JoinColumn(name = "actividad_id")
+    private Actividad actividad;
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "clase")
+    private List<Pago> pagos;
+
+    @OneToOne(mappedBy = "clase", cascade = CascadeType.ALL)
+    private ListaEspera listaEspera;
+
+    @OneToOne(mappedBy = "clase", cascade = CascadeType.ALL)
+    private ListaAsistencia listaAsistencia;
+
+    private Integer cupo;
+
+    private LocalDate fecha;
+
+    private Integer hora;
+
+    @Column(nullable = false)
+    private Double precio;
+
+    @Column(nullable = false)
+    private Boolean cancelada = false;
+
+    @PrePersist
+    public void prePersist() {
+        if (this.precio == null) {
+            this.precio = 0.0;
+        }
+
+        if (this.cancelada == null) {
+            this.cancelada = false;
+        }
+    }
+}

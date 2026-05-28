@@ -1,0 +1,458 @@
+/* PAGOS CSS - Fintech Premium UI */
+
+.pago-page {
+  min-height: 100vh;
+  position: relative;
+  background-color: var(--bg-primary);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 24px;
+  overflow: hidden;
+}
+
+/* Ambient Glow (Orbes Dinámicos) */
+.pago-page::before,
+.pago-page::after {
+  content: '';
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  filter: blur(140px);
+  z-index: 0;
+  opacity: 0.35;
+  animation: ambientFloat 18s infinite ease-in-out alternate;
+  pointer-events: none;
+}
+
+.pago-page::before {
+  background: radial-gradient(circle, var(--primary) 0%, transparent 60%);
+  top: -200px;
+  left: -200px;
+}
+
+.pago-page::after {
+  background: radial-gradient(circle, #00C6FF 0%, transparent 60%); /* Acento secundario neón */
+  bottom: -200px;
+  right: -200px;
+  animation-delay: -9s;
+}
+
+@keyframes ambientFloat {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(50px, 80px) scale(1.1); }
+  100% { transform: translate(-50px, 50px) scale(0.9); }
+}
+
+/* Back Button Glass */
+.pago-back-button {
+  position: fixed;
+  top: 40px;
+  left: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 15px;
+  text-decoration: none;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 10px 20px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.pago-back-button:hover {
+  color: var(--primary);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateX(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 768px) {
+  .pago-back-button {
+    top: 24px;
+    left: 24px;
+  }
+}
+
+/* Tarjeta Ultra-Glassmorphism */
+.pago-container {
+  position: relative;
+  z-index: 10;
+  max-width: 480px;
+  width: 100%;
+  margin: 0 auto;
+  background: rgba(17, 17, 19, 0.6);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 24px;
+  padding: 48px 40px;
+  box-shadow: 0 32px 64px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+  animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Titulos */
+.pago-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.pago-header h2 {
+  font-family: var(--font-heading);
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.pago-header p {
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* Selectores Fintech (Tiles) */
+.botones-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.botones-grupo button {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 20px 24px;
+  border-radius: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 20px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.botones-grupo button::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: radial-gradient(circle at center, rgba(255,255,255,0.05) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.botones-grupo button:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.botones-grupo button:hover::before {
+  opacity: 1;
+}
+
+.botones-grupo button.seleccionado {
+  background: rgba(62, 207, 42, 0.05);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary), 0 8px 32px rgba(62, 207, 42, 0.15);
+}
+
+.botones-grupo button.seleccionado::after {
+  content: '✓';
+  position: absolute;
+  right: 24px;
+  color: var(--primary);
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.botones-grupo button span.metodo-texto {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0.2px;
+}
+
+/* Iconos de las tiles */
+.icon-container {
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Boton Confirmar Premium */
+.btn-confirmar {
+  width: 100%;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: var(--bg-primary);
+  border: none;
+  padding: 18px;
+  border-radius: var(--radius-full);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 24px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-confirmar::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%; width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: 0.5s;
+}
+
+.btn-confirmar:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(62, 207, 42, 0.25);
+}
+
+.btn-confirmar:hover:not(:disabled)::after {
+  left: 100%;
+}
+
+.btn-confirmar:disabled {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Inputs de Tarjeta - UI Técnica */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group h3 {
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.pago-input {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.2);
+  border: none;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px 8px 0 0;
+  padding: 16px;
+  color: var(--text-primary);
+  font-family: 'Courier New', Courier, monospace; /* Monospace para look fintech/tarjeta */
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+}
+
+.pago-input:focus {
+  outline: none;
+  background: rgba(0, 0, 0, 0.4);
+  border-bottom-color: var(--primary);
+  box-shadow: inset 0 -2px 0 0 var(--primary);
+}
+
+.pago-input::placeholder {
+  color: rgba(255, 255, 255, 0.15);
+  font-family: var(--font-body);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+/* Contenedor QR y Estados */
+.qr-container {
+  display: flex;
+  justify-content: center;
+  padding: 24px;
+  background: #ffffff;
+  border-radius: 20px;
+  width: fit-content;
+  margin: 0 auto;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
+/* Esquinas de scan del QR */
+.qr-container::before, .qr-container::after {
+  content: '';
+  position: absolute;
+  width: 40px; height: 40px;
+  border: 4px solid var(--primary);
+  pointer-events: none;
+}
+
+.qr-container::before {
+  top: -8px; left: -8px;
+  border-right: none; border-bottom: none;
+  border-radius: 12px 0 0 0;
+}
+
+.qr-container::after {
+  bottom: -8px; right: -8px;
+  border-left: none; border-top: none;
+  border-radius: 0 0 12px 0;
+}
+
+/* Countdown QR */
+.qr-countdown {
+  margin-top: 20px;
+  font-size: 15px;
+  color: var(--text-muted);
+  text-align: center;
+  transition: color 0.3s ease;
+}
+
+.qr-countdown span {
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--primary);
+  transition: color 0.3s ease;
+}
+
+.qr-countdown.warning span {
+  color: #f59e0b;
+}
+
+.qr-countdown.critico span {
+  color: #ef4444;
+  animation: parpadeo 0.8s ease-in-out infinite;
+}
+
+@keyframes parpadeo {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* Pantalla de expirado */
+.qr-expirado-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 0;
+  gap: 12px;
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.qr-expirado-icono {
+  font-size: 52px;
+  margin-bottom: 8px;
+}
+
+.qr-expirado-wrapper h3 {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.qr-expirado-wrapper p {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin: 0;
+  text-align: center;
+}
+
+.btn-reintentar {
+  margin-top: 12px;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: var(--bg-primary);
+  border: none;
+  padding: 14px 32px;
+  border-radius: var(--radius-full);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-reintentar:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(62, 207, 42, 0.25);
+}
+
+/* Spinner Moderno */
+.fintech-spinner {
+  width: 60px;
+  height: 60px;
+  border: 3px solid rgba(255, 255, 255, 0.05);
+  border-top-color: var(--primary);
+  border-right-color: var(--primary);
+  border-radius: 50%;
+  animation: fintechSpin 1s cubic-bezier(0.6, 0.1, 0.4, 0.9) infinite;
+  margin: 0 auto;
+}
+
+@keyframes fintechSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Iconos de Estado (Exito/Fallo) */
+.status-icon-wrapper {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  margin: 0 auto 32px;
+  position: relative;
+  animation: scaleIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.status-icon-wrapper.success {
+  background: rgba(34, 197, 94, 0.1);
+  color: #4ade80;
+  border: 2px solid rgba(34, 197, 94, 0.3);
+  box-shadow: 0 0 40px rgba(34, 197, 94, 0.2);
+}
+
+.status-icon-wrapper.error {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 2px solid rgba(239, 68, 68, 0.3);
+  box-shadow: 0 0 40px rgba(239, 68, 68, 0.2);
+}
+
+@keyframes scaleIn {
+  0% { transform: scale(0); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
