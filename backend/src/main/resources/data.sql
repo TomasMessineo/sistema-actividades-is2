@@ -157,6 +157,26 @@ VALUES (8)
 
 
 -- =========================
+-- CLASES (prueba)
+-- =========================
+
+INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, cancelada, hora) VALUES
+  (1, 20, '2026-05-27', 3000.0, 1, 7, false, 9),
+  (2, 15, '2026-05-28', 2500.0, 3, 8, false, 10),
+  (3, 10, '2026-05-29', 3500.0, 2, 7, false, 18),
+  (4, 20, '2026-05-28', 3000.0, 1, 8, false, 9),
+  (5, 15, '2026-05-29', 2500.0, 3, 7, false, 19)
+    ON CONFLICT (id_clase) DO UPDATE
+        SET cupo = EXCLUDED.cupo,
+            fecha = EXCLUDED.fecha,
+            precio = EXCLUDED.precio,
+            actividad_id = EXCLUDED.actividad_id,
+            profesor_id = EXCLUDED.profesor_id,
+            cancelada = EXCLUDED.cancelada,
+            hora = EXCLUDED.hora;
+
+
+-- =========================
 -- CREDITOS (prueba)
 -- =========================
 
