@@ -46,8 +46,10 @@ function LoginPage() {
       
       // Redirigir según el rol
       setTimeout(() => {
-        if (responseData.rol === 'ADMIN' || responseData.rol === 'PROFESOR') {
-          navigate('/');
+        const rolUsuario = (responseData.rol || responseData.role || '').toUpperCase();
+
+        if (rolUsuario === 'ADMIN' || rolUsuario === 'ADMINISTRADOR' || rolUsuario === 'PROFESOR') {
+          navigate('/calendario');
         } else {
           navigate('/misClases');
         }
@@ -58,6 +60,8 @@ function LoginPage() {
       setStatus({ type: 'error', message: error.message });
     }
   };
+
+
 
   return (
     <div className="auth-page centered-layout">

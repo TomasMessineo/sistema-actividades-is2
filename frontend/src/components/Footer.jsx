@@ -1,6 +1,24 @@
-import logoImg from '../assets/images/logo.svg';
+import logoImg from '../assets/logo.svg';
 import { Link } from 'react-router-dom';
 import '../styles/Footer.css';
+
+function scrollToDiscipline(id) {
+  const el = document.getElementById(id);
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    history.pushState(null, '', `/#${id}`);
+  } else {
+    window.location.href = `/#${id}`;
+  }
+}
+
+const InstagramIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+    <circle cx="12" cy="12" r="4" />
+    <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+  </svg>
+);
 
 function Footer() {
   const currentYear = new Date().getFullYear();
@@ -8,45 +26,7 @@ function Footer() {
   return (
     <footer className="footer" id="footer">
       <div className="footer__container container">
-        <div className="footer__top">
-          <div className="footer__brand">
-            <Link to="/" className="footer__logo">
-              <img src={logoImg} alt="Sportify Logo" className="footer__logo-img" />
-            </Link>
-            <p className="footer__tagline">
-              Centro de actividades deportivas. Tu espacio para alcanzar tu mejor versión.
-            </p>
-          </div>
-
-          <div className="footer__links-group">
-            <h4 className="footer__links-title">Disciplinas</h4>
-            <ul className="footer__links">
-              <li><Link to="/info">Funcional</Link></li>
-              <li><Link to="/info">Yoga</Link></li>
-              <li><Link to="/info">Pilates</Link></li>
-            </ul>
-          </div>
-
-          <div className="footer__links-group">
-            <h4 className="footer__links-title">Empresa</h4>
-            <ul className="footer__links">
-              <li><Link to="/">Nosotros</Link></li>
-              <li><Link to="/info">Beneficios</Link></li>
-              <li><Link to="/">Contacto</Link></li>
-            </ul>
-          </div>
-
-          <div className="footer__links-group">
-            <h4 className="footer__links-title">Contacto</h4>
-            <ul className="footer__links">
-              <li>La Plata, Argentina</li>
-              <li>info@sportify.com</li>
-              <li>+54 351 123-4567</li>
-            </ul>
-          </div>
-        </div>
-
-        <div className="footer__bottom">
+        <div className="footer__bottom" style={{ borderTop: 'none', paddingTop: 0 }}>
           <p className="footer__copyright">© {currentYear} Euphratech. Todos los derechos reservados.</p>
         </div>
       </div>

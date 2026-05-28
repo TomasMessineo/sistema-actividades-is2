@@ -6,6 +6,7 @@ import Disciplines from '../../components/Disciplines';
 import Stats from '../../components/Stats';
 import Benefits from '../../components/Benefits';
 import Footer from '../../components/Footer';
+import Contact from '../../components/Contact';
 import '../../styles/DashboardInfo.css';
 
 function LandingPage() {
@@ -44,6 +45,7 @@ function LandingPage() {
         <Disciplines />
         <Benefits />
       </div>
+      <Contact />
       <Footer />
     </div>
   );

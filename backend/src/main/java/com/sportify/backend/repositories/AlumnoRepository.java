@@ -11,10 +11,13 @@ import jakarta.transaction.Transactional;
 public interface AlumnoRepository extends JpaRepository<Alumno, Integer> {
     // Esta interfaz queda vacía. JPA se encarga de todo el CRUD automáticamente
 
+    List<Alumno> findByActivoTrue();
+
     List<Alumno> findByApellido(String apellido);
 
     Optional<Alumno> findByDni(String dni);
 
     Optional<Alumno> findByEmail(String email);
+
 
 }

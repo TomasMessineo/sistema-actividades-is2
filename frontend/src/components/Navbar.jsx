@@ -50,6 +50,16 @@ function Navbar() {
               }
             }}>Información general</a>
           </li>
+          <li>
+            <a href="/#contacto" className="navbar__link" id="nav-contacto" onClick={(e) => {
+              if (window.location.pathname === '/') {
+                e.preventDefault();
+                scrollTo('contacto');
+              } else {
+                setMenuOpen(false);
+              }
+            }}>Contacto</a>
+          </li>
         </ul>
 
         <div className="navbar__actions" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -66,7 +76,7 @@ function Navbar() {
                 Cerrar Sesión
               </button>
               <Link 
-                to={role === 'ALUMNO' ? '/misClases' : '/'} 
+                to={role === 'ALUMNO' ? '/misClases' : '/alumnos'} 
                 className="navbar__cta" 
                 id="nav-cta-panel"
               >

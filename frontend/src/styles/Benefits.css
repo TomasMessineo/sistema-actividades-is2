@@ -11,7 +11,7 @@
 
 .benefits__grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 24px;
   margin-bottom: 100px;
 }
@@ -156,11 +156,13 @@
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .benefits__grid {
     grid-template-columns: 1fr;
   }
+}
 
+@media (max-width: 768px) {
   .benefits__cta-inner {
     flex-direction: column;
     text-align: center;

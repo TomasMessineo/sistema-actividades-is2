@@ -20,40 +20,48 @@
 
 .navbar--scrolled {
   padding: 0px 0;
-  background: rgba(255, 255, 255, 0.800);
+  background: rgba(18, 18, 18, 0.92);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .navbar--scrolled .navbar__link {
-  color: #1C1C1C;
+  color: #F9F7F2;
 }
 
 .navbar--scrolled #nav-login {
-  color: #1C1C1C !important;
+  color: #F9F7F2 !important;
 }
 
 .navbar--scrolled #nav-login:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(255, 255, 255, 0.08);
   color: var(--primary, #00FF88) !important;
 }
 
 .navbar--scrolled .navbar__hamburger span {
-  background: #1C1C1C;
+  background: #F9F7F2;
+}
+
+/* Fondo más claro en páginas internas para que el logo negro se vea */
+.navbar--alumno {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.navbar--alumno.navbar--scrolled {
+  background: rgba(255, 255, 255, 0.22);
 }
 
 .navbar__container {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
+  gap: 16px;
   width: 100%;
   max-width: 1700px;
   margin: 0 auto;
-  padding: 0 clamp(16px, 4vw, 60px);
-  box-sizing: border-box;
-  flex-wrap: wrap;
+  padding: 0 60px;
 }
 
 .navbar__logo-wrapper {
@@ -68,9 +76,12 @@
   width: auto;
 }
 
+.navbar__logo {
+  flex: 1;
+}
+
 .navbar__logo:hover {
   transform: scale(1.03);
-  /* Un zoom más sutil y delicado */
 }
 
 /* Enlaces */
@@ -79,12 +90,6 @@
   align-items: center;
   gap: 8px;
   list-style: none;
-  padding: 0;
-  margin: 0;
-  flex: 1 1 auto;
-  min-width: 0;
-  justify-content: center;
-  flex-wrap: wrap;
 }
 
 .navbar__link {
@@ -110,12 +115,226 @@
 }
 
 .navbar__actions {
-  flex-shrink: 0;
+  flex: 1;
   display: flex;
   align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
   justify-content: flex-end;
+  gap: 16px;
+}
+
+/* ── Badge de créditos ─────────────────────────────────── */
+.navbar__creditos {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: rgba(0, 255, 136, 0.12);
+  color: #00FF88;
+  border: 1px solid rgba(0, 255, 136, 0.3);
+  border-radius: var(--radius-full, 999px);
+  padding: 6px 14px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: default;
+  user-select: none;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  letter-spacing: 0.01em;
+}
+
+.navbar__creditos:hover {
+  background-color: rgba(0, 255, 136, 0.2);
+  border-color: rgba(0, 255, 136, 0.5);
+}
+
+.navbar--scrolled .navbar__creditos {
+  background-color: rgba(0, 255, 136, 0.15);
+  border-color: rgba(0, 255, 136, 0.4);
+}
+
+/* Wrapper para posicionar el tooltip */
+.navbar__creditos-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+/* Tooltip */
+.navbar__creditos-tooltip {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 230px;
+  background: rgba(12, 12, 12, 0.98);
+  border: 1px solid rgba(0, 255, 136, 0.2);
+  border-radius: 14px;
+  padding: 14px 16px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-6px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 200;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  text-align: left;
+}
+
+.navbar__creditos-wrapper:hover .navbar__creditos-tooltip,
+.navbar__creditos-wrapper:focus-within .navbar__creditos-tooltip {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* Flecha del tooltip */
+.navbar__creditos-tooltip::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  right: 18px;
+  width: 8px;
+  height: 8px;
+  background: rgba(12, 12, 12, 0.98);
+  border-top: 1px solid rgba(0, 255, 136, 0.2);
+  border-left: 1px solid rgba(0, 255, 136, 0.2);
+  transform: rotate(45deg);
+}
+
+.navbar__creditos-tooltip-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  color: #00FF88;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin: 0 0 10px 0;
+}
+
+.navbar__creditos-tooltip-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 10px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.navbar__creditos-tooltip-list li {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: rgba(249, 247, 242, 0.7);
+  font-weight: 500;
+  line-height: 1.4;
+  padding-left: 12px;
+  position: relative;
+}
+
+.navbar__creditos-tooltip-list li::before {
+  content: '·';
+  position: absolute;
+  left: 2px;
+  color: #00FF88;
+  font-size: 16px;
+  line-height: 1;
+  top: -1px;
+}
+
+.navbar__creditos-tooltip-balance {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: rgba(249, 247, 242, 0.5);
+  margin: 0;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.navbar__creditos-tooltip-balance strong {
+  color: #00FF88;
+  font-weight: 700;
+}
+
+/* ── Contacto tooltip ──────────────────────────────────── */
+.navbar__contacto-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.navbar__contacto-tooltip {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%) translateY(-6px);
+  width: 230px;
+  background: rgba(12, 12, 12, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  padding: 14px 16px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 200;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.navbar__contacto-tooltip::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 8px;
+  height: 8px;
+  background: rgba(12, 12, 12, 0.98);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.navbar__contacto-wrapper:hover .navbar__contacto-tooltip,
+.navbar__contacto-wrapper:focus-within .navbar__contacto-tooltip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+
+.navbar__contacto-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 0 0 10px 0;
+}
+
+.navbar__contacto-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  color: rgba(249, 247, 242, 0.75);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.2s ease;
+  white-space: nowrap;
+}
+
+.navbar__contacto-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+a.navbar__contacto-item:hover {
+  color: var(--primary);
+}
+
+.navbar__contacto-item--static {
+  cursor: default;
 }
 
 /* Botón Iniciar Sesión */
@@ -127,6 +346,23 @@
 #nav-login:hover {
   background: rgba(255, 255, 255, 0.08);
   color: var(--primary, #00FF88) !important;
+}
+
+/* Botón Cerrar Sesión */
+.navbar__link-logout {
+  color: #F9F7F2 !important;
+  font-weight: 600;
+  transition: all var(--transition-fast);
+}
+
+.navbar--scrolled .navbar__link-logout {
+  color: #ffffff !important;
+}
+
+.navbar__link-logout:hover {
+  background: rgba(239, 68, 68, 0.1) !important;
+  color: #ef4444 !important;
+  transform: scale(1.02);
 }
 
 /* Botón Registrarme */
@@ -188,7 +424,7 @@
 /* Mobile */
 @media (max-width: 768px) {
   .navbar__container {
-    padding: 0 16px;
+    padding: 0 24px;
   }
 
   .navbar__hamburger {
