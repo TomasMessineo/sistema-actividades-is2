@@ -1,7 +1,17 @@
 package com.sportify.backend.entities;
 
-
-import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Column;
+import jakarta.persistence.PrePersist;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -11,13 +21,15 @@ import java.time.LocalDate;
 import java.util.List;
 
 @Entity
-@Getter@Setter
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 public class Clase {
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    private int idClase;
+    private Integer idClase;
 
     @ManyToOne
     @JoinColumn(name = "profesor_id")
@@ -27,6 +39,7 @@ public class Clase {
     @JoinColumn(name = "actividad_id")
     private Actividad actividad;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "clase")
     private List<Pago> pagos;
 
@@ -36,12 +49,26 @@ public class Clase {
     @OneToOne(mappedBy = "clase", cascade = CascadeType.ALL)
     private ListaAsistencia listaAsistencia;
 
-    private int cupo;
+    private Integer cupo;
 
     private LocalDate fecha;
 
-    private double precio;
+    private Integer hora;
 
-    private boolean cancelada = false;
+    @Column(nullable = false)
+    private Double precio;
 
+    @Column(nullable = false)
+    private Boolean cancelada = false;
+
+    @PrePersist
+    public void prePersist() {
+        if (this.precio == null) {
+            this.precio = 0.0;
+        }
+
+        if (this.cancelada == null) {
+            this.cancelada = false;
+        }
+    }
 }

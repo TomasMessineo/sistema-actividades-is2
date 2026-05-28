@@ -26,7 +26,7 @@ function Navbar() {
   };
 
   return (
-    <nav className={`navbar ${scrolled ? 'navbar--scrolled' : ''}`} id="navbar">
+    <nav className={`navbar navbar--alumno ${scrolled ? 'navbar--scrolled' : ''}`} id="navbar">
       <div className="navbar__container">
         <Link to="/" className="navbar__logo" id="navbar-logo" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
           <img src={logoSvg} alt="Sportify" className="navbar__logo-img" />

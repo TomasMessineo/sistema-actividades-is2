@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -59,7 +60,23 @@ public class PagoController {
     public ResponseEntity<?> obtenerPago(@PathVariable int idPago) {
         try {
             Pago pago = pagoService.obtenerPagoPorId(idPago);
-            return ResponseEntity.ok(pago);
+
+            if (pago.getEstado() == Pago.EstadoPago.PENDIENTE && pago.getIdTransaccion() != null) {
+                Pago.EstadoPago estadoMP = mercadoPagoService.verificarPorPreferencia(pago.getIdTransaccion(), pago.getIdPago());
+                if (estadoMP != Pago.EstadoPago.PENDIENTE) {
+                    pagoService.actualizarEstadoPago(pago.getIdPago(), estadoMP, pago.getIdTransaccion());
+                    pago.setEstado(estadoMP);
+                }
+            }
+
+            return ResponseEntity.ok(new PagoResponse(
+                pago.getIdPago(),
+                pago.getEstado(),
+                pago.getIdTransaccion(),
+                pago.getValor(),
+                "OK",
+                null
+            ));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -80,6 +97,16 @@ public class PagoController {
         try {
             List<Pago> pagos = pagoService.obtenerPagosPorEstado(estado);
             return ResponseEntity.ok(pagos);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PatchMapping("/{idPago}/expirar")
+    public ResponseEntity<?> expirarPago(@PathVariable int idPago) {
+        try {
+            pagoService.actualizarEstado(idPago, Pago.EstadoPago.FALLIDO);
+            return ResponseEntity.ok("Pago expirado");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

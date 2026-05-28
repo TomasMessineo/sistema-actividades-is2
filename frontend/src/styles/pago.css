@@ -329,6 +329,84 @@
   border-radius: 0 0 12px 0;
 }
 
+/* Countdown QR */
+.qr-countdown {
+  margin-top: 20px;
+  font-size: 15px;
+  color: var(--text-muted);
+  text-align: center;
+  transition: color 0.3s ease;
+}
+
+.qr-countdown span {
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--primary);
+  transition: color 0.3s ease;
+}
+
+.qr-countdown.warning span {
+  color: #f59e0b;
+}
+
+.qr-countdown.critico span {
+  color: #ef4444;
+  animation: parpadeo 0.8s ease-in-out infinite;
+}
+
+@keyframes parpadeo {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* Pantalla de expirado */
+.qr-expirado-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 0;
+  gap: 12px;
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.qr-expirado-icono {
+  font-size: 52px;
+  margin-bottom: 8px;
+}
+
+.qr-expirado-wrapper h3 {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.qr-expirado-wrapper p {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin: 0;
+  text-align: center;
+}
+
+.btn-reintentar {
+  margin-top: 12px;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: var(--bg-primary);
+  border: none;
+  padding: 14px 32px;
+  border-radius: var(--radius-full);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-reintentar:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(62, 207, 42, 0.25);
+}
+
 /* Spinner Moderno */
 .fintech-spinner {
   width: 60px;

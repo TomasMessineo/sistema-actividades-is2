@@ -1,5 +1,7 @@
 package com.sportify.backend.services;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mercadopago.MercadoPagoConfig;
 import com.mercadopago.client.payment.PaymentClient;
 import com.mercadopago.client.preference.PreferenceBackUrlsRequest;
@@ -14,7 +16,11 @@ import com.sportify.backend.dtos.PagoResponse;
 import com.sportify.backend.entities.Pago;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -47,16 +53,15 @@ public class MercadoPagoService {
             PreferenceRequest request = PreferenceRequest.builder()
                     .items(List.of(item))
                     .backUrls(backUrls)
+                    .externalReference(String.valueOf(pago.getIdPago()))
                     .build();
 
             PreferenceClient client = new PreferenceClient();
             Preference preference = client.create(request);
 
             String idPreferencia = preference.getId();
-            String urlPago = preference.getInitPoint(); //Produccion
-            //String urlPago = preference.getSandboxInitPoint(); //Prueba SANDBOX
+            String urlPago = preference.getInitPoint();
 
-            
             pagoService.actualizarEstadoPago(
                     pago.getIdPago(),
                     Pago.EstadoPago.PENDIENTE,
@@ -78,6 +83,37 @@ public class MercadoPagoService {
         } catch (Exception e) {
             pagoService.actualizarEstadoPago(pago.getIdPago(), Pago.EstadoPago.FALLIDO, null);
             throw new RuntimeException("Error en Mercado Pago: " + e.getMessage());
+        }
+    }
+
+    public Pago.EstadoPago verificarPorPreferencia(String idPreferencia, int idPago) {
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", "Bearer " + tokenAcceso);
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+
+            String url = "https://api.mercadopago.com/v1/payments/search?external_reference=" + idPago + "&sort=date_created&criteria=desc";
+            String respuesta = restTemplate.exchange(url, HttpMethod.GET, entity, String.class).getBody();
+
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode results = mapper.readTree(respuesta).get("results");
+
+            if (results != null && results.isArray() && results.size() > 0) {
+                for (JsonNode payment : results) {
+                    String status = payment.get("status").asText();
+                    if ("approved".equals(status)) {
+                        return Pago.EstadoPago.COMPLETADO;
+                    } else if ("rejected".equals(status) || "cancelled".equals(status)) {
+                        return Pago.EstadoPago.FALLIDO;
+                    }
+                }
+            }
+
+            return Pago.EstadoPago.PENDIENTE;
+
+        } catch (Exception e) {
+            return Pago.EstadoPago.PENDIENTE;
         }
     }
 

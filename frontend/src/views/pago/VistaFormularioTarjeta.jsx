@@ -6,13 +6,13 @@ import '../../styles/pago.css';
 function VistaFormularioTarjeta() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { metodoPago, tipoPago, idAlumno, idClase, monto } = location.state || {};
+  const { metodoPago, tipoPago, idAlumno, idClase, monto, idPago } = location.state || {};
 
   // Fallbacks para pruebas independientes
-  const idAlumnoFinal = idAlumno || 402;
+  const idAlumnoFinal = idAlumno || 1;
   const idClaseFinal = idClase || 1;
   const montoFinal = monto || 150.0;
-  const tipoPagoFinal = tipoPago || 'ABONADO';
+  const tipoPagoFinal = tipoPago || 'INDIVIDUAL';
 
   const [numeroTarjeta, setNumeroTarjeta] = useState('');
   const [nombreTitular, setNombreTitular] = useState('');
@@ -29,9 +29,10 @@ function VistaFormularioTarjeta() {
     setLoading(true);
     try {
       const respuesta = await pagoService.procesarPago({
+        idPago: idPago || null,
         idAlumno: idAlumnoFinal,
         tipoPago: tipoPagoFinal,
-        metodoPago: metodoPago || 'TARJETA_CREDITO',
+        metodoPago: metodoPago || 'TARJETADECREDITO',
         idClase: idClaseFinal,
         monto: montoFinal,
         emailAlumno: 'alumno@example.com',

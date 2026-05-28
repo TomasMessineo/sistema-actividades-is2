@@ -26,9 +26,9 @@ import lombok.Setter;
 public class Pago {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    private int idPago;
+    private Integer idPago;
 
-    private double valor;
+    private Double valor;
 
     private LocalDate fecha;
 
@@ -57,7 +57,8 @@ public class Pago {
 
     public enum TipoPago {
         MERCADOPAGO,
-        TARJETADECREDITO
+        TARJETADECREDITO,
+        CREDITOS
     }
 
     @Enumerated(EnumType.STRING)
@@ -77,7 +78,9 @@ public class Pago {
     protected void onCreate() {
         fechaCreacion = LocalDateTime.now();
         fechaActualizacion = LocalDateTime.now();
-        estado = EstadoPago.PENDIENTE;
+        if (estado == null) {
+            estado = EstadoPago.PENDIENTE;
+        }
     }
 
     @PreUpdate
