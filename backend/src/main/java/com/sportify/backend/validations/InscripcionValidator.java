@@ -61,6 +61,7 @@ public class InscripcionValidator {
         listaAsistenciaRepository.findAll().stream()
                 .filter(la -> la.getAlumnos().stream().anyMatch(a -> a.getId() == request.getIdAlumno()))
                 .map(ListaAsistencia::getClase)
+                .filter(c -> !Boolean.TRUE.equals(c.getCancelada()))
                 .filter(c -> c.getFecha().equals(clase.getFecha()) && c.getHora().equals(clase.getHora()))
                 .findFirst()
                 .ifPresent(c -> { throw new RuntimeException("El alumno ya tiene una clase en ese horario"); });
