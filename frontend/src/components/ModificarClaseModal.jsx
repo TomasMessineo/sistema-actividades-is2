@@ -161,6 +161,12 @@ function ModificarClaseModal({
     )
   }
 
+  const esFindeSemana = (fechaStr) => {
+    if (!fechaStr) return false
+    const dia = new Date(fechaStr + 'T00:00:00').getDay()
+    return dia === 0 || dia === 6
+  }
+
   const manejarCambio = (e) => {
     const { name, value } = e.target
 
@@ -168,6 +174,19 @@ function ModificarClaseModal({
       ...formActual,
       [name]: value
     }))
+  }
+
+  const manejarCambioFecha = (e) => {
+    const nuevaFecha = e.target.value
+
+    if (esFindeSemana(nuevaFecha)) {
+      setError('El gimnasio no opera los fines de semana. Seleccioná un día de lunes a viernes.')
+      setForm((prev) => ({ ...prev, fecha: '' }))
+      return
+    }
+
+    setError('')
+    setForm((prev) => ({ ...prev, fecha: nuevaFecha }))
   }
 
   const modificarClase = async (e) => {
@@ -321,12 +340,13 @@ function ModificarClaseModal({
         <div className="modificar-clase-modal__content">
           <form className="modificar-clase-modal__form" onSubmit={modificarClase}>
             <label className="modificar-clase-modal__field">
-              <span>Día</span>
+              <span>Día <small style={{ fontWeight: 400, opacity: 0.65 }}>(lun–vie)</small></span>
               <input
                 type="date"
                 name="fecha"
                 value={form.fecha}
-                onChange={manejarCambio}
+                onChange={manejarCambioFecha}
+                onKeyDown={(e) => { if (e.key !== 'Tab') e.preventDefault() }}
                 required
               />
             </label>

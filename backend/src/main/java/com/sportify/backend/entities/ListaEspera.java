@@ -17,7 +17,8 @@ import java.util.List;
 public class ListaEspera {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "lista_espera_gen")
+    @SequenceGenerator(name = "lista_espera_gen", sequenceName = "lista_espera_seq", allocationSize = 1)
     private int idListaEspera;
 
     @ManyToMany

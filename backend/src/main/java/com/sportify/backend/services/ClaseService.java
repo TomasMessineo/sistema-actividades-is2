@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -82,6 +83,28 @@ public class ClaseService {
         return claseRepository.findByActividad_IdActividad(actividadId);
     }
 
+    // HELPER
+    private boolean profesorOcupado(LocalDate fecha, int hora, Integer profesorId) {
+        if (profesorId == null) return false;
+        return !claseRepository.findByFechaAndHoraAndProfesor_Id(fecha, hora, profesorId).isEmpty();
+    }
+
+    // HELPER — igual que profesorOcupado pero ignora la clase que se está modificando
+    private boolean profesorOcupadoExcluyendo(LocalDate fecha, int hora, Integer profesorId, int idClaseActual) {
+        if (profesorId == null) return false;
+        return claseRepository.findByFechaAndHoraAndProfesor_Id(fecha, hora, profesorId)
+                .stream()
+                .anyMatch(c -> c.getIdClase() != idClaseActual);
+    }
+
+    // HELPER
+    private void validarDiaHabil(LocalDate fecha) {
+        DayOfWeek dia = fecha.getDayOfWeek();
+        if (dia == DayOfWeek.SATURDAY || dia == DayOfWeek.SUNDAY) {
+            throw new RuntimeException("El gimnasio no opera los fines de semana. Las clases solo pueden programarse de lunes a viernes.");
+        }
+    }
+
     //HELPER
     private boolean horaDisponible(LocalDate fecha, int hora) {
         return this.listarClasesDeUnaFechaYHora(fecha, hora).size() < 3;
@@ -135,6 +158,8 @@ public class ClaseService {
 
     // 2. AGREGAR / GUARDAR
     public Clase crearClase(Clase clase) {
+        validarDiaHabil(clase.getFecha());
+
         if (clase.getCancelada() == null) {
             clase.setCancelada(false);
         }
@@ -148,6 +173,11 @@ public class ClaseService {
 
         if (!this.horaDisponible(clase.getFecha(), clase.getHora())) {
             throw new RuntimeException("Lo sentimos, el horario ingresado ya tiene 3 clases asignadas. Por favor, pruebe con un horario distinto");
+        }
+
+        Integer profesorId = clase.getProfesor() != null ? clase.getProfesor().getId() : null;
+        if (this.profesorOcupado(clase.getFecha(), clase.getHora(), profesorId)) {
+            throw new RuntimeException("El profesor seleccionado ya tiene una clase asignada en ese horario.");
         }
 
         if (this.mismaDisciplinaEnElTurno(clasesFechaYHoraSolicitadas, clase.getActividad())) {
@@ -176,6 +206,11 @@ public class ClaseService {
         Clase claseExistente = claseRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Clase no encontrada"));
 
+        LocalDate nuevaFechaParaValidar = claseActualizada.getFecha() != null
+                ? claseActualizada.getFecha()
+                : claseExistente.getFecha();
+        validarDiaHabil(nuevaFechaParaValidar);
+
         if (tieneAlumnosInscriptos(claseExistente)) {
             throw new RuntimeException("La modificación no se ha podido realizar ya que hay alumnos inscriptos en la clase");
         }
@@ -184,11 +219,11 @@ public class ClaseService {
                 ? claseActualizada.getFecha()
                 : claseExistente.getFecha();
 
-        int nuevaHora = claseActualizada.getHora() != 0
+        int nuevaHora = claseActualizada.getHora() != null && claseActualizada.getHora() != 0
                 ? claseActualizada.getHora()
                 : claseExistente.getHora();
 
-        int nuevoCupo = claseActualizada.getCupo() != 0
+        int nuevoCupo = claseActualizada.getCupo() != null && claseActualizada.getCupo() != 0
                 ? claseActualizada.getCupo()
                 : claseExistente.getCupo();
 
@@ -201,6 +236,13 @@ public class ClaseService {
 
         if (clasesDelTurnoSinLaActual.size() >= 3) {
             throw new RuntimeException("La modificación no es posible ya que ese turno se encuentra ocupado");
+        }
+
+        Integer profesorIdNuevo = claseActualizada.getProfesor() != null
+                ? claseActualizada.getProfesor().getId()
+                : claseExistente.getProfesor() != null ? claseExistente.getProfesor().getId() : null;
+        if (this.profesorOcupadoExcluyendo(nuevaFecha, nuevaHora, profesorIdNuevo, id)) {
+            throw new RuntimeException("El profesor seleccionado ya tiene una clase asignada en ese horario.");
         }
 
         if (mismaDisciplinaEnElTurno(clasesDelTurnoSinLaActual, actividadAValidar)) {

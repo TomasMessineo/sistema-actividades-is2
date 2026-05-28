@@ -19,7 +19,8 @@ import java.time.LocalDateTime;
 public abstract class Usuario {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "usuario_gen")
+    @SequenceGenerator(name = "usuario_gen", sequenceName = "usuario_seq", allocationSize = 1)
     private Integer id;
 
     private String nombre;
