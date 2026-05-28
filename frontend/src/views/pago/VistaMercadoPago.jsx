@@ -3,6 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import pagoService from '../../services/pagoService';
 import api from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import '../../styles/pago.css';
 import mpLogo from '../../assets/images/MP_RGB_HANDSHAKE_color_horizontal.svg';
 
@@ -12,6 +13,7 @@ function VistaMercadoPago() {
   const navigate = useNavigate();
   const location = useLocation();
   const { metodoPago, tipoPago, idAlumno, idClase, monto } = location.state || {};
+  const { user } = useAuth();
 
   const [urlPago, setUrlPago] = useState(null);
   const [idPago, setIdPago] = useState(null);
@@ -38,12 +40,12 @@ function VistaMercadoPago() {
     const iniciar = async () => {
       try {
         const respuesta = await pagoService.procesarPago({
-          idAlumno: idAlumno || 1,
+          idAlumno: user?.id || idAlumno || 1,
           tipoPago: tipoPago || 'INDIVIDUAL',
           metodoPago: metodoPago || 'MERCADOPAGO',
           idClase: idClase || 1,
           monto: monto || 1.00,
-          emailAlumno: 'alumno@example.com',
+          emailAlumno: user?.email || 'alumno@example.com',
         });
 
         if (!montado) return;

@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import pagoService from '../../services/pagoService';
+import { useAuth } from '../../context/AuthContext';
 import '../../styles/pago.css';
 
 function VistaFormularioTarjeta() {
   const navigate = useNavigate();
   const location = useLocation();
   const { metodoPago, tipoPago, idAlumno, idClase, monto, idPago } = location.state || {};
+  const { user } = useAuth();
 
   // Fallbacks para pruebas independientes
-  const idAlumnoFinal = idAlumno || 1;
+  const idAlumnoFinal = user?.id || idAlumno || 1;
   const idClaseFinal = idClase || 1;
   const montoFinal = monto || 150.0;
   const tipoPagoFinal = tipoPago || 'INDIVIDUAL';
@@ -35,7 +37,7 @@ function VistaFormularioTarjeta() {
         metodoPago: metodoPago || 'TARJETADECREDITO',
         idClase: idClaseFinal,
         monto: montoFinal,
-        emailAlumno: 'alumno@example.com',
+        emailAlumno: user?.email || 'alumno@example.com',
         numeroTarjeta,
         nombreTitular,
         fechaVencimiento,

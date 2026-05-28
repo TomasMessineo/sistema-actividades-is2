@@ -193,7 +193,7 @@ function AvailableClassesView() {
       const usarCredito = tipoInscripcion === 'individual' && (user?.creditos ?? 0) > 0
 
       const response = await axios.post('http://localhost:8080/api/inscripciones/iniciar', {
-        idAlumno: user?.id || 1,
+        idAlumno: user?.id,
         idClase: idClaseSeleccionada,
         tipoClase: tipoInscripcion === 'mensual' ? 'ABONADO' : 'INDIVIDUAL',
         metodoPago: usarCredito ? 'CREDITOS' : null
@@ -233,7 +233,7 @@ function AvailableClassesView() {
     setErrorEspera('')
     try {
       await axios.post('http://localhost:8080/api/lista-espera/inscribir', {
-        idAlumno: user?.id || 1,
+        idAlumno: user?.id,
         idClase: idClaseSeleccionada,
       })
       setMostrarPopupEspera(false)

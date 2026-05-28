@@ -216,3 +216,15 @@ VALUES (5, '2099-12-31', 'http://prueba/apto5.pdf', 6)
         SET fecha_de_vencimiento = EXCLUDED.fecha_de_vencimiento,
             alumno_id = EXCLUDED.alumno_id;
 
+-- =========================
+-- REAJUSTE DE SECUENCIAS
+-- =========================
+-- Al insertar IDs manualmente (1, 2, 3...), la secuencia interna de Postgres queda desfasada.
+-- Esto asegura que los nuevos registros creados desde la app empiecen a partir de 100, evitando colisiones.
+
+ALTER SEQUENCE IF EXISTS usuario_seq RESTART WITH 100;
+ALTER SEQUENCE IF EXISTS actividad_seq RESTART WITH 100;
+ALTER SEQUENCE IF EXISTS clase_seq RESTART WITH 100;
+ALTER SEQUENCE IF EXISTS apto_medico_seq RESTART WITH 100;
+ALTER SEQUENCE IF EXISTS pago_seq RESTART WITH 100;
+ALTER SEQUENCE IF EXISTS lista_asistencia_seq RESTART WITH 100;
