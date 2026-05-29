@@ -193,12 +193,6 @@ function VistaMercadoPago() {
               <h4 style={{ color: 'var(--text-secondary)', marginBottom: '12px', fontSize: '12px', textTransform: 'uppercase' }}>🛠 Herramientas de Prueba</h4>
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                 <button
-                  onClick={() => navigate('/pago/exitoso')}
-                  style={{ background: 'rgba(34, 197, 94, 0.2)', color: '#4ade80', border: '1px solid #4ade80', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px' }}
-                >
-                  Simular Éxito
-                </button>
-                <button
                   onClick={() => navigate('/pago/fallido')}
                   style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', border: '1px solid #ef4444', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px' }}
                 >
