@@ -5,8 +5,10 @@ import com.sportify.backend.dtos.ActualizarPerfilAlumnoDTO;
 import com.sportify.backend.entities.AptoMedico;
 import com.sportify.backend.entities.FotoDePerfil;
 import com.sportify.backend.entities.Alumno;
+import com.sportify.backend.entities.Pago;
 import com.sportify.backend.repositories.AlumnoRepository;
 import com.sportify.backend.repositories.AptoMedicoRepository;
+import com.sportify.backend.repositories.PagoRepository;
 import com.sportify.backend.validations.AlumnoValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -39,6 +41,9 @@ public class AlumnoService {
     private AptoMedicoRepository aptoMedicoRepository;
 
     @Autowired
+    private PagoRepository pagoRepository;
+
+    @Autowired
     private AlumnoValidator alumnoValidator;
 
     // 1. LISTAR (solo activos)
@@ -66,18 +71,21 @@ public class AlumnoService {
     public void desactivar(Integer id) {
         Alumno alumno = alumnoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Alumno no encontrado"));
+
+        boolean tieneClaseActiva = pagoRepository.existsByAlumnoIdAndEstadoAndClaseCanceladaFalseAndClaseFechaGreaterThanEqual(
+                id, Pago.EstadoPago.COMPLETADO, LocalDate.now());
+
+        if (tieneClaseActiva) {
+            throw new RuntimeException("No se puede desactivar el alumno porque tiene clases activas pendientes");
+        }
+
         alumno.setActivo(false);
         alumnoRepository.save(alumno);
     }
-    // 4. ELIMINAR
+
     public void eliminarAlumno(Integer id) {
-            Alumno temp= this.alumnoRepository.findById(id)
-                    .orElseThrow(() -> new RuntimeException("Alumno no encontrado"));
-
-            temp.setActivo(false);
-            alumnoRepository.save(temp);
-
-        }
+        desactivar(id);
+    }
 
 
     // 5. INICIAR SESIÓN
