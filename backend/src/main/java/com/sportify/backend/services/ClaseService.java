@@ -202,6 +202,7 @@ public class ClaseService {
     }
 
     // 5. MODIFICAR CLASE
+    @Transactional
     public Clase modificarClase(Clase claseActualizada, Integer id) {
         Clase claseExistente = claseRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Clase no encontrada"));

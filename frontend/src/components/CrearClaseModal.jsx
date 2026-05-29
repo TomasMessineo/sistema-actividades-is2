@@ -43,11 +43,11 @@ function CrearClaseModal({
   const [claseCreada, setClaseCreada] = useState(null)
   const [mostrarExito, setMostrarExito] = useState(false)
 
-  const horasDisponibles = useMemo(() => calcularHorasDisponibles(form.fecha), [form.fecha])
+  const horasDisponibles = useMemo(() => getHorasDisponibles(form.fecha), [form.fecha])
 
   useEffect(() => {
     if (abierto) {
-      const horas = calcularHorasDisponibles(fechaInicial)
+      const horas = getHorasDisponibles(fechaInicial)
       const horaInicialNum = Number(horaInicial)
       const horaValida = horas.includes(horaInicialNum) ? horaInicial : ''
 
@@ -157,7 +157,7 @@ function CrearClaseModal({
 
     setError('')
     setForm((prev) => {
-      const horas = calcularHorasDisponibles(nuevaFecha)
+      const horas = getHorasDisponibles(nuevaFecha)
       const horaActual = Number(prev.hora)
       const horaValida = horas.includes(horaActual)
 
