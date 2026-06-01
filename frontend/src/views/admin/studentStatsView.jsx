@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import Navbar from '../../components/NavbarAdmin.jsx'
+import Navbar from '../../components/Navbar/NavbarAdmin.jsx'
 import api from '../../services/api.js'
 import '../../styles/studentStats.css'
 

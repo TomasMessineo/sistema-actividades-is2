@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import logoSvg from '../assets/logo.svg';
-import '../styles/Navbar.css';
+import '../../styles/Navbar.css';
 
 const CreditIcon = () => (
   <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">

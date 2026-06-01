@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import Navbar from '../../components/NavbarAdmin.jsx'
+import Navbar from '../../components/Navbar/NavbarAdmin.jsx'
 import AvailableClassesCalendar from '../../components/AvailableClassesCalendar.jsx'
 import CrearClaseModal from '../../components/CrearClaseModal.jsx'
 import ModificarClaseModal from '../../components/ModificarClaseModal.jsx'

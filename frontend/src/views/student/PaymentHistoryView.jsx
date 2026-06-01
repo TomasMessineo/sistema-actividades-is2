@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import Navbar from '../../components/NavbarAlumno.jsx'
+import Navbar from '../../components/Navbar/NavbarAlumno.jsx'
 import { useAuth } from '../../context/AuthContext'
 import '../../styles/PaymentHistoryView.css'
 
