@@ -46,6 +46,11 @@ public class AlumnoService {
         return alumnoRepository.findByActivoTrue();
     }
 
+    // 1.1 LISTAR (solo desactivados)
+    public List<Alumno> listarEliminados() {
+        return alumnoRepository.findByActivoFalse();
+    }
+
     // 2. AGREGAR / GUARDAR
     public Alumno guardar(Alumno alumno) {
 
