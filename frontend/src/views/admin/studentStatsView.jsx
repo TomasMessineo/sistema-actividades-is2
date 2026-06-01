@@ -37,9 +37,10 @@ function StudentStatsView() {
     try {
       setEliminando(id)
       await api.patch(`/alumnos/${id}/desactivar`)
-      await cargarAlumnos()
-    } catch {
-      setError('No se pudo eliminar el alumno.')
+      setAlumnos((prev) => prev.filter((a) => a.id !== id))
+    } catch (error) {
+      const mensaje = error.response?.data || 'No se pudo eliminar el alumno.'
+      setError(mensaje)
     } finally {
       setEliminando(null)
       setConfirmarEliminacionId(null)
