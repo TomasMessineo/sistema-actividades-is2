@@ -9,6 +9,7 @@ function ProfileDefaultMenu({
   passwordChangeSummary,
   aptoMedicoStatus,
   canManageAptoMedico,
+  canViewPayments,
   onBack,
   onChangePhoto,
   onChangeMedical,
@@ -98,11 +99,13 @@ function ProfileDefaultMenu({
               </div>
             </div>
           </div>
-          <div className="auth-footer">
-            <button type="button" className="auth-submit profile-history-button" aria-label="Ver mi historial de pagos" onClick={onPayments}>
-              Ver mi historial de pagos
-            </button>
-          </div>
+          {canViewPayments && (
+            <div className="auth-footer">
+              <button type="button" className="auth-submit profile-history-button" aria-label="Ver mi historial de pagos" onClick={onPayments}>
+                Ver mi historial de pagos
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

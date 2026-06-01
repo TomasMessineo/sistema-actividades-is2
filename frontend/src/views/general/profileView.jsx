@@ -198,6 +198,7 @@ function ProfileView() {
 
   const aptoMedicoStatus = getAptoMedicoState(aptosMedicos);
   const canManageAptoMedico = role === 'ALUMNO';
+  const canViewPayments = role === 'ALUMNO';
 
   const passwordChangeSummary = getPasswordChangeSummary(user?.fechaUltimoCambioPassword);
 
@@ -326,7 +327,7 @@ function ProfileView() {
     );
   }
 
-  if (activeMenu === 'payments') {
+  if (activeMenu === 'payments' && canViewPayments) {
     return <ProfilePaymentsMenu onCancel={() => setActiveMenu(null)} />;
   }
 
@@ -340,13 +341,14 @@ function ProfileView() {
       passwordChangeSummary={passwordChangeSummary}
       aptoMedicoStatus={aptoMedicoStatus}
       canManageAptoMedico={canManageAptoMedico}
+      canViewPayments={canViewPayments}
       onBack={() => navigate(-1)}
       onChangePhoto={() => setActiveMenu('photo')}
       onChangeMedical={() => setActiveMenu('medical')}
       onEditName={() => setActiveMenu('nombre')}
       onEditEmail={() => setActiveMenu('email')}
       onEditPassword={() => setActiveMenu('password')}
-      onPayments={() => setActiveMenu('payments')}
+      onPayments={() => canViewPayments && setActiveMenu('payments')}
     />
   );
 }
