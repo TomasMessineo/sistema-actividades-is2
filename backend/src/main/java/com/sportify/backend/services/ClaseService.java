@@ -4,8 +4,10 @@ import com.sportify.backend.entities.Actividad;
 import com.sportify.backend.entities.Alumno;
 import com.sportify.backend.entities.Clase;
 import com.sportify.backend.entities.ListaAsistencia;
+import com.sportify.backend.entities.Profesor;
 import com.sportify.backend.repositories.AlumnoRepository;
 import com.sportify.backend.repositories.ClaseRepository;
+import com.sportify.backend.repositories.ProfesorRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +26,9 @@ public class ClaseService {
 
     @Autowired
     private AlumnoRepository alumnoRepository;
+
+    @Autowired
+    private ProfesorRepository profesorRepository;
 
     // 1. LISTAR
     public List<Clase> listarClases() {
@@ -95,6 +100,24 @@ public class ClaseService {
         return claseRepository.findByFechaAndHoraAndProfesor_Id(fecha, hora, profesorId)
                 .stream()
                 .anyMatch(c -> c.getIdClase() != idClaseActual);
+    }
+
+    // HELPER
+    private void validarActividadDelProfesor(Actividad actividad, Integer profesorId) {
+        if (actividad == null || actividad.getIdActividad() == null) {
+            throw new RuntimeException("La actividad de la clase es obligatoria.");
+        }
+        if (profesorId == null) {
+            throw new RuntimeException("El profesor de la clase es obligatorio.");
+        }
+
+        Profesor profesor = profesorRepository.findById(profesorId)
+                .orElseThrow(() -> new RuntimeException("Profesor no encontrado."));
+
+        if (profesor.getActividad() == null
+                || !profesor.getActividad().getIdActividad().equals(actividad.getIdActividad())) {
+            throw new RuntimeException("El profesor seleccionado no dicta esta actividad.");
+        }
     }
 
     // HELPER
@@ -176,6 +199,8 @@ public class ClaseService {
         }
 
         Integer profesorId = clase.getProfesor() != null ? clase.getProfesor().getId() : null;
+        validarActividadDelProfesor(clase.getActividad(), profesorId);
+
         if (this.profesorOcupado(clase.getFecha(), clase.getHora(), profesorId)) {
             throw new RuntimeException("El profesor seleccionado ya tiene una clase asignada en ese horario.");
         }
@@ -242,6 +267,9 @@ public class ClaseService {
         Integer profesorIdNuevo = claseActualizada.getProfesor() != null
                 ? claseActualizada.getProfesor().getId()
                 : claseExistente.getProfesor() != null ? claseExistente.getProfesor().getId() : null;
+
+        validarActividadDelProfesor(actividadAValidar, profesorIdNuevo);
+
         if (this.profesorOcupadoExcluyendo(nuevaFecha, nuevaHora, profesorIdNuevo, id)) {
             throw new RuntimeException("El profesor seleccionado ya tiene una clase asignada en ese horario.");
         }
