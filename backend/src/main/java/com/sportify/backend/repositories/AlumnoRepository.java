@@ -13,6 +13,8 @@ public interface AlumnoRepository extends JpaRepository<Alumno, Integer> {
 
     List<Alumno> findByActivoTrue();
 
+    List<Alumno> findByActivoFalse();
+
     List<Alumno> findByApellido(String apellido);
 
     Optional<Alumno> findByDni(String dni);

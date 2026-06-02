@@ -65,6 +65,16 @@ public class AlumnoController {
         }
     }
 
+    @GetMapping("/eliminados")
+    public ResponseEntity<?> listarAlumnosEliminados() {
+        try {
+            List<Alumno> alumnos = alumnoService.listarEliminados();
+            return ResponseEntity.ok(alumnos);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @PatchMapping("/{id}/desactivar")
     public ResponseEntity<?> desactivarAlumno(@PathVariable Integer id) {
         try {

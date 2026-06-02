@@ -11,13 +11,10 @@ const ACTIVIDADES = [
 
 const TODAS_LAS_HORAS = Array.from({ length: 13 }, (_, i) => i + 8)
 
-function getHorasDisponibles(fechaStr) {
-  const hoy = new Date().toISOString().split('T')[0];
-  if (fechaStr === hoy) {
-    const horaActual = new Date().getHours();
-    return TODAS_LAS_HORAS.filter((h) => h > horaActual);
-  }
-  return TODAS_LAS_HORAS;
+// For the new workflow we select a weekday (lun-vie) and a fixed hour.
+// Hours are always the same (8..20) so we always return TODAS_LAS_HORAS.
+function getHorasDisponibles() {
+  return TODAS_LAS_HORAS
 }
 
 function CrearClaseModal({
@@ -28,7 +25,7 @@ function CrearClaseModal({
   horaInicial = ''
 }) {
   const [form, setForm] = useState({
-    fecha: '',
+    dia: '',
     hora: '',
     cupo: '',
     actividadId: '',
@@ -43,17 +40,13 @@ function CrearClaseModal({
   const [claseCreada, setClaseCreada] = useState(null)
   const [mostrarExito, setMostrarExito] = useState(false)
 
-  const horasDisponibles = useMemo(() => getHorasDisponibles(form.fecha), [form.fecha])
+  const horasDisponibles = useMemo(() => getHorasDisponibles(), [])
 
   useEffect(() => {
     if (abierto) {
-      const horas = getHorasDisponibles(fechaInicial)
-      const horaInicialNum = Number(horaInicial)
-      const horaValida = horas.includes(horaInicialNum) ? horaInicial : ''
-
       setForm({
-        fecha: fechaInicial || '',
-        hora: horaValida,
+        dia: '',
+        hora: '',
         cupo: '',
         actividadId: '',
         profesorId: ''
@@ -64,7 +57,7 @@ function CrearClaseModal({
       setMostrarExito(false)
       cargarProfesores()
     }
-  }, [abierto, fechaInicial, horaInicial])
+  }, [abierto])
 
   if (!abierto) {
     return null
@@ -140,38 +133,12 @@ function CrearClaseModal({
     }))
   }
 
-  const esFindeSemana = (fechaStr) => {
-    if (!fechaStr) return false
-    const dia = new Date(fechaStr + 'T00:00:00').getDay()
-    return dia === 0 || dia === 6
-  }
-
-  const manejarCambioFecha = (e) => {
-    const nuevaFecha = e.target.value
-
-    if (esFindeSemana(nuevaFecha)) {
-      setError('El gimnasio no opera los fines de semana. Seleccioná un día de lunes a viernes.')
-      setForm((prev) => ({ ...prev, fecha: '', hora: '' }))
-      return
-    }
-
-    setError('')
-    setForm((prev) => {
-      const horas = getHorasDisponibles(nuevaFecha)
-      const horaActual = Number(prev.hora)
-      const horaValida = horas.includes(horaActual)
-
-      return {
-        ...prev,
-        fecha: nuevaFecha,
-        hora: horaValida ? prev.hora : ''
-      }
-    })
-  }
+  // Weekday selection replaces the date picker. Weekdays are fixed (lun-vie),
+  // so no weekend validation is necessary because the select only offers valid days.
 
   const limpiarFormulario = () => {
     setForm({
-      fecha: fechaInicial || '',
+      dia: fechaInicial || '',
       hora: horaInicial || '',
       cupo: '',
       actividadId: '',
@@ -221,6 +188,18 @@ function CrearClaseModal({
     return actividad ? actividad.nombre : 'Sin seleccionar'
   }
 
+  const obtenerNombreDia = (dia) => {
+    if (!dia) return 'Sin seleccionar'
+    const map = {
+      monday: 'Lunes',
+      tuesday: 'Martes',
+      wednesday: 'Miércoles',
+      thursday: 'Jueves',
+      friday: 'Viernes'
+    }
+    return map[dia] || dia
+  }
+
   const crearClase = async (e) => {
     e.preventDefault()
 
@@ -232,14 +211,13 @@ function CrearClaseModal({
     const actividadId = convertirEntero(form.actividadId)
     const profesorId = convertirEntero(form.profesorId)
 
-    if (!form.fecha) {
-      setError('Debe seleccionar una fecha.')
+    if (!form.dia) {
+      setError('Debe seleccionar un día de la semana.')
       setCargando(false)
       return
     }
-
     if (hora === null || !horasDisponibles.includes(hora)) {
-      setError('Debe seleccionar una hora válida para la fecha elegida.')
+      setError('Debe seleccionar una hora válida.')
       setCargando(false)
       return
     }
@@ -262,40 +240,155 @@ function CrearClaseModal({
       return
     }
 
-    const nuevaClase = {
-      fecha: form.fecha,
-      hora,
-      cupo,
-      actividad: {
-        idActividad: actividadId
-      },
-      profesor: {
-        id: profesorId
-      }
+    // Compute the weekly dates for the next two months starting from the
+    // next occurrence of the selected weekday.
+    const weekdayMap = {
+      monday: 1,
+      tuesday: 2,
+      wednesday: 3,
+      thursday: 4,
+      friday: 5
     }
 
+    const weekdayIndex = weekdayMap[form.dia]
+
+    if (!weekdayIndex) {
+      setError('Día inválido.')
+      setCargando(false)
+      return
+    }
+
+    const today = new Date()
+    // find next date with the selected weekday (0=Sun..6=Sat), using JS getDay()
+    const targetDay = weekdayIndex // monday=1 .. friday=5
+
+    const getNextOrSameWeekday = (fromDate, targetDay) => {
+      const d = new Date(fromDate)
+      const currentDay = d.getDay()
+      // Convert Sunday=0, Monday=1... targetDay is 1..5
+      let diff = targetDay - currentDay
+      if (diff < 0) diff += 7
+      d.setDate(d.getDate() + diff)
+      d.setHours(0, 0, 0, 0)
+      return d
+    }
+
+    let startDate = getNextOrSameWeekday(today, targetDay)
+    // if startDate is today but chosen hour already passed, start next week
+    const nowHour = new Date().getHours()
+    if (
+      startDate.getTime() === new Date(new Date().setHours(0, 0, 0, 0)).getTime() &&
+      hora <= nowHour
+    ) {
+      startDate.setDate(startDate.getDate() + 7)
+    }
+
+    const endDate = new Date()
+    endDate.setMonth(endDate.getMonth() + 2)
+    endDate.setHours(23, 59, 59, 999)
+
+    const dates = []
+    const cur = new Date(startDate)
+    while (cur <= endDate) {
+      const y = cur.getFullYear()
+      const m = String(cur.getMonth() + 1).padStart(2, '0')
+      const d = String(cur.getDate()).padStart(2, '0')
+      dates.push(`${y}-${m}-${d}`)
+      cur.setDate(cur.getDate() + 7)
+    }
+
+    if (dates.length === 0) {
+      setError('No hay fechas disponibles en los próximos dos meses para ese día.')
+      setCargando(false)
+      return
+    }
+
+    // Fetch existing classes to validate conflicts across the range
+    let existentes = []
     try {
-      const response = await fetch(`${API_BASE_URL}/clases`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(nuevaClase)
+      const resp = await fetch(`${API_BASE_URL}/clases`)
+      const data = await leerRespuesta(resp)
+      existentes = Array.isArray(data) ? data : []
+    } catch (err) {
+      // If we cannot load existing classes, abort to avoid blind creation
+      setError('No se pudieron verificar clases existentes. Intentá nuevamente más tarde.')
+      setCargando(false)
+      return
+    }
+
+    const extractActividadId = (item) => {
+      if (!item) return null
+      const act = item.actividad || item.actividadId || item.actividad || null
+      if (!act) return null
+      return act.idActividad ?? act.id ?? act.idActividad ?? null
+    }
+
+    const conflicts = []
+    for (const fechaStr of dates) {
+      const conflict = existentes.find((it) => {
+        if (!it || !it.fecha) return false
+        const sameDate = it.fecha === fechaStr
+        const sameHour = Number(it.hora) === hora
+        const existingActId = extractActividadId(it)
+        return sameDate && sameHour && Number(existingActId) === actividadId
       })
 
-      const data = await leerRespuesta(response)
+      if (conflict) {
+        conflicts.push(fechaStr)
+      }
+    }
 
-      if (!response.ok) {
-        throw new Error(obtenerMensajeError(data, 'No se pudo crear la clase.'))
+    if (conflicts.length > 0) {
+      setError(`Ya existe(n) clase(s) de la misma actividad en las siguientes fechas: ${conflicts.join(', ')}`)
+      setCargando(false)
+      return
+    }
+
+    // No conflicts — create one class per date. Collect results and errors.
+    const created = []
+    const failed = []
+
+    for (const fechaStr of dates) {
+      const payload = {
+        fecha: fechaStr,
+        hora,
+        cupo,
+        actividad: {
+          idActividad: actividadId
+        },
+        profesor: {
+          id: profesorId
+        }
       }
 
-      setClaseCreada(data)
-      setMostrarExito(true)
-    } catch (err) {
-      setError(err.message || 'Ocurrió un error al crear la clase.')
-    } finally {
-      setCargando(false)
+      try {
+        const response = await fetch(`${API_BASE_URL}/clases`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+
+        const data = await leerRespuesta(response)
+        if (!response.ok) {
+          failed.push({ fecha: fechaStr, error: obtenerMensajeError(data, 'Error al crear clase') })
+        } else {
+          created.push(data)
+        }
+      } catch (err) {
+        failed.push({ fecha: fechaStr, error: err.message || 'Error de red' })
+      }
     }
+
+    if (failed.length > 0) {
+      setError(`Algunas clases no pudieron crearse: ${failed.map((f) => `${f.fecha} (${f.error})`).join('; ')}`)
+      setClaseCreada(created)
+      setMostrarExito(true)
+    } else {
+      setClaseCreada(created)
+      setMostrarExito(true)
+    }
+
+    setCargando(false)
   }
 
   const cerrarPopupExito = () => {
@@ -341,17 +434,20 @@ function CrearClaseModal({
         <div className="crear-clase-modal__content">
           <form className="crear-clase-modal__form" onSubmit={crearClase}>
             <label className="crear-clase-modal__field">
-              <span>Fecha <small style={{ fontWeight: 400, opacity: 0.65 }}>(lun–vie)</small></span>
-              <input
-                type="date"
-                name="fecha"
-                value={form.fecha}
-                onChange={(e) => {
-                  setForm((prev) => ({ ...prev, fecha: e.target.value, hora: '' }));
-                }}
-                min={new Date().toISOString().split('T')[0]}
+              <span>Día <small style={{ fontWeight: 400, opacity: 0.65 }}>(lun–vie)</small></span>
+              <select
+                name="dia"
+                value={form.dia}
+                onChange={(e) => setForm((prev) => ({ ...prev, dia: e.target.value, hora: '' }))}
                 required
-              />
+              >
+                <option value="">Seleccionar día</option>
+                <option value="monday">Lunes</option>
+                <option value="tuesday">Martes</option>
+                <option value="wednesday">Miércoles</option>
+                <option value="thursday">Jueves</option>
+                <option value="friday">Viernes</option>
+              </select>
             </label>
 
             <label className="crear-clase-modal__field">
@@ -360,11 +456,11 @@ function CrearClaseModal({
                 name="hora"
                 value={form.hora}
                 onChange={manejarCambio}
-                disabled={!form.fecha || horasDisponibles.length === 0}
+                disabled={!form.dia || horasDisponibles.length === 0}
                 required
               >
                 <option value="">Seleccionar hora</option>
-                {getHorasDisponibles(form.fecha).map((h) => (
+                {horasDisponibles.map((h) => (
                   <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
                 ))}
               </select>
@@ -454,7 +550,7 @@ function CrearClaseModal({
 
             <div className="crear-clase-modal__summary-item">
               <span>Día</span>
-              <strong>{form.fecha || 'Sin seleccionar'}</strong>
+              <strong>{obtenerNombreDia(form.dia)}</strong>
             </div>
 
             <div className="crear-clase-modal__summary-item">

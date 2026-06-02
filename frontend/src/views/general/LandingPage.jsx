@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import Navbar from '../../components/Navbar';
+import Navbar from '../../components/Navbar/Navbar';
 import Hero from '../../components/Hero';
 import About from '../../components/About';
 import Disciplines from '../../components/Disciplines';

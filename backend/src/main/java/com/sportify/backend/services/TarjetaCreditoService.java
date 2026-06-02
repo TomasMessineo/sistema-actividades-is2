@@ -37,13 +37,13 @@ public class TarjetaCreditoService {
 
     private void validarTarjeta(PagoRequest solicitud) {
         if (solicitud.getNombreTitular() == null || solicitud.getNombreTitular().isEmpty()) {
-            throw new RuntimeException("error por nombre del titular requerido");
+            throw new RuntimeException("Nombre del titular requerido");
         }
         if (!esFechaVencimientoValida(solicitud.getFechaVencimiento())) {
-            throw new RuntimeException("error por fecha de vencimiento inválida");
+            throw new RuntimeException("Tarjeta de crédito vencida");
         }
         if (!esCvvValido(solicitud.getCvv())) {
-            throw new RuntimeException("error por CVV inválido");
+            throw new RuntimeException("CVV inválido");
         }
 
         // Bypass de Luhn para pruebas de desarrollo
@@ -53,7 +53,7 @@ public class TarjetaCreditoService {
         }
 
         if (!esNumeroTarjetaValido(solicitud.getNumeroTarjeta())) {
-            throw new RuntimeException("Error por número de tarjeta inexistente");
+            throw new RuntimeException("Número de tarjeta inexistente");
         }
     }
 
@@ -63,23 +63,23 @@ public class TarjetaCreditoService {
 
         // Simulaciones basadas en el nombre del titular (para pruebas)
         if (nombre.equals("CONT")) {
-            throw new RuntimeException("Error por fondos insuficientes");
+            throw new RuntimeException("Fondos insuficientes");
         }
         if (nombre.equals("CALL")) {
-            throw new RuntimeException("Error por autorización rechazada");
+            throw new RuntimeException("Autorización rechazada");
         }
 
         // CVV de prueba para simular CVV inválido
         if (solicitud.getCvv().equals("000")) {
-            throw new RuntimeException("Error por CVV inválido");
+            throw new RuntimeException("CVV inválido");
         }
 
         // Tarjetas de prueba tradicionales para simular respuestas del banco
         if (numero.equals("4000000000000002")) {
-            throw new RuntimeException("Error por fondos insuficientes");
+            throw new RuntimeException("Fondos insuficientes");
         }
         if (numero.equals("4000000000000119")) {
-            throw new RuntimeException("Error por conexión no establecida");
+            throw new RuntimeException("Conexión no establecida");
         }
 
         return "TARJETA_" + UUID.randomUUID().toString();
