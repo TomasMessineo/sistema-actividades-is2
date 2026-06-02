@@ -80,6 +80,7 @@ public class AuthController {
             respuesta.put("nombre", usuario.getNombre());
             respuesta.put("apellido", usuario.getApellido());
             respuesta.put("email", usuario.getEmail());
+            respuesta.put("fechaUltimoCambioPassword", usuario.getFechaUltimoCambioPassword());
             respuesta.put("rol", rol);
 
             if ("ALUMNO".equals(rol)) {

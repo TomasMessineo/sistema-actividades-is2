@@ -91,7 +91,7 @@ function ProfileDefaultMenu({
                 <ProfileEditButton ariaLabel="Modificar contraseña" className="profile-item-edit-button" onClick={onEditPassword} />
               </div>
               <div className="profile-password-meta">
-                <span>Tu ultimo cambio de contraseña fue {passwordChangeSummary}</span>
+                <span>{passwordChangeSummary}</span>
                 <span className="profile-info-wrapper" tabIndex="0" aria-label="Informacion de seguridad">
                   <span className="profile-info-icon" aria-hidden="true">i</span>
                   <span className="profile-info-tooltip" role="tooltip">recomendamos cambiar la contraseña 1 vez al año</span>
