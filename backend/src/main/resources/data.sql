@@ -175,16 +175,16 @@ VALUES (9)
 -- =========================
 
 INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, cancelada, hora) VALUES
-  (1, 1, '2026-06-01', 3000.0, 1, 7, false, 9),
-  (2, 1, '2026-06-08', 3000.0, 1, 7, false, 9),
-  (3, 1, '2026-06-15', 3000.0, 1, 7, false, 9),
-  (4, 1, '2026-06-22', 3000.0, 1, 7, false, 9),
-  (5, 1, '2026-06-29', 3000.0, 1, 7, false, 9),
-  (6, 10, '2026-06-03', 3000.0, 1, 7, false, 9),
-  (7, 10, '2026-06-10', 3000.0, 1, 7, false, 9),
-  (8, 10, '2026-06-17', 3000.0, 1, 7, false, 9),
-  (9, 10, '2026-06-24', 3000.0, 1, 7, false, 9),
-  (10, 10, '2026-07-01', 3000.0, 1, 7, false, 9)
+  (1, 1, '2026-06-01', 3000.0, 1, 9, false, 9),
+  (2, 1, '2026-06-08', 3000.0, 1, 9, false, 9),
+  (3, 1, '2026-06-15', 3000.0, 1, 9, false, 9),
+  (4, 1, '2026-06-22', 3000.0, 1, 9, false, 9),
+  (5, 1, '2026-06-29', 3000.0, 1, 9, false, 9),
+  (6, 10, '2026-06-03', 3000.0, 1, 9, false, 9),
+  (7, 10, '2026-06-10', 3000.0, 1, 9, false, 9),
+  (8, 10, '2026-06-17', 3000.0, 1, 9, false, 9),
+  (9, 10, '2026-06-24', 3000.0, 1, 9, false, 9),
+  (10, 10, '2026-07-01', 3000.0, 1, 9, false, 9)
     ON CONFLICT (id_clase) DO UPDATE
         SET cupo = EXCLUDED.cupo,
             fecha = EXCLUDED.fecha,
@@ -203,11 +203,11 @@ INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, can
   (23, 15, '2026-06-17', 3500.0, 2, 8, false, 13),
   (24, 15, '2026-06-24', 3500.0, 2, 8, false, 13),
   (25, 15, '2026-07-01', 3500.0, 2, 8, false, 13),
-  (26, 10, '2026-06-05', 3500.0, 2, 7, false, 13),
-  (27, 10, '2026-06-12', 3500.0, 2, 7, false, 13),
-  (28, 10, '2026-06-19', 3500.0, 2, 7, false, 13),
-  (29, 10, '2026-06-26', 3500.0, 2, 7, false, 13),
-  (30, 10, '2026-07-03', 3500.0, 2, 7, false, 13)
+  (26, 10, '2026-06-05', 3500.0, 2, 9, false, 13),
+  (27, 10, '2026-06-12', 3500.0, 2, 9, false, 13),
+  (28, 10, '2026-06-19', 3500.0, 2, 9, false, 13),
+  (29, 10, '2026-06-26', 3500.0, 2, 9, false, 13),
+  (30, 10, '2026-07-03', 3500.0, 2, 9, false, 13)
     ON CONFLICT (id_clase) DO UPDATE
         SET cupo = EXCLUDED.cupo,
             fecha = EXCLUDED.fecha,
@@ -251,31 +251,31 @@ UPDATE alumno SET creditos = 15 WHERE id = 4;
 -- =========================
 
 INSERT INTO apto_medico (id_apto_medico, fecha_de_vencimiento, url, alumno_id)
-VALUES (1, '2099-12-31', 'http://prueba/apto1.pdf', 2)
+VALUES (1, '2099-12-31', 'http://prueba/apto1.pdf', 3)
     ON CONFLICT (id_apto_medico) DO UPDATE
         SET fecha_de_vencimiento = EXCLUDED.fecha_de_vencimiento,
             alumno_id = EXCLUDED.alumno_id;
 
 INSERT INTO apto_medico (id_apto_medico, fecha_de_vencimiento, url, alumno_id)
-VALUES (2, '2099-12-31', 'http://prueba/apto2.pdf', 3)
+VALUES (2, '2099-12-31', 'http://prueba/apto2.pdf', 4)
     ON CONFLICT (id_apto_medico) DO UPDATE
         SET fecha_de_vencimiento = EXCLUDED.fecha_de_vencimiento,
             alumno_id = EXCLUDED.alumno_id;
 
 INSERT INTO apto_medico (id_apto_medico, fecha_de_vencimiento, url, alumno_id)
-VALUES (3, '2099-12-31', 'http://prueba/apto3.pdf', 4)
+VALUES (3, '2099-12-31', 'http://prueba/apto3.pdf', 5)
     ON CONFLICT (id_apto_medico) DO UPDATE
         SET fecha_de_vencimiento = EXCLUDED.fecha_de_vencimiento,
             alumno_id = EXCLUDED.alumno_id;
 
 INSERT INTO apto_medico (id_apto_medico, fecha_de_vencimiento, url, alumno_id)
-VALUES (4, '2099-12-31', 'http://prueba/apto4.pdf', 5)
+VALUES (4, '2099-12-31', 'http://prueba/apto4.pdf', 6)
     ON CONFLICT (id_apto_medico) DO UPDATE
         SET fecha_de_vencimiento = EXCLUDED.fecha_de_vencimiento,
             alumno_id = EXCLUDED.alumno_id;
 
 INSERT INTO apto_medico (id_apto_medico, fecha_de_vencimiento, url, alumno_id)
-VALUES (5, '2099-12-31', 'http://prueba/apto5.pdf', 6)
+VALUES (5, '2099-12-31', 'http://prueba/apto5.pdf', 7)
     ON CONFLICT (id_apto_medico) DO UPDATE
         SET fecha_de_vencimiento = EXCLUDED.fecha_de_vencimiento,
             alumno_id = EXCLUDED.alumno_id;

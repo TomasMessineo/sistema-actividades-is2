@@ -49,8 +49,8 @@ public class AuthController {
                     .password(registroDTO.getPassword())
                     .fechaUltimoCambioPassword(LocalDateTime.now())
                     .fechaNacimiento(registroDTO.getFechaNacimiento())
+                    .activo(true)
                     .build();
-
             Alumno alumnoRegistrado = alumnoService.guardar(nuevoAlumno);
             return new ResponseEntity<>(alumnoRegistrado, HttpStatus.CREATED);
 
