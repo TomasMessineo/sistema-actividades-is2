@@ -67,6 +67,27 @@ function ModificarClaseModal({
     }
   }
 
+  const obtenerFechaHoraClase = () => {
+    if (!claseSeleccionada?.fecha || claseSeleccionada?.hora === null || claseSeleccionada?.hora === undefined) {
+      return null
+    }
+
+    const horaClase = String(Number(claseSeleccionada.hora)).padStart(2, '0')
+    const fechaHora = new Date(`${claseSeleccionada.fecha}T${horaClase}:00:00`)
+
+    return Number.isNaN(fechaHora.getTime()) ? null : fechaHora
+  }
+
+  const claseEstaOcurriendoOYaPaso = () => {
+    const fechaHoraClase = obtenerFechaHoraClase()
+
+    if (!fechaHoraClase) {
+      return true
+    }
+
+    return fechaHoraClase.getTime() <= Date.now()
+  }
+
   const obtenerMensajeError = (data, mensajeGenerico) => {
     if (!data) {
       return mensajeGenerico
@@ -272,13 +293,14 @@ function ModificarClaseModal({
     setAccionEnProceso(true)
     setError('')
 
-    try {
-      const response = await cancelarClaseApi(idClase)
-      const data = await leerRespuesta(response)
+    if (claseEstaOcurriendoOYaPaso()) {
+      setError('No se puede cancelar una clase que está ocurriendo o ya pasó.')
+      setAccionEnProceso(false)
+      return
+    }
 
-      if (!response.ok) {
-        throw new Error(obtenerMensajeError(data, 'No se pudo cancelar la clase.'))
-      }
+    try {
+      const data = await cancelarClaseApi(idClase)
 
       setClaseModificada(data)
       setMostrarExito(true)
@@ -291,12 +313,17 @@ function ModificarClaseModal({
 
   const abrirConfirmacionCancelacion = () => {
     setError('')
+
+    if (claseEstaOcurriendoOYaPaso()) {
+      setError('No se puede cancelar una clase que está ocurriendo o ya pasó.')
+      return
+    }
+
     setMostrarConfirmacionCancelacion(true)
   }
 
   const cerrarConfirmacionCancelacion = () => {
     setMostrarConfirmacionCancelacion(false)
-    setError('La clase no se canceló.')
   }
 
   const cerrarPopupExito = () => {
@@ -340,7 +367,7 @@ function ModificarClaseModal({
         <div className="modificar-clase-modal__content">
           <form className="modificar-clase-modal__form" onSubmit={modificarClase}>
             <label className="modificar-clase-modal__field">
-              <span>Día <small style={{ fontWeight: 400, opacity: 0.65 }}>(lun–vie)</small></span>
+              <span>Día</span>
               <input
                 type="date"
                 name="fecha"

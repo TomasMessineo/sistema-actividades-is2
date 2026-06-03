@@ -205,6 +205,7 @@ function CrearClaseModal({
 
     setCargando(true)
     setError('')
+    setMostrarExito(false)
 
     const hora = convertirEntero(form.hora)
     const cupo = convertirEntero(form.cupo)
@@ -222,13 +223,7 @@ function CrearClaseModal({
       return
     }
 
-    if (cupo !== null && cupo < 0) {
-      setError('La clase no puede crearse con cupo negativo.')
-      setCargando(false)
-      return
-    }
-
-    if (cupo === null || cupo === 0 || cupo > 30) {
+    if (cupo === null || cupo <= 0 || cupo > 30) {
       setError('Debe ingresar un cupo válido entre 1 y 30.')
       setCargando(false)
       return
@@ -322,53 +317,71 @@ function CrearClaseModal({
       return
     }
 
-    const selectedActividad = ACTIVIDADES.find((a) => a.id === actividadId)
-    const selectedActivityName = selectedActividad ? selectedActividad.nombre.toUpperCase() : null
-
-    // Pre-compute non-cancelled class count per slot (date + hour)
-    const slotCounts = {}
-    for (const item of existentes) {
-      if (!item?.fecha || item.hora == null || item.cancelada) continue
-      const key = `${item.fecha}-${item.hora}`
-      slotCounts[key] = (slotCounts[key] || 0) + 1
+    const extractActividadId = (item) => {
+      if (!item) return null
+      const act = item.actividad ?? item.actividadId ?? null
+      if (typeof act === 'number' || typeof act === 'string') return Number(act)
+      if (typeof act === 'object' && act !== null) return act.idActividad ?? act.id ?? null
+      return null
     }
 
-    let slotFullConflict = false
-    let activityConflict = false
+    const extractProfesorId = (item) => {
+      if (!item) return null
+      const prof = item.profesor ?? item.profesorId ?? null
+      if (typeof prof === 'number' || typeof prof === 'string') return Number(prof)
+      if (typeof prof === 'object' && prof !== null) return prof.id ?? prof.idUsuario ?? prof.idProfesor ?? null
+      return null
+    }
 
     for (const fechaStr of dates) {
-      const slotKey = `${fechaStr}-${hora}`
-      if ((slotCounts[slotKey] || 0) >= 3) {
-        slotFullConflict = true
-        break
+      // Find classes in the same date and hour
+      const sameTimeClasses = existentes.filter((it) => {
+        if (!it || !it.fecha || it.cancelada) return false
+        // Backend might return date as "YYYY-MM-DD" or "YYYY-MM-DDTHH:mm:ss"
+        const itFechaOnly = it.fecha.split('T')[0]
+        return itFechaOnly === fechaStr && Number(it.hora) === hora
+      })
+
+      // Check for same discipline conflict
+      const disciplineConflict = sameTimeClasses.some((it) => {
+        const existingActId = extractActividadId(it)
+        return existingActId !== null && Number(existingActId) === actividadId
+      })
+
+      if (disciplineConflict) {
+        setError('Ya existe una clase de la misma actividad en ese horario en algunas de las fechas seleccionadas.')
+        setCargando(false)
+        return
       }
-      if (selectedActivityName) {
-        const hasActivityConflict = existentes.some((it) => {
-          if (!it?.fecha || it.cancelada) return false
-          return it.fecha === fechaStr &&
-            Number(it.hora) === hora &&
-            it.actividad?.toString().toUpperCase() === selectedActivityName
-        })
-        if (hasActivityConflict) {
-          activityConflict = true
-          break
-        }
+
+      // Check for total capacity conflict (max 30)
+      const totalCupo = sameTimeClasses.reduce((sum, it) => sum + (Number(it.cupo) || 0), 0)
+      if (totalCupo + cupo > 30) {
+        setError('El cupo total de 30 personas se superaría en algunas de las fechas seleccionadas.')
+        setCargando(false)
+        return
+      }
+
+      // Check for professor availability
+      const isProfessorBusy = sameTimeClasses.some((it) => {
+        const existingProfId = extractProfesorId(it)
+        return existingProfId !== null && Number(existingProfId) === profesorId
+      })
+      if (isProfessorBusy) {
+        setError('El profesor seleccionado ya tiene una clase asignada en algunas de las fechas seleccionadas.')
+        setCargando(false)
+        return
+      }
+
+      // Check for max 3 classes per timeslot
+      if (sameTimeClasses.length >= 3) {
+        setError('El horario seleccionado ya tiene el máximo de 3 clases permitidas en algunas de las fechas seleccionadas.')
+        setCargando(false)
+        return
       }
     }
 
-    if (activityConflict) {
-      setError('Lo sentimos, no ha sido posible registrar la clase, ya que en ese turno se encuentra registrada la misma disciplina')
-      setCargando(false)
-      return
-    }
-
-    if (slotFullConflict) {
-      setError('Lo sentimos, el horario ingresado ya tiene 3 clases asignadas. Por favor, pruebe con un horario distinto.')
-      setCargando(false)
-      return
-    }
-
-    // No conflicts — create one class per date. Collect results and errors.
+    // No conflicts — create one class per date.
     const created = []
     const failed = []
 
