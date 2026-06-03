@@ -8,7 +8,7 @@ import '../../styles/Navbar.css';
 function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const { isAuthenticated, role, logout } = useAuth();
+  const { isAuthenticated, role } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -32,8 +32,8 @@ function Navbar() {
         <Link to="/" className="navbar__logo" id="navbar-logo" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
           <img src={logoImg} alt="Sportify Logo" className="navbar__logo-img" />
         </Link>
-
-        <ul className={`navbar__links ${menuOpen ? 'navbar__links--open' : ''}`} id="navbar-links">
+        <ul
+        className={`navbar__links ${menuOpen ? 'navbar__links--open' : ''}`} id="navbar-links">
           <li>
             <Link to="/" className="navbar__link" id="nav-inicio" onClick={() => {
               window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -67,8 +67,7 @@ function Navbar() {
             <>
               <button 
                 onClick={() => {
-                  logout();
-                  window.location.href = '/'; // Recargar estado completo
+                  localStorage.removeItem('sportify_user'); window.location.href = '/';
                 }} 
                 className="navbar__link navbar__link-logout" 
                 style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit' }}

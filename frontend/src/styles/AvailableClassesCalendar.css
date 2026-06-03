@@ -124,6 +124,25 @@
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+.calendar-day-header {
+  flex-direction: column;
+  gap: 3px;
+}
+
+.calendar-day-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.01em;
+}
+
+.calendar-day-date {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.35);
+  letter-spacing: 0.04em;
+}
+
 .calendar-corner,
 .calendar-day-header {
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);

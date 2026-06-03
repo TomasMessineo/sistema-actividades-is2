@@ -17,7 +17,7 @@ const CreditIcon = () => (
 function NavbarAlumno() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const { logout, user } = useAuth();
+  const { user } = useAuth();
   const nombre = user?.nombre || '';
 
   useEffect(() => {
@@ -84,7 +84,7 @@ function NavbarAlumno() {
           )}
 
           <button
-            onClick={() => { logout(); window.location.href = '/'; }}
+            onClick={() => { localStorage.removeItem('sportify_user'); window.location.href = '/'; }}
             className="navbar__link navbar__link-logout"
           >
             Cerrar Sesión
