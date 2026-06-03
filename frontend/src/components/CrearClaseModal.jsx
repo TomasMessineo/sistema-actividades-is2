@@ -222,7 +222,13 @@ function CrearClaseModal({
       return
     }
 
-    if (cupo === null || cupo <= 0 || cupo > 30) {
+    if (cupo !== null && cupo < 0) {
+      setError('La clase no puede crearse con cupo negativo.')
+      setCargando(false)
+      return
+    }
+
+    if (cupo === null || cupo === 0 || cupo > 30) {
       setError('Debe ingresar un cupo válido entre 1 y 30.')
       setCargando(false)
       return
@@ -316,30 +322,48 @@ function CrearClaseModal({
       return
     }
 
-    const extractActividadId = (item) => {
-      if (!item) return null
-      const act = item.actividad || item.actividadId || item.actividad || null
-      if (!act) return null
-      return act.idActividad ?? act.id ?? act.idActividad ?? null
+    const selectedActividad = ACTIVIDADES.find((a) => a.id === actividadId)
+    const selectedActivityName = selectedActividad ? selectedActividad.nombre.toUpperCase() : null
+
+    // Pre-compute non-cancelled class count per slot (date + hour)
+    const slotCounts = {}
+    for (const item of existentes) {
+      if (!item?.fecha || item.hora == null || item.cancelada) continue
+      const key = `${item.fecha}-${item.hora}`
+      slotCounts[key] = (slotCounts[key] || 0) + 1
     }
 
-    const conflicts = []
-    for (const fechaStr of dates) {
-      const conflict = existentes.find((it) => {
-        if (!it || !it.fecha) return false
-        const sameDate = it.fecha === fechaStr
-        const sameHour = Number(it.hora) === hora
-        const existingActId = extractActividadId(it)
-        return sameDate && sameHour && Number(existingActId) === actividadId
-      })
+    let slotFullConflict = false
+    let activityConflict = false
 
-      if (conflict) {
-        conflicts.push(fechaStr)
+    for (const fechaStr of dates) {
+      const slotKey = `${fechaStr}-${hora}`
+      if ((slotCounts[slotKey] || 0) >= 3) {
+        slotFullConflict = true
+        break
+      }
+      if (selectedActivityName) {
+        const hasActivityConflict = existentes.some((it) => {
+          if (!it?.fecha || it.cancelada) return false
+          return it.fecha === fechaStr &&
+            Number(it.hora) === hora &&
+            it.actividad?.toString().toUpperCase() === selectedActivityName
+        })
+        if (hasActivityConflict) {
+          activityConflict = true
+          break
+        }
       }
     }
 
-    if (conflicts.length > 0) {
-      setError(`Ya existe(n) clase(s) de la misma actividad en las siguientes fechas: ${conflicts.join(', ')}`)
+    if (activityConflict) {
+      setError('Lo sentimos, no ha sido posible registrar la clase, ya que en ese turno se encuentra registrada la misma disciplina')
+      setCargando(false)
+      return
+    }
+
+    if (slotFullConflict) {
+      setError('Lo sentimos, el horario ingresado ya tiene 3 clases asignadas. Por favor, pruebe con un horario distinto.')
       setCargando(false)
       return
     }
@@ -380,9 +404,12 @@ function CrearClaseModal({
     }
 
     if (failed.length > 0) {
-      setError(`Algunas clases no pudieron crearse: ${failed.map((f) => `${f.fecha} (${f.error})`).join('; ')}`)
-      setClaseCreada(created)
-      setMostrarExito(true)
+      if (created.length === 0) {
+        setError(failed[0].error)
+      } else {
+        setError(`Se crearon ${created.length} clase(s) correctamente, pero ${failed.length} no pudieron registrarse.`)
+        setClaseCreada(created)
+      }
     } else {
       setClaseCreada(created)
       setMostrarExito(true)
