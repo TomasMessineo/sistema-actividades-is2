@@ -383,6 +383,7 @@ function CrearClaseModal({
 
     // No conflicts — create one class per date.
     const created = []
+    const failed = []
 
     for (const fechaStr of dates) {
       const payload = {
@@ -406,20 +407,27 @@ function CrearClaseModal({
 
         const data = await leerRespuesta(response)
         if (!response.ok) {
-          setError(obtenerMensajeError(data, 'No se pudieron crear algunas clases. Por favor, verificá los datos e intentá de nuevo.'))
-          setCargando(false)
-          return
+          failed.push({ fecha: fechaStr, error: obtenerMensajeError(data, 'Error al crear clase') })
+        } else {
+          created.push(data)
         }
-        created.push(data)
       } catch (err) {
-        setError('Error de red al intentar crear las clases.')
-        setCargando(false)
-        return
+        failed.push({ fecha: fechaStr, error: err.message || 'Error de red' })
       }
     }
 
-    setClaseCreada(created)
-    setMostrarExito(true)
+    if (failed.length > 0) {
+      if (created.length === 0) {
+        setError(failed[0].error)
+      } else {
+        setError(`Se crearon ${created.length} clase(s) correctamente, pero ${failed.length} no pudieron registrarse.`)
+        setClaseCreada(created)
+      }
+    } else {
+      setClaseCreada(created)
+      setMostrarExito(true)
+    }
+
     setCargando(false)
   }
 
@@ -466,7 +474,7 @@ function CrearClaseModal({
         <div className="crear-clase-modal__content">
           <form className="crear-clase-modal__form" onSubmit={crearClase}>
             <label className="crear-clase-modal__field">
-              <span>Día</span>
+              <span>Día <small style={{ fontWeight: 400, opacity: 0.65 }}>(lun–vie)</small></span>
               <select
                 name="dia"
                 value={form.dia}

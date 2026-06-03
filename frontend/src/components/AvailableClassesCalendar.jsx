@@ -9,6 +9,13 @@ const weekDays = [
   { key: 'friday', label: 'Viernes' },
 ];
 
+const getDayDate = (weekStart, index) => {
+  if (!weekStart) return null;
+  const date = new Date(weekStart);
+  date.setDate(date.getDate() + index);
+  return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}`;
+};
+
 const hours = Array.from({ length: 13 }, (_, index) => index + 8);
 
 const fallbackColorOrder = ['mint', 'sky', 'amber', 'violet', 'rose', 'emerald'];
@@ -46,6 +53,7 @@ const formatCapacity = (inscritos, cupo) => `${inscritos ?? 0}/${cupo ?? 0}`;
 
 function AvailableClassesCalendar({
   weekLabel,
+  weekStart = null,
   onPreviousWeek,
   onNextWeek,
   classes = [],
@@ -77,9 +85,12 @@ function AvailableClassesCalendar({
 
       <div className="calendar-grid" role="table" aria-label="Matriz de horarios de clases">
         <div className="calendar-corner" aria-hidden="true">Hora</div>
-        {weekDays.map((day) => (
+        {weekDays.map((day, index) => (
           <div key={day.key} className="calendar-day-header" role="columnheader">
-            {day.label}
+            <span className="calendar-day-name">{day.label}</span>
+            {getDayDate(weekStart, index) && (
+              <span className="calendar-day-date">{getDayDate(weekStart, index)}</span>
+            )}
           </div>
         ))}
 

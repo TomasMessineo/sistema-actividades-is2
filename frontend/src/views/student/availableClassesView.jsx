@@ -261,6 +261,7 @@ function AvailableClassesView() {
         {!loading && error && <p className="calendar-status calendar-status--error">{error}</p>}
         <AvailableClassesCalendar
           weekLabel={weekLabel}
+          weekStart={weekStart}
           onPreviousWeek={() => setWeekOffset((current) => current - 1)}
           onNextWeek={() => setWeekOffset((current) => current + 1)}
           classes={calendarClasses}
