@@ -33,7 +33,7 @@ public class AlumnoValidator {
 
     private void validarDniDuplicado(Alumno alumno) {
         alumnoRepository.findByDni(alumno.getDni()).ifPresent(alumnoExistente -> {
-            if (alumno.getId() == 0 || alumno.getId() != alumnoExistente.getId()) {
+            if (alumno.getId() == null || !alumno.getId().equals(alumnoExistente.getId())) {
                 throw new IllegalArgumentException("La cuenta no ha podido crearse debido a que el DNI ya se encuentra registrado en el sistema");
             }
         });
@@ -41,7 +41,7 @@ public class AlumnoValidator {
 
     private void validarEmailDuplicado(Alumno alumno) {
         alumnoRepository.findByEmail(alumno.getEmail()).ifPresent(alumnoExistente -> {
-            if (alumno.getId() == 0 || alumno.getId() != alumnoExistente.getId()) {
+            if (alumno.getId() == null || !alumno.getId().equals(alumnoExistente.getId())) {
                 throw new IllegalArgumentException("La cuenta no ha podido crearse debido a que el email ya se encuentra registrado en el sistema");
             }
         });
