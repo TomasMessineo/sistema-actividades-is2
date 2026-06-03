@@ -253,3 +253,30 @@ ID	Nombre	         Email	                  Password
 1	Alejo Admin	admin1@sportify.com	admin123
 2	Valentina Admin	admin2@sportify.com	admin123
 ```
+Resumen final:
+
+## Backend
+
+| Archivo | Cambio |
+|---|---|
+| `Profesor.java` | `@ManyToOne Actividad actividad` (obligatoria) |
+| `data.sql` | Cada profesor del seed tiene su `actividad_id` |
+| `ProfesorRepository` | `findByActividad_IdActividad(Integer)` |
+| `ProfesorService` | `listarPorActividad(Integer)` |
+| `ProfesorController` | Nuevo `GET /profesores/actividad/{id}` + incluye `actividad` en el DTO |
+| `ClaseService` | Nuevo helper `validarActividadDelProfesor()` llamado en `crearClase()` y `modificarClase()` — lanza `"El profesor seleccionado no dicta esta actividad."` si no coinciden |
+
+## Frontend (`CrearClaseModal.jsx`)
+
+- Al abrir el modal ya no carga profesores
+- Cuando el admin elige actividad → llama a `GET /profesores/actividad/{id}`
+- Al cambiar actividad resetea el profesor seleccionado
+- El select de profesor está deshabilitado hasta que se elija actividad
+- Mensajes contextuales en el placeholder: "Elegí una actividad primero" / "Cargando profesores..." / "No hay profesores para esta actividad" / "Seleccionar profesor"
+
+## Comportamiento final
+
+- En la UI un admin solo puede elegir entre profesores que dictan la actividad seleccionada
+- Si igual intenta forzarlo (Postman, etc.), el backend rechaza con el mensaje claro
+
+Como agregamos una columna `actividad_id NOT NULL` a `profesor`, cuando arranque la app va a borrar la DB (`ddl-auto=create`) y va a recargar con el seed nuevo. Debería funcionar limpio.
