@@ -133,7 +133,7 @@ public class ClaseService {
             int hora,
             int idClaseActual
     ) {
-        return claseRepository.findByFechaAndHora(fecha, hora)
+        return claseRepository.findByFechaAndHoraAndCanceladaFalse(fecha, hora)
                 .stream()
                 .filter(clase -> clase.getIdClase() != idClaseActual)
                 .toList();
