@@ -63,6 +63,7 @@ public class ClaseService {
         return listAll().stream()
                 .filter(clase -> !Boolean.TRUE.equals(clase.getCancelada()))
                 .filter(clase -> !isAlumnoEnrolled(clase, alumnoId))
+                .filter(clase -> !isAlumnoInWaitingList(clase, alumnoId))
                 .collect(Collectors.toList());
     }
 
@@ -72,6 +73,16 @@ public class ClaseService {
         }
 
         return clase.getListaAsistencia().getAlumnos().stream()
+                .map(Alumno::getId)
+                .anyMatch(id -> id == alumnoId);
+    }
+
+    private boolean isAlumnoInWaitingList(Clase clase, Integer alumnoId) {
+        if (clase.getListaEspera() == null || clase.getListaEspera().getAlumnos() == null) {
+            return false;
+        }
+
+        return clase.getListaEspera().getAlumnos().stream()
                 .map(Alumno::getId)
                 .anyMatch(id -> id == alumnoId);
     }
@@ -156,7 +167,7 @@ public class ClaseService {
             int hora,
             int idClaseActual
     ) {
-        return claseRepository.findByFechaAndHora(fecha, hora)
+        return claseRepository.findByFechaAndHoraAndCanceladaFalse(fecha, hora)
                 .stream()
                 .filter(clase -> clase.getIdClase() != idClaseActual)
                 .toList();

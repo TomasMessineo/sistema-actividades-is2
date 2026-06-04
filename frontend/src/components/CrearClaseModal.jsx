@@ -217,6 +217,7 @@ function CrearClaseModal({
 
     setCargando(true)
     setError('')
+    setMostrarExito(false)
 
     const hora = convertirEntero(form.hora)
     const cupo = convertirEntero(form.cupo)
@@ -330,33 +331,69 @@ function CrearClaseModal({
 
     const extractActividadId = (item) => {
       if (!item) return null
-      const act = item.actividad || item.actividadId || item.actividad || null
-      if (!act) return null
-      return act.idActividad ?? act.id ?? act.idActividad ?? null
+      const act = item.actividad ?? item.actividadId ?? null
+      if (typeof act === 'number' || typeof act === 'string') return Number(act)
+      if (typeof act === 'object' && act !== null) return act.idActividad ?? act.id ?? null
+      return null
     }
 
-    const conflicts = []
+    const extractProfesorId = (item) => {
+      if (!item) return null
+      const prof = item.profesor ?? item.profesorId ?? null
+      if (typeof prof === 'number' || typeof prof === 'string') return Number(prof)
+      if (typeof prof === 'object' && prof !== null) return prof.id ?? prof.idUsuario ?? prof.idProfesor ?? null
+      return null
+    }
+
     for (const fechaStr of dates) {
-      const conflict = existentes.find((it) => {
-        if (!it || !it.fecha) return false
-        const sameDate = it.fecha === fechaStr
-        const sameHour = Number(it.hora) === hora
-        const existingActId = extractActividadId(it)
-        return sameDate && sameHour && Number(existingActId) === actividadId
+      // Find classes in the same date and hour
+      const sameTimeClasses = existentes.filter((it) => {
+        if (!it || !it.fecha || it.cancelada) return false
+        // Backend might return date as "YYYY-MM-DD" or "YYYY-MM-DDTHH:mm:ss"
+        const itFechaOnly = it.fecha.split('T')[0]
+        return itFechaOnly === fechaStr && Number(it.hora) === hora
       })
 
-      if (conflict) {
-        conflicts.push(fechaStr)
+      // Check for same discipline conflict
+      const disciplineConflict = sameTimeClasses.some((it) => {
+        const existingActId = extractActividadId(it)
+        return existingActId !== null && Number(existingActId) === actividadId
+      })
+
+      if (disciplineConflict) {
+        setError('Ya existe una clase de la misma actividad en ese horario en algunas de las fechas seleccionadas.')
+        setCargando(false)
+        return
+      }
+
+      // Check for total capacity conflict (max 30)
+      const totalCupo = sameTimeClasses.reduce((sum, it) => sum + (Number(it.cupo) || 0), 0)
+      if (totalCupo + cupo > 30) {
+        setError('El cupo total de 30 personas se superaría en algunas de las fechas seleccionadas.')
+        setCargando(false)
+        return
+      }
+
+      // Check for professor availability
+      const isProfessorBusy = sameTimeClasses.some((it) => {
+        const existingProfId = extractProfesorId(it)
+        return existingProfId !== null && Number(existingProfId) === profesorId
+      })
+      if (isProfessorBusy) {
+        setError('El profesor seleccionado ya tiene una clase asignada en algunas de las fechas seleccionadas.')
+        setCargando(false)
+        return
+      }
+
+      // Check for max 3 classes per timeslot
+      if (sameTimeClasses.length >= 3) {
+        setError('El horario seleccionado ya tiene el máximo de 3 clases permitidas en algunas de las fechas seleccionadas.')
+        setCargando(false)
+        return
       }
     }
 
-    if (conflicts.length > 0) {
-      setError(`Ya existe(n) clase(s) de la misma actividad en las siguientes fechas: ${conflicts.join(', ')}`)
-      setCargando(false)
-      return
-    }
-
-    // No conflicts — create one class per date. Collect results and errors.
+    // No conflicts — create one class per date.
     const created = []
     const failed = []
 
@@ -392,9 +429,12 @@ function CrearClaseModal({
     }
 
     if (failed.length > 0) {
-      setError(`Algunas clases no pudieron crearse: ${failed.map((f) => `${f.fecha} (${f.error})`).join('; ')}`)
-      setClaseCreada(created)
-      setMostrarExito(true)
+      if (created.length === 0) {
+        setError(failed[0].error)
+      } else {
+        setError(`Se crearon ${created.length} clase(s) correctamente, pero ${failed.length} no pudieron registrarse.`)
+        setClaseCreada(created)
+      }
     } else {
       setClaseCreada(created)
       setMostrarExito(true)

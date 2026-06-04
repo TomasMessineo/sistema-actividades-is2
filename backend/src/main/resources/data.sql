@@ -232,16 +232,16 @@ INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, can
 -- CLASES FUNCIONAL (profesor 9 - Marcelo Mendoza y profesor 11 - Lucía Torres)
 -- =========================
 INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, cancelada, hora) VALUES
-  (21, 15, '2026-06-03', 3500.0, 3, 9, false, 13),
-  (22, 15, '2026-06-10', 3500.0, 3, 9, false, 13),
-  (23, 15, '2026-06-17', 3500.0, 3, 9, false, 13),
-  (24, 15, '2026-06-24', 3500.0, 3, 9, false, 13),
-  (25, 15, '2026-07-01', 3500.0, 3, 9, false, 13),
-  (26, 10, '2026-06-05', 3500.0, 3, 11, false, 13),
-  (27, 10, '2026-06-12', 3500.0, 3, 11, false, 13),
-  (28, 10, '2026-06-19', 3500.0, 3, 11, false, 13),
-  (29, 10, '2026-06-26', 3500.0, 3, 11, false, 13),
-  (30, 10, '2026-07-03', 3500.0, 3, 11, false, 13)
+  (21, 15, '2026-06-03', 3500.0, 2, 9, false, 13),
+  (22, 15, '2026-06-10', 3500.0, 2, 9, false, 13),
+  (23, 15, '2026-06-17', 3500.0, 2, 9, false, 13),
+  (24, 15, '2026-06-24', 3500.0, 2, 9, false, 13),
+  (25, 15, '2026-07-01', 3500.0, 2, 9, false, 13),
+  (26, 10, '2026-06-05', 3500.0, 2, 9, false, 13),
+  (27, 10, '2026-06-12', 3500.0, 2, 9, false, 13),
+  (28, 10, '2026-06-19', 3500.0, 2, 9, false, 13),
+  (29, 10, '2026-06-26', 3500.0, 2, 9, false, 13),
+  (30, 10, '2026-07-03', 3500.0, 2, 9, false, 13)
     ON CONFLICT (id_clase) DO UPDATE
         SET cupo = EXCLUDED.cupo,
             fecha = EXCLUDED.fecha,

@@ -85,6 +85,12 @@
 }
 
 .navbar__logo {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.navbar__brand .navbar__logo {
   flex: 0 0 auto;
 }
 

@@ -7,7 +7,7 @@ import '../../styles/Navbar.css';
 function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const { logout, user } = useAuth();
+  const { user } = useAuth();
   const nombre = user?.nombre || '';
 
   useEffect(() => {
@@ -53,8 +53,7 @@ function Navbar() {
         <div className="navbar__actions" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <button 
             onClick={() => {
-              logout();
-              window.location.href = '/';
+              localStorage.removeItem('sportify_user'); window.location.href = '/';
             }} 
             className="navbar__link navbar__link-logout" 
             style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit' }}

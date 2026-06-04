@@ -148,6 +148,7 @@ function ClassCalendarView() {
             </button>
           )}
           weekLabel={weekLabel}
+          weekStart={weekStart}
           onPreviousWeek={() => setWeekOffset((current) => current - 1)}
           onNextWeek={() => setWeekOffset((current) => current + 1)}
           classes={calendarClasses}
