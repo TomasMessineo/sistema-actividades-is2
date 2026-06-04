@@ -52,12 +52,24 @@ function CrearClaseModal({
         profesorId: ''
       })
 
+      setProfesores([])
       setError('')
       setClaseCreada(null)
       setMostrarExito(false)
-      cargarProfesores()
     }
   }, [abierto])
+
+  // Carga profesores cuando cambia la actividad
+  useEffect(() => {
+    if (!abierto) return
+
+    if (!form.actividadId) {
+      setProfesores([])
+      return
+    }
+
+    cargarProfesoresPorActividad(form.actividadId)
+  }, [form.actividadId, abierto])
 
   if (!abierto) {
     return null
@@ -101,11 +113,11 @@ function CrearClaseModal({
     return JSON.stringify(data)
   }
 
-  const cargarProfesores = async () => {
+  const cargarProfesoresPorActividad = async (actividadId) => {
     setCargandoProfesores(true)
 
     try {
-      const response = await fetch(`${API_BASE_URL}/profesores`, {
+      const response = await fetch(`${API_BASE_URL}/profesores/actividad/${actividadId}`, {
         method: 'GET'
       })
 
@@ -304,116 +316,40 @@ function CrearClaseModal({
       return
     }
 
-    // Fetch existing classes to validate conflicts across the range
-    let existentes = []
+    // Crear todas las clases en una sola operación atómica:
+    // el backend valida cada fecha y si alguna falla hace rollback de todo.
+    const payload = {
+      actividadId,
+      profesorId,
+      hora,
+      cupo,
+      fechas: dates
+    }
+
+    let created = []
+    let failed = []
+
     try {
-      const resp = await fetch(`${API_BASE_URL}/clases`)
-      const data = await leerRespuesta(resp)
-      existentes = Array.isArray(data) ? data : []
+      const response = await fetch(`${API_BASE_URL}/clases/lote`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+
+      const data = await leerRespuesta(response)
+
+      if (!response.ok) {
+        // Rollback total — ninguna clase se creó
+        setError(obtenerMensajeError(data, 'No se pudieron crear las clases. Revisá los conflictos e intentá de nuevo.'))
+        setCargando(false)
+        return
+      }
+
+      created = Array.isArray(data) ? data : []
     } catch (err) {
-      // If we cannot load existing classes, abort to avoid blind creation
-      setError('No se pudieron verificar clases existentes. Intentá nuevamente más tarde.')
+      setError(err.message || 'Error de red al crear las clases.')
       setCargando(false)
       return
-    }
-
-    const extractActividadId = (item) => {
-      if (!item) return null
-      const act = item.actividad ?? item.actividadId ?? null
-      if (typeof act === 'number' || typeof act === 'string') return Number(act)
-      if (typeof act === 'object' && act !== null) return act.idActividad ?? act.id ?? null
-      return null
-    }
-
-    const extractProfesorId = (item) => {
-      if (!item) return null
-      const prof = item.profesor ?? item.profesorId ?? null
-      if (typeof prof === 'number' || typeof prof === 'string') return Number(prof)
-      if (typeof prof === 'object' && prof !== null) return prof.id ?? prof.idUsuario ?? prof.idProfesor ?? null
-      return null
-    }
-
-    for (const fechaStr of dates) {
-      // Find classes in the same date and hour
-      const sameTimeClasses = existentes.filter((it) => {
-        if (!it || !it.fecha || it.cancelada) return false
-        // Backend might return date as "YYYY-MM-DD" or "YYYY-MM-DDTHH:mm:ss"
-        const itFechaOnly = it.fecha.split('T')[0]
-        return itFechaOnly === fechaStr && Number(it.hora) === hora
-      })
-
-      // Check for same discipline conflict
-      const disciplineConflict = sameTimeClasses.some((it) => {
-        const existingActId = extractActividadId(it)
-        return existingActId !== null && Number(existingActId) === actividadId
-      })
-
-      if (disciplineConflict) {
-        setError('Ya existe una clase de la misma actividad en ese horario en algunas de las fechas seleccionadas.')
-        setCargando(false)
-        return
-      }
-
-      // Check for total capacity conflict (max 30)
-      const totalCupo = sameTimeClasses.reduce((sum, it) => sum + (Number(it.cupo) || 0), 0)
-      if (totalCupo + cupo > 30) {
-        setError('El cupo total de 30 personas se superaría en algunas de las fechas seleccionadas.')
-        setCargando(false)
-        return
-      }
-
-      // Check for professor availability
-      const isProfessorBusy = sameTimeClasses.some((it) => {
-        const existingProfId = extractProfesorId(it)
-        return existingProfId !== null && Number(existingProfId) === profesorId
-      })
-      if (isProfessorBusy) {
-        setError('El profesor seleccionado ya tiene una clase asignada en algunas de las fechas seleccionadas.')
-        setCargando(false)
-        return
-      }
-
-      // Check for max 3 classes per timeslot
-      if (sameTimeClasses.length >= 3) {
-        setError('El horario seleccionado ya tiene el máximo de 3 clases permitidas en algunas de las fechas seleccionadas.')
-        setCargando(false)
-        return
-      }
-    }
-
-    // No conflicts — create one class per date.
-    const created = []
-    const failed = []
-
-    for (const fechaStr of dates) {
-      const payload = {
-        fecha: fechaStr,
-        hora,
-        cupo,
-        actividad: {
-          idActividad: actividadId
-        },
-        profesor: {
-          id: profesorId
-        }
-      }
-
-      try {
-        const response = await fetch(`${API_BASE_URL}/clases`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        })
-
-        const data = await leerRespuesta(response)
-        if (!response.ok) {
-          failed.push({ fecha: fechaStr, error: obtenerMensajeError(data, 'Error al crear clase') })
-        } else {
-          created.push(data)
-        }
-      } catch (err) {
-        failed.push({ fecha: fechaStr, error: err.message || 'Error de red' })
-      }
     }
 
     if (failed.length > 0) {
@@ -511,7 +447,7 @@ function CrearClaseModal({
               <select
                 name="actividadId"
                 value={form.actividadId}
-                onChange={manejarCambio}
+                onChange={(e) => setForm((prev) => ({ ...prev, actividadId: e.target.value, profesorId: '' }))}
                 required
               >
                 <option value="">Seleccionar actividad</option>
@@ -529,11 +465,17 @@ function CrearClaseModal({
                 name="profesorId"
                 value={form.profesorId}
                 onChange={manejarCambio}
-                disabled={cargandoProfesores}
+                disabled={!form.actividadId || cargandoProfesores}
                 required
               >
                 <option value="">
-                  {cargandoProfesores ? 'Cargando profesores...' : 'Seleccionar profesor'}
+                  {!form.actividadId
+                    ? 'Elegí una actividad primero'
+                    : cargandoProfesores
+                      ? 'Cargando profesores...'
+                      : profesores.length === 0
+                        ? 'No hay profesores para esta actividad'
+                        : 'Seleccionar profesor'}
                 </option>
 
                 {profesores.map((profesor) => {

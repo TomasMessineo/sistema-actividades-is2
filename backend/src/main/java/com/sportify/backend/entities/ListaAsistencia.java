@@ -1,5 +1,6 @@
 package com.sportify.backend.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -27,6 +28,7 @@ public class ListaAsistencia {
     )
     private List<Alumno> alumnos;
 
+    @JsonIgnore
     @OneToOne
     @JoinColumn(name = "clase_id")
     private Clase clase;

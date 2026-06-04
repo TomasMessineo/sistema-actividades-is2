@@ -150,9 +150,10 @@ VALUES (8, true, 'Guerra', '40666777', 'profesor1@sportify.com', 'Juan Luis', 'p
                             nombre = EXCLUDED.nombre,
                             password = EXCLUDED.password;
 
-INSERT INTO profesor (id)
-VALUES (8)
-    ON CONFLICT (id) DO NOTHING;
+INSERT INTO profesor (id, actividad_id)
+VALUES (8, 1)
+    ON CONFLICT (id) DO UPDATE
+        SET actividad_id = EXCLUDED.actividad_id;
 
 
 INSERT INTO usuario (id, activo, apellido, dni, email, nombre, password)
@@ -165,26 +166,59 @@ VALUES (9, true, 'Mendoza', '40777888', 'profesor2@sportify.com', 'Marcelo', 'pr
                             nombre = EXCLUDED.nombre,
                             password = EXCLUDED.password;
 
-INSERT INTO profesor (id)
-VALUES (9)
-    ON CONFLICT (id) DO NOTHING;
+INSERT INTO profesor (id, actividad_id)
+VALUES (9, 3)
+    ON CONFLICT (id) DO UPDATE
+        SET actividad_id = EXCLUDED.actividad_id;
+
+
+INSERT INTO usuario (id, activo, apellido, dni, email, nombre, password)
+VALUES (10, true, 'Ruiz', '40888999', 'profesor3@sportify.com', 'Carlos', 'profesor123')
+    ON CONFLICT (id) DO UPDATE
+                            SET activo = EXCLUDED.activo,
+                            apellido = EXCLUDED.apellido,
+                            dni = EXCLUDED.dni,
+                            email = EXCLUDED.email,
+                            nombre = EXCLUDED.nombre,
+                            password = EXCLUDED.password;
+
+INSERT INTO profesor (id, actividad_id)
+VALUES (10, 2)
+    ON CONFLICT (id) DO UPDATE
+        SET actividad_id = EXCLUDED.actividad_id;
+
+
+INSERT INTO usuario (id, activo, apellido, dni, email, nombre, password)
+VALUES (11, true, 'Torres', '40999000', 'profesor4@sportify.com', 'Lucía', 'profesor123')
+    ON CONFLICT (id) DO UPDATE
+                            SET activo = EXCLUDED.activo,
+                            apellido = EXCLUDED.apellido,
+                            dni = EXCLUDED.dni,
+                            email = EXCLUDED.email,
+                            nombre = EXCLUDED.nombre,
+                            password = EXCLUDED.password;
+
+INSERT INTO profesor (id, actividad_id)
+VALUES (11, 3)
+    ON CONFLICT (id) DO UPDATE
+        SET actividad_id = EXCLUDED.actividad_id;
 
 
 -- =========================
--- CLASES YOGA
+-- CLASES YOGA (profesor 8 - Juan Luis Guerra)
 -- =========================
 
 INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, cancelada, hora) VALUES
-  (1, 1, '2026-06-01', 3000.0, 1, 9, false, 9),
-  (2, 1, '2026-06-08', 3000.0, 1, 9, false, 9),
-  (3, 1, '2026-06-15', 3000.0, 1, 9, false, 9),
-  (4, 1, '2026-06-22', 3000.0, 1, 9, false, 9),
-  (5, 1, '2026-06-29', 3000.0, 1, 9, false, 9),
-  (6, 10, '2026-06-03', 3000.0, 1, 9, false, 9),
-  (7, 10, '2026-06-10', 3000.0, 1, 9, false, 9),
-  (8, 10, '2026-06-17', 3000.0, 1, 9, false, 9),
-  (9, 10, '2026-06-24', 3000.0, 1, 9, false, 9),
-  (10, 10, '2026-07-01', 3000.0, 1, 9, false, 9)
+  (1, 1, '2026-06-01', 3000.0, 1, 8, false, 9),
+  (2, 1, '2026-06-08', 3000.0, 1, 8, false, 9),
+  (3, 1, '2026-06-15', 3000.0, 1, 8, false, 9),
+  (4, 1, '2026-06-22', 3000.0, 1, 8, false, 9),
+  (5, 1, '2026-06-29', 3000.0, 1, 8, false, 9),
+  (6, 10, '2026-06-03', 3000.0, 1, 8, false, 9),
+  (7, 10, '2026-06-10', 3000.0, 1, 8, false, 9),
+  (8, 10, '2026-06-17', 3000.0, 1, 8, false, 9),
+  (9, 10, '2026-06-24', 3000.0, 1, 8, false, 9),
+  (10, 10, '2026-07-01', 3000.0, 1, 8, false, 9)
     ON CONFLICT (id_clase) DO UPDATE
         SET cupo = EXCLUDED.cupo,
             fecha = EXCLUDED.fecha,
@@ -195,19 +229,19 @@ INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, can
             hora = EXCLUDED.hora;
 
 -- =========================
--- CLASES FUNCIONAL
+-- CLASES FUNCIONAL (profesor 9 - Marcelo Mendoza y profesor 11 - Lucía Torres)
 -- =========================
 INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, cancelada, hora) VALUES
-  (21, 15, '2026-06-03', 3500.0, 2, 9, false, 13),
-  (22, 15, '2026-06-10', 3500.0, 2, 9, false, 13),
-  (23, 15, '2026-06-17', 3500.0, 2, 9, false, 13),
-  (24, 15, '2026-06-24', 3500.0, 2, 9, false, 13),
-  (25, 15, '2026-07-01', 3500.0, 2, 9, false, 13),
-  (26, 10, '2026-06-05', 3500.0, 2, 9, false, 13),
-  (27, 10, '2026-06-12', 3500.0, 2, 9, false, 13),
-  (28, 10, '2026-06-19', 3500.0, 2, 9, false, 13),
-  (29, 10, '2026-06-26', 3500.0, 2, 9, false, 13),
-  (30, 10, '2026-07-03', 3500.0, 2, 9, false, 13)
+  (21, 15, '2026-06-03', 3500.0, 3, 9, false, 13),
+  (22, 15, '2026-06-10', 3500.0, 3, 9, false, 13),
+  (23, 15, '2026-06-17', 3500.0, 3, 9, false, 13),
+  (24, 15, '2026-06-24', 3500.0, 3, 9, false, 13),
+  (25, 15, '2026-07-01', 3500.0, 3, 9, false, 13),
+  (26, 10, '2026-06-05', 3500.0, 3, 11, false, 13),
+  (27, 10, '2026-06-12', 3500.0, 3, 11, false, 13),
+  (28, 10, '2026-06-19', 3500.0, 3, 11, false, 13),
+  (29, 10, '2026-06-26', 3500.0, 3, 11, false, 13),
+  (30, 10, '2026-07-03', 3500.0, 3, 11, false, 13)
     ON CONFLICT (id_clase) DO UPDATE
         SET cupo = EXCLUDED.cupo,
             fecha = EXCLUDED.fecha,
@@ -218,19 +252,19 @@ INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, can
             hora = EXCLUDED.hora;
 
 -- =========================
--- CLASES PILATES
+-- CLASES PILATES (profesor 10 - Carlos Ruiz)
 -- =========================
 INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, cancelada, hora) VALUES
-  (11, 1, '2026-06-02', 2500.0, 3, 8, false, 13),
-  (12, 1, '2026-06-09', 2500.0, 3, 8, false, 13),
-  (13, 1, '2026-06-16', 2500.0, 3, 8, false, 13),
-  (14, 1, '2026-06-23', 2500.0, 3, 8, false, 13),
-  (15, 1, '2026-06-30', 2500.0, 3, 8, false, 13),
-  (16, 10, '2026-06-05', 2500.0, 3, 8, false, 13),
-  (17, 10, '2026-06-12', 2500.0, 3, 8, false, 13),
-  (18, 10, '2026-06-19', 2500.0, 3, 8, false, 13),
-  (19, 10, '2026-06-26', 2500.0, 3, 8, false, 13),
-  (20, 10, '2026-07-03', 2500.0, 3, 8, false, 13)
+  (11, 1, '2026-06-03', 2500.0, 2, 10, false, 13),
+  (12, 1, '2026-06-10', 2500.0, 2, 10, false, 13),
+  (13, 1, '2026-06-17', 2500.0, 2, 10, false, 13),
+  (14, 1, '2026-06-24', 2500.0, 2, 10, false, 13),
+  (15, 1, '2026-07-01', 2500.0, 2, 10, false, 13),
+  (16, 10, '2026-06-05', 2500.0, 2, 10, false, 13),
+  (17, 10, '2026-06-12', 2500.0, 2, 10, false, 13),
+  (18, 10, '2026-06-19', 2500.0, 2, 10, false, 13),
+  (19, 10, '2026-06-26', 2500.0, 2, 10, false, 13),
+  (20, 10, '2026-07-03', 2500.0, 2, 10, false, 13)
     ON CONFLICT (id_clase) DO UPDATE
         SET cupo = EXCLUDED.cupo,
             fecha = EXCLUDED.fecha,
@@ -245,6 +279,27 @@ INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, can
 -- =========================
 
 UPDATE alumno SET creditos = 15 WHERE id = 4;
+
+
+-- =========================
+-- ANOTACIÓN ALUMNO 3 (Lucas) A PILATES MIÉRCOLES (clase 11)
+-- =========================
+
+INSERT INTO pago (id_pago, alumno_id, clase_id, valor, fecha, fecha_creacion, fecha_actualizacion, tipo, tipo_pago, estado, descripcion, id_transaccion)
+VALUES (1, 3, 11, 2500.0, '2026-06-01', NOW(), NOW(), 'INDIVIDUAL', 'MERCADOPAGO', 'COMPLETADO', 'Anotación inicial Lucas - PILATES miércoles', 'SEED-PAGO-1')
+    ON CONFLICT (id_pago) DO UPDATE
+        SET alumno_id = EXCLUDED.alumno_id,
+            clase_id = EXCLUDED.clase_id,
+            estado = EXCLUDED.estado;
+
+INSERT INTO lista_asistencia (id_lista_asistencia, clase_id)
+VALUES (1, 11)
+    ON CONFLICT (id_lista_asistencia) DO UPDATE
+        SET clase_id = EXCLUDED.clase_id;
+
+INSERT INTO lista_asistencia_alumnos (lista_asistencia_id, alumno_id)
+VALUES (1, 3)
+    ON CONFLICT DO NOTHING;
 
 -- =========================
 -- APTOS MÉDICOS (prueba, solo hasta uqe este el subir aoto medico)
@@ -293,7 +348,7 @@ SELECT setval('clase_seq', GREATEST(COALESCE((SELECT MAX(id_clase) FROM clase), 
 
 DROP SEQUENCE IF EXISTS usuario_seq;
 CREATE SEQUENCE usuario_seq INCREMENT BY 1 START WITH 1;
-SELECT setval('usuario_seq', GREATEST(COALESCE((SELECT MAX(id) FROM usuario), 0), 9) + 1, false);
+SELECT setval('usuario_seq', GREATEST(COALESCE((SELECT MAX(id) FROM usuario), 0), 11) + 1, false);
 
 DROP SEQUENCE IF EXISTS actividad_seq;
 CREATE SEQUENCE actividad_seq INCREMENT BY 1 START WITH 1;

@@ -1,5 +1,6 @@
 package com.sportify.backend.services;
 
+import com.sportify.backend.dtos.AbonoPreviewDTO;
 import com.sportify.backend.entities.Alumno;
 import com.sportify.backend.entities.Clase;
 import com.sportify.backend.entities.ListaAsistencia;
@@ -10,6 +11,7 @@ import com.sportify.backend.repositories.AlumnoRepository;
 import com.sportify.backend.repositories.ClaseRepository;
 import com.sportify.backend.dtos.PagoRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
@@ -31,6 +33,10 @@ public class PagoService {
 
     @Autowired
     private ListaAsistenciaRepository listaAsistenciaRepository;
+
+    @Autowired
+    @Lazy
+    private ClaseService claseService;
 
     public Pago crearPago(PagoRequest solicitud) {
         // Si viene idPago, actualizar el pago pendiente existente en lugar de crear uno nuevo
@@ -64,11 +70,14 @@ public class PagoService {
         Pago pago = pagoRepository.findById(idPago)
                 .orElseThrow(() -> new RuntimeException("Pago no encontrado"));
 
+        // Idempotencia: si el pago ya estaba COMPLETADO, no volver a registrar la asistencia
+        boolean yaCompletado = pago.getEstado() == Pago.EstadoPago.COMPLETADO;
+
         pago.setEstado(estado);
         pago.setIdTransaccion(idTransaccion);
         Pago pagoActualizado = pagoRepository.save(pago);
 
-        if (estado == Pago.EstadoPago.COMPLETADO) {
+        if (estado == Pago.EstadoPago.COMPLETADO && !yaCompletado) {
             registrarAsistencia(pagoActualizado);
         }
 
@@ -78,11 +87,37 @@ public class PagoService {
     public void registrarAsistencia(Pago pago) {
         if (pago.getClase() == null || pago.getAlumno() == null) return;
 
+        // Si el pago es por abono mensual, inscribir en todas las clases disponibles del mes
+        if (pago.getTipo() == Pago.TipoClase.ABONADO) {
+            registrarAsistenciaAbono(pago);
+            return;
+        }
+
+        inscribirEnClase(pago.getClase(), pago.getAlumno());
+    }
+
+    private void registrarAsistenciaAbono(Pago pago) {
+        int idClaseElegida = pago.getClase().getIdClase();
+        int idAlumno = pago.getAlumno().getId();
+
+        List<AbonoPreviewDTO> preview = claseService.previewAbono(idClaseElegida, idAlumno);
+
+        for (AbonoPreviewDTO item : preview) {
+            if (!item.isDisponible()) continue;
+
+            Clase clase = claseRepository.findById(item.getIdClase()).orElse(null);
+            if (clase == null) continue;
+
+            inscribirEnClase(clase, pago.getAlumno());
+        }
+    }
+
+    private void inscribirEnClase(Clase clase, Alumno alumno) {
         ListaAsistencia lista = listaAsistenciaRepository
-                .findByClaseIdClase(pago.getClase().getIdClase())
+                .findByClaseIdClase(clase.getIdClase())
                 .orElseGet(() -> {
                     ListaAsistencia nueva = new ListaAsistencia();
-                    nueva.setClase(pago.getClase());
+                    nueva.setClase(clase);
                     nueva.setAlumnos(new ArrayList<>());
                     return nueva;
                 });
@@ -91,13 +126,22 @@ public class PagoService {
             lista.setAlumnos(new ArrayList<>());
         }
 
+        // Usar Objects.equals para no caer en la trampa de comparar Integer con ==
         boolean yaInscripto = lista.getAlumnos().stream()
-                .anyMatch(a -> a.getId() == pago.getAlumno().getId());
+                .anyMatch(a -> java.util.Objects.equals(a.getId(), alumno.getId()));
 
-        if (!yaInscripto) {
-            lista.getAlumnos().add(pago.getAlumno());
-            listaAsistenciaRepository.save(lista);
+        if (yaInscripto) {
+            return;
         }
+
+        // Validar cupo antes de insertar (defensa contra race conditions / dobles llamadas)
+        int cupo = clase.getCupo() == null ? 0 : clase.getCupo();
+        if (lista.getAlumnos().size() >= cupo) {
+            return;
+        }
+
+        lista.getAlumnos().add(alumno);
+        listaAsistenciaRepository.save(lista);
     }
 
     public Pago actualizarEstado(int idPago, Pago.EstadoPago estado) {

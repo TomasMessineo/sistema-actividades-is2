@@ -1,6 +1,7 @@
 package com.sportify.backend.entities;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -29,6 +30,7 @@ public class ListaEspera {
     )
     private List<Alumno> alumnos;
 
+    @JsonIgnore
     @OneToOne
     @JoinColumn(name = "clase_id")
     private Clase clase;

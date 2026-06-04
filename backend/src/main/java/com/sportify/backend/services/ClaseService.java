@@ -1,17 +1,24 @@
 package com.sportify.backend.services;
 
+import com.sportify.backend.dtos.AbonoPreviewDTO;
+import com.sportify.backend.dtos.CrearClasesLoteRequest;
 import com.sportify.backend.entities.Actividad;
 import com.sportify.backend.entities.Alumno;
 import com.sportify.backend.entities.Clase;
 import com.sportify.backend.entities.ListaAsistencia;
+import com.sportify.backend.entities.Profesor;
+import com.sportify.backend.repositories.ActividadRepository;
 import com.sportify.backend.repositories.AlumnoRepository;
 import com.sportify.backend.repositories.ClaseRepository;
+import com.sportify.backend.repositories.ProfesorRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,6 +31,12 @@ public class ClaseService {
 
     @Autowired
     private AlumnoRepository alumnoRepository;
+
+    @Autowired
+    private ProfesorRepository profesorRepository;
+
+    @Autowired
+    private ActividadRepository actividadRepository;
 
     // 1. LISTAR
     public List<Clase> listarClases() {
@@ -44,7 +57,7 @@ public class ClaseService {
                 .filter(clase -> clase.getListaAsistencia() != null
                         && clase.getListaAsistencia().getAlumnos() != null
                         && clase.getListaAsistencia().getAlumnos().stream()
-                        .anyMatch(alumno -> alumno.getId() == alumnoId))
+                        .anyMatch(alumno -> java.util.Objects.equals(alumno.getId(), alumnoId)))
                 .collect(Collectors.toList());
     }
 
@@ -69,7 +82,7 @@ public class ClaseService {
 
         return clase.getListaAsistencia().getAlumnos().stream()
                 .map(Alumno::getId)
-                .anyMatch(id -> id == alumnoId);
+                .anyMatch(id -> java.util.Objects.equals(id, alumnoId));
     }
 
     private boolean isAlumnoInWaitingList(Clase clase, Integer alumnoId) {
@@ -79,7 +92,7 @@ public class ClaseService {
 
         return clase.getListaEspera().getAlumnos().stream()
                 .map(Alumno::getId)
-                .anyMatch(id -> id == alumnoId);
+                .anyMatch(id -> java.util.Objects.equals(id, alumnoId));
     }
 
     public List<Clase> listarClasesDeUnaFechaYHora(LocalDate fecha, int hora) {
@@ -109,10 +122,36 @@ public class ClaseService {
     }
 
     // HELPER
+    private void validarActividadDelProfesor(Actividad actividad, Integer profesorId) {
+        if (actividad == null || actividad.getIdActividad() == null) {
+            throw new RuntimeException("La actividad de la clase es obligatoria.");
+        }
+        if (profesorId == null) {
+            throw new RuntimeException("El profesor de la clase es obligatorio.");
+        }
+
+        Profesor profesor = profesorRepository.findById(profesorId)
+                .orElseThrow(() -> new RuntimeException("Profesor no encontrado."));
+
+        if (profesor.getActividad() == null
+                || !profesor.getActividad().getIdActividad().equals(actividad.getIdActividad())) {
+            throw new RuntimeException("El profesor seleccionado no dicta esta actividad.");
+        }
+    }
+
+    // HELPER
     private void validarDiaHabil(LocalDate fecha) {
         DayOfWeek dia = fecha.getDayOfWeek();
         if (dia == DayOfWeek.SATURDAY || dia == DayOfWeek.SUNDAY) {
             throw new RuntimeException("El gimnasio no opera los fines de semana. Las clases solo pueden programarse de lunes a viernes.");
+        }
+    }
+
+    // HELPER
+    private void validarFechaHoraFutura(LocalDate fecha, int hora) {
+        LocalDateTime fechaHora = fecha.atTime(hora, 0);
+        if (!fechaHora.isAfter(LocalDateTime.now())) {
+            throw new RuntimeException("No se puede programar una clase en una fecha y hora que ya pasaron.");
         }
     }
 
@@ -170,6 +209,7 @@ public class ClaseService {
     // 2. AGREGAR / GUARDAR
     public Clase crearClase(Clase clase) {
         validarDiaHabil(clase.getFecha());
+        validarFechaHoraFutura(clase.getFecha(), clase.getHora());
 
         if (clase.getCancelada() == null) {
             clase.setCancelada(false);
@@ -182,17 +222,21 @@ public class ClaseService {
         List<Clase> clasesFechaYHoraSolicitadas =
                 this.listarClasesDeUnaFechaYHora(clase.getFecha(), clase.getHora());
 
+        Integer profesorId = clase.getProfesor() != null ? clase.getProfesor().getId() : null;
+        validarActividadDelProfesor(clase.getActividad(), profesorId);
+
+        // El conflicto de disciplina se evalúa primero: cubre los casos de "3 clases en el turno"
+        // y "profesor ocupado", ya que esos siempre desembocan en una clase de la misma actividad.
+        if (this.mismaDisciplinaEnElTurno(clasesFechaYHoraSolicitadas, clase.getActividad())) {
+            throw new RuntimeException("Lo sentimos, no ha sido posible registrar la clase, ya que en ese turno se encuentra registrada la misma disciplina");
+        }
+
         if (!this.horaDisponible(clase.getFecha(), clase.getHora())) {
             throw new RuntimeException("Lo sentimos, el horario ingresado ya tiene 3 clases asignadas. Por favor, pruebe con un horario distinto");
         }
 
-        Integer profesorId = clase.getProfesor() != null ? clase.getProfesor().getId() : null;
         if (this.profesorOcupado(clase.getFecha(), clase.getHora(), profesorId)) {
             throw new RuntimeException("El profesor seleccionado ya tiene una clase asignada en ese horario.");
-        }
-
-        if (this.mismaDisciplinaEnElTurno(clasesFechaYHoraSolicitadas, clase.getActividad())) {
-            throw new RuntimeException("Lo sentimos, no ha sido posible registrar la clase, ya que en ese turno se encuentra registrada la misma disciplina");
         }
 
         if (!this.cupoDisponibleEnTurno(clasesFechaYHoraSolicitadas, clase.getCupo())) {
@@ -235,6 +279,8 @@ public class ClaseService {
                 ? claseActualizada.getHora()
                 : claseExistente.getHora();
 
+        validarFechaHoraFutura(nuevaFecha, nuevaHora);
+
         int nuevoCupo = claseActualizada.getCupo() != null && claseActualizada.getCupo() != 0
                 ? claseActualizada.getCupo()
                 : claseExistente.getCupo();
@@ -246,19 +292,24 @@ public class ClaseService {
         List<Clase> clasesDelTurnoSinLaActual =
                 listarClasesDelTurnoExcluyendoClaseActual(nuevaFecha, nuevaHora, id);
 
+        Integer profesorIdNuevo = claseActualizada.getProfesor() != null
+                ? claseActualizada.getProfesor().getId()
+                : claseExistente.getProfesor() != null ? claseExistente.getProfesor().getId() : null;
+
+        validarActividadDelProfesor(actividadAValidar, profesorIdNuevo);
+
+        // El conflicto de disciplina se evalúa primero: cubre los casos de "3 clases en el turno"
+        // y "profesor ocupado", ya que esos siempre desembocan en una clase de la misma actividad.
+        if (mismaDisciplinaEnElTurno(clasesDelTurnoSinLaActual, actividadAValidar)) {
+            throw new RuntimeException("La modificación no es posible ya que hay una clase de la misma disciplina en el turno seleccionado.");
+        }
+
         if (clasesDelTurnoSinLaActual.size() >= 3) {
             throw new RuntimeException("La modificación no es posible ya que ese turno se encuentra ocupado");
         }
 
-        Integer profesorIdNuevo = claseActualizada.getProfesor() != null
-                ? claseActualizada.getProfesor().getId()
-                : claseExistente.getProfesor() != null ? claseExistente.getProfesor().getId() : null;
         if (this.profesorOcupadoExcluyendo(nuevaFecha, nuevaHora, profesorIdNuevo, id)) {
             throw new RuntimeException("El profesor seleccionado ya tiene una clase asignada en ese horario.");
-        }
-
-        if (mismaDisciplinaEnElTurno(clasesDelTurnoSinLaActual, actividadAValidar)) {
-            throw new RuntimeException("La modificación no es posible ya que hay una clase de la misma disciplina en el turno seleccionado.");
         }
 
         if (!cupoDisponibleEnTurno(clasesDelTurnoSinLaActual, nuevoCupo)) {
@@ -297,6 +348,140 @@ public class ClaseService {
 
         claseExistente.setCancelada(true);
         return claseRepository.save(claseExistente);
+    }
+
+    // CREAR LOTE DE CLASES — atómico (todo o nada)
+    // Si alguna fecha conflictúa, se hace rollback completo y no se crea ninguna.
+    @Transactional
+    public List<Clase> crearClasesLote(CrearClasesLoteRequest request) {
+        if (request.getFechas() == null || request.getFechas().isEmpty()) {
+            throw new RuntimeException("Debe enviar al menos una fecha");
+        }
+        if (request.getActividadId() == null) {
+            throw new RuntimeException("La actividad es obligatoria");
+        }
+        if (request.getProfesorId() == null) {
+            throw new RuntimeException("El profesor es obligatorio");
+        }
+        if (request.getHora() == null) {
+            throw new RuntimeException("La hora es obligatoria");
+        }
+        if (request.getCupo() == null || request.getCupo() <= 0) {
+            throw new RuntimeException("El cupo es obligatorio y debe ser mayor a 0");
+        }
+
+        Actividad actividad = actividadRepository.findById(request.getActividadId())
+                .orElseThrow(() -> new RuntimeException("Actividad no encontrada"));
+        Profesor profesor = profesorRepository.findById(request.getProfesorId())
+                .orElseThrow(() -> new RuntimeException("Profesor no encontrado"));
+
+        // Validamos que el profesor dicte esa actividad una sola vez (no fecha por fecha)
+        if (profesor.getActividad() == null
+                || !profesor.getActividad().getIdActividad().equals(actividad.getIdActividad())) {
+            throw new RuntimeException("El profesor seleccionado no dicta esta actividad.");
+        }
+
+        List<Clase> creadas = new ArrayList<>();
+        for (LocalDate fecha : request.getFechas()) {
+            Clase nueva = new Clase();
+            nueva.setFecha(fecha);
+            nueva.setHora(request.getHora());
+            nueva.setCupo(request.getCupo());
+            nueva.setActividad(actividad);
+            nueva.setProfesor(profesor);
+            nueva.setCancelada(false);
+            nueva.setPrecio(0.0);
+
+            // Reusa toda la lógica de validación existente
+            // Si alguna lanza excepción → rollback de toda la transacción
+            Clase guardada = crearClase(nueva);
+            creadas.add(guardada);
+        }
+
+        return creadas;
+    }
+
+    // PREVIEW DEL ABONO MENSUAL
+    // Devuelve todas las clases del mes calendario de la clase elegida que coinciden
+    // en actividad + día de semana + hora, con su estado de disponibilidad.
+    public List<AbonoPreviewDTO> previewAbono(Integer idClase, Integer idAlumno) {
+        Clase claseElegida = claseRepository.findById(idClase)
+                .orElseThrow(() -> new RuntimeException("Clase no encontrada"));
+
+        LocalDate fechaBase = claseElegida.getFecha();
+        int hora = claseElegida.getHora();
+        DayOfWeek diaSemana = fechaBase.getDayOfWeek();
+        Integer idActividad = claseElegida.getActividad() != null
+                ? claseElegida.getActividad().getIdActividad()
+                : null;
+        String nombreActividad = claseElegida.getActividad() != null && claseElegida.getActividad().getTipo() != null
+                ? claseElegida.getActividad().getTipo().name()
+                : "CLASE";
+
+        LocalDate primerDiaMes = fechaBase.withDayOfMonth(1);
+        LocalDate ultimoDiaMes = fechaBase.withDayOfMonth(fechaBase.lengthOfMonth());
+
+        // Filtra todas las clases del mes que matcheen actividad + día semana + hora
+        List<Clase> clasesDelAbono = claseRepository.findAll().stream()
+                .filter(c -> c.getActividad() != null
+                        && idActividad != null
+                        && idActividad.equals(c.getActividad().getIdActividad()))
+                .filter(c -> c.getHora() != null && c.getHora() == hora)
+                .filter(c -> c.getFecha() != null
+                        && !c.getFecha().isBefore(primerDiaMes)
+                        && !c.getFecha().isAfter(ultimoDiaMes))
+                .filter(c -> c.getFecha().getDayOfWeek() == diaSemana)
+                .sorted((a, b) -> a.getFecha().compareTo(b.getFecha()))
+                .toList();
+
+        List<AbonoPreviewDTO> resultado = new ArrayList<>();
+        for (Clase c : clasesDelAbono) {
+            AbonoPreviewDTO.Motivo motivo = evaluarDisponibilidad(c, idAlumno);
+            resultado.add(new AbonoPreviewDTO(
+                    c.getIdClase(),
+                    c.getFecha(),
+                    c.getHora(),
+                    nombreActividad,
+                    motivo == null,
+                    motivo
+            ));
+        }
+        return resultado;
+    }
+
+    private AbonoPreviewDTO.Motivo evaluarDisponibilidad(Clase clase, Integer idAlumno) {
+        if (Boolean.TRUE.equals(clase.getCancelada())) {
+            return AbonoPreviewDTO.Motivo.CANCELADA;
+        }
+
+        int inscriptos = clase.getListaAsistencia() != null && clase.getListaAsistencia().getAlumnos() != null
+                ? clase.getListaAsistencia().getAlumnos().size()
+                : 0;
+        int cupo = clase.getCupo() == null ? 0 : clase.getCupo();
+
+        if (idAlumno != null && clase.getListaAsistencia() != null && clase.getListaAsistencia().getAlumnos() != null
+                && clase.getListaAsistencia().getAlumnos().stream().anyMatch(a -> java.util.Objects.equals(a.getId(), idAlumno))) {
+            return AbonoPreviewDTO.Motivo.YA_INSCRIPTO;
+        }
+
+        if (inscriptos >= cupo) {
+            return AbonoPreviewDTO.Motivo.LLENA;
+        }
+
+        if (idAlumno != null && tieneConflictoHorario(idAlumno, clase)) {
+            return AbonoPreviewDTO.Motivo.CONFLICTO_HORARIO;
+        }
+
+        return null; // disponible
+    }
+
+    private boolean tieneConflictoHorario(Integer idAlumno, Clase clase) {
+        // Busca otra clase del alumno en la misma fecha y hora, distinta de esta
+        return claseRepository.findByFechaAndHoraAndCanceladaFalse(clase.getFecha(), clase.getHora()).stream()
+                .filter(c -> c.getIdClase() != clase.getIdClase())
+                .anyMatch(c -> c.getListaAsistencia() != null
+                        && c.getListaAsistencia().getAlumnos() != null
+                        && c.getListaAsistencia().getAlumnos().stream().anyMatch(a -> java.util.Objects.equals(a.getId(), idAlumno)));
     }
 
 }

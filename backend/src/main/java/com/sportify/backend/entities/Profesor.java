@@ -20,5 +20,9 @@ public class Profesor extends Usuario{
     @OneToMany(mappedBy = "profesor")
     private List<Clase> clasesDictadas;
 
+    @JsonIgnore
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "actividad_id", nullable = false)
+    private Actividad actividad;
 
 }

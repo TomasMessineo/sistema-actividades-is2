@@ -277,6 +277,8 @@ function AvailableClassesView() {
           creditos={user?.creditos || 0}
           error={errorInscripcion}
           claseInfo={claseInfo}
+          idClase={idClaseSeleccionada}
+          idAlumno={user?.id || null}
         />
         <PopupListaEspera
           isOpen={mostrarPopupEspera}
