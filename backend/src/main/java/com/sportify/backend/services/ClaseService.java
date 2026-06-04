@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -56,7 +57,7 @@ public class ClaseService {
                 .filter(clase -> clase.getListaAsistencia() != null
                         && clase.getListaAsistencia().getAlumnos() != null
                         && clase.getListaAsistencia().getAlumnos().stream()
-                        .anyMatch(alumno -> alumno.getId() == alumnoId))
+                        .anyMatch(alumno -> java.util.Objects.equals(alumno.getId(), alumnoId)))
                 .collect(Collectors.toList());
     }
 
@@ -81,7 +82,7 @@ public class ClaseService {
 
         return clase.getListaAsistencia().getAlumnos().stream()
                 .map(Alumno::getId)
-                .anyMatch(id -> id == alumnoId);
+                .anyMatch(id -> java.util.Objects.equals(id, alumnoId));
     }
 
     private boolean isAlumnoInWaitingList(Clase clase, Integer alumnoId) {
@@ -91,7 +92,7 @@ public class ClaseService {
 
         return clase.getListaEspera().getAlumnos().stream()
                 .map(Alumno::getId)
-                .anyMatch(id -> id == alumnoId);
+                .anyMatch(id -> java.util.Objects.equals(id, alumnoId));
     }
 
     public List<Clase> listarClasesDeUnaFechaYHora(LocalDate fecha, int hora) {
@@ -143,6 +144,14 @@ public class ClaseService {
         DayOfWeek dia = fecha.getDayOfWeek();
         if (dia == DayOfWeek.SATURDAY || dia == DayOfWeek.SUNDAY) {
             throw new RuntimeException("El gimnasio no opera los fines de semana. Las clases solo pueden programarse de lunes a viernes.");
+        }
+    }
+
+    // HELPER
+    private void validarFechaHoraFutura(LocalDate fecha, int hora) {
+        LocalDateTime fechaHora = fecha.atTime(hora, 0);
+        if (!fechaHora.isAfter(LocalDateTime.now())) {
+            throw new RuntimeException("No se puede programar una clase en una fecha y hora que ya pasaron.");
         }
     }
 
@@ -200,6 +209,7 @@ public class ClaseService {
     // 2. AGREGAR / GUARDAR
     public Clase crearClase(Clase clase) {
         validarDiaHabil(clase.getFecha());
+        validarFechaHoraFutura(clase.getFecha(), clase.getHora());
 
         if (clase.getCancelada() == null) {
             clase.setCancelada(false);
@@ -268,6 +278,8 @@ public class ClaseService {
         int nuevaHora = claseActualizada.getHora() != null && claseActualizada.getHora() != 0
                 ? claseActualizada.getHora()
                 : claseExistente.getHora();
+
+        validarFechaHoraFutura(nuevaFecha, nuevaHora);
 
         int nuevoCupo = claseActualizada.getCupo() != null && claseActualizada.getCupo() != 0
                 ? claseActualizada.getCupo()
@@ -448,7 +460,7 @@ public class ClaseService {
         int cupo = clase.getCupo() == null ? 0 : clase.getCupo();
 
         if (idAlumno != null && clase.getListaAsistencia() != null && clase.getListaAsistencia().getAlumnos() != null
-                && clase.getListaAsistencia().getAlumnos().stream().anyMatch(a -> a.getId() == idAlumno)) {
+                && clase.getListaAsistencia().getAlumnos().stream().anyMatch(a -> java.util.Objects.equals(a.getId(), idAlumno))) {
             return AbonoPreviewDTO.Motivo.YA_INSCRIPTO;
         }
 
@@ -469,7 +481,7 @@ public class ClaseService {
                 .filter(c -> c.getIdClase() != clase.getIdClase())
                 .anyMatch(c -> c.getListaAsistencia() != null
                         && c.getListaAsistencia().getAlumnos() != null
-                        && c.getListaAsistencia().getAlumnos().stream().anyMatch(a -> a.getId() == idAlumno));
+                        && c.getListaAsistencia().getAlumnos().stream().anyMatch(a -> java.util.Objects.equals(a.getId(), idAlumno)));
     }
 
 }

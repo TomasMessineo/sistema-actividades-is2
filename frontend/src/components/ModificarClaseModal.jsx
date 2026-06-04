@@ -217,6 +217,20 @@ function ModificarClaseModal({
     return dia === 0 || dia === 6
   }
 
+  const fechaHoyISO = (() => {
+    const hoy = new Date()
+    const y = hoy.getFullYear()
+    const m = String(hoy.getMonth() + 1).padStart(2, '0')
+    const d = String(hoy.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
+  })()
+
+  const esFechaHoraPasada = (fechaStr, hora) => {
+    if (!fechaStr || hora === null || hora === undefined || hora === '') return false
+    const fechaHora = new Date(`${fechaStr}T${String(hora).padStart(2, '0')}:00:00`)
+    return Number.isFinite(fechaHora.getTime()) && fechaHora.getTime() <= Date.now()
+  }
+
   const manejarCambio = (e) => {
     const { name, value } = e.target
 
@@ -263,6 +277,12 @@ function ModificarClaseModal({
 
     if (hora === null || hora < 0 || hora > 23) {
       setError('Debe ingresar una hora válida entre 0 y 23.')
+      setCargando(false)
+      return
+    }
+
+    if (esFechaHoraPasada(form.fecha, hora)) {
+      setError('No se puede modificar la clase a una fecha y hora que ya pasaron.')
       setCargando(false)
       return
     }
@@ -403,6 +423,7 @@ function ModificarClaseModal({
                 value={form.fecha}
                 onChange={manejarCambioFecha}
                 onKeyDown={(e) => { if (e.key !== 'Tab') e.preventDefault() }}
+                min={fechaHoyISO}
                 required
               />
             </label>

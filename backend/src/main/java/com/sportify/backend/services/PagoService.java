@@ -70,11 +70,14 @@ public class PagoService {
         Pago pago = pagoRepository.findById(idPago)
                 .orElseThrow(() -> new RuntimeException("Pago no encontrado"));
 
+        // Idempotencia: si el pago ya estaba COMPLETADO, no volver a registrar la asistencia
+        boolean yaCompletado = pago.getEstado() == Pago.EstadoPago.COMPLETADO;
+
         pago.setEstado(estado);
         pago.setIdTransaccion(idTransaccion);
         Pago pagoActualizado = pagoRepository.save(pago);
 
-        if (estado == Pago.EstadoPago.COMPLETADO) {
+        if (estado == Pago.EstadoPago.COMPLETADO && !yaCompletado) {
             registrarAsistencia(pagoActualizado);
         }
 
@@ -123,13 +126,22 @@ public class PagoService {
             lista.setAlumnos(new ArrayList<>());
         }
 
+        // Usar Objects.equals para no caer en la trampa de comparar Integer con ==
         boolean yaInscripto = lista.getAlumnos().stream()
-                .anyMatch(a -> a.getId() == alumno.getId());
+                .anyMatch(a -> java.util.Objects.equals(a.getId(), alumno.getId()));
 
-        if (!yaInscripto) {
-            lista.getAlumnos().add(alumno);
-            listaAsistenciaRepository.save(lista);
+        if (yaInscripto) {
+            return;
         }
+
+        // Validar cupo antes de insertar (defensa contra race conditions / dobles llamadas)
+        int cupo = clase.getCupo() == null ? 0 : clase.getCupo();
+        if (lista.getAlumnos().size() >= cupo) {
+            return;
+        }
+
+        lista.getAlumnos().add(alumno);
+        listaAsistenciaRepository.save(lista);
     }
 
     public Pago actualizarEstado(int idPago, Pago.EstadoPago estado) {
