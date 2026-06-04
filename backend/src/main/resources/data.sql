@@ -282,18 +282,18 @@ UPDATE alumno SET creditos = 15 WHERE id = 4;
 
 
 -- =========================
--- ANOTACIÓN ALUMNO 3 (Lucas) A PILATES MIÉRCOLES (clase 11)
+-- ANOTACIÓN ALUMNO 3 (Lucas) A PILATES MIÉRCOLES (clase 12)
 -- =========================
 
 INSERT INTO pago (id_pago, alumno_id, clase_id, valor, fecha, fecha_creacion, fecha_actualizacion, tipo, tipo_pago, estado, descripcion, id_transaccion)
-VALUES (1, 3, 11, 2500.0, '2026-06-01', NOW(), NOW(), 'INDIVIDUAL', 'MERCADOPAGO', 'COMPLETADO', 'Anotación inicial Lucas - PILATES miércoles', 'SEED-PAGO-1')
+VALUES (1, 3, 12, 2500.0, '2026-06-01', NOW(), NOW(), 'INDIVIDUAL', 'MERCADOPAGO', 'COMPLETADO', 'Anotación inicial Lucas - PILATES miércoles', 'SEED-PAGO-1')
     ON CONFLICT (id_pago) DO UPDATE
         SET alumno_id = EXCLUDED.alumno_id,
             clase_id = EXCLUDED.clase_id,
             estado = EXCLUDED.estado;
 
 INSERT INTO lista_asistencia (id_lista_asistencia, clase_id)
-VALUES (1, 11)
+VALUES (1, 12)
     ON CONFLICT (id_lista_asistencia) DO UPDATE
         SET clase_id = EXCLUDED.clase_id;
 
