@@ -64,7 +64,11 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> iniciarSesion(@RequestBody LoginDTO loginDTO) {
         try {
-            Usuario usuario = usuarioRepository.findByEmail(loginDTO.getEmail())
+            String emailNormalizado = loginDTO.getEmail() == null
+                    ? null
+                    : loginDTO.getEmail().trim().toLowerCase();
+
+            Usuario usuario = usuarioRepository.findByEmail(emailNormalizado)
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Los datos ingresados son inválidos, debe intentarse nuevamente."));
 
