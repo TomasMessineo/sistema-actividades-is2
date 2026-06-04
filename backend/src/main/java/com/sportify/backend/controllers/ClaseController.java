@@ -2,6 +2,7 @@ package com.sportify.backend.controllers;
 
 import com.sportify.backend.dtos.AbonoPreviewDTO;
 import com.sportify.backend.dtos.ClaseCalendarioDTO;
+import com.sportify.backend.dtos.CrearClasesLoteRequest;
 import com.sportify.backend.entities.Clase;
 import com.sportify.backend.services.ClaseService;
 import org.springframework.transaction.annotation.Transactional;
@@ -53,6 +54,16 @@ public class ClaseController {
         try {
             Clase claseCreada = claseService.crearClase(clase);
             return ResponseEntity.ok(claseCreada);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/lote")
+    public ResponseEntity<?> crearClasesLote(@RequestBody CrearClasesLoteRequest request) {
+        try {
+            List<Clase> creadas = claseService.crearClasesLote(request);
+            return ResponseEntity.ok(creadas);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

@@ -1,11 +1,13 @@
 package com.sportify.backend.services;
 
 import com.sportify.backend.dtos.AbonoPreviewDTO;
+import com.sportify.backend.dtos.CrearClasesLoteRequest;
 import com.sportify.backend.entities.Actividad;
 import com.sportify.backend.entities.Alumno;
 import com.sportify.backend.entities.Clase;
 import com.sportify.backend.entities.ListaAsistencia;
 import com.sportify.backend.entities.Profesor;
+import com.sportify.backend.repositories.ActividadRepository;
 import com.sportify.backend.repositories.AlumnoRepository;
 import com.sportify.backend.repositories.ClaseRepository;
 import com.sportify.backend.repositories.ProfesorRepository;
@@ -31,6 +33,9 @@ public class ClaseService {
 
     @Autowired
     private ProfesorRepository profesorRepository;
+
+    @Autowired
+    private ActividadRepository actividadRepository;
 
     // 1. LISTAR
     public List<Clase> listarClases() {
@@ -207,19 +212,21 @@ public class ClaseService {
         List<Clase> clasesFechaYHoraSolicitadas =
                 this.listarClasesDeUnaFechaYHora(clase.getFecha(), clase.getHora());
 
+        Integer profesorId = clase.getProfesor() != null ? clase.getProfesor().getId() : null;
+        validarActividadDelProfesor(clase.getActividad(), profesorId);
+
+        // El conflicto de disciplina se evalúa primero: cubre los casos de "3 clases en el turno"
+        // y "profesor ocupado", ya que esos siempre desembocan en una clase de la misma actividad.
+        if (this.mismaDisciplinaEnElTurno(clasesFechaYHoraSolicitadas, clase.getActividad())) {
+            throw new RuntimeException("Lo sentimos, no ha sido posible registrar la clase, ya que en ese turno se encuentra registrada la misma disciplina");
+        }
+
         if (!this.horaDisponible(clase.getFecha(), clase.getHora())) {
             throw new RuntimeException("Lo sentimos, el horario ingresado ya tiene 3 clases asignadas. Por favor, pruebe con un horario distinto");
         }
 
-        Integer profesorId = clase.getProfesor() != null ? clase.getProfesor().getId() : null;
-        validarActividadDelProfesor(clase.getActividad(), profesorId);
-
         if (this.profesorOcupado(clase.getFecha(), clase.getHora(), profesorId)) {
             throw new RuntimeException("El profesor seleccionado ya tiene una clase asignada en ese horario.");
-        }
-
-        if (this.mismaDisciplinaEnElTurno(clasesFechaYHoraSolicitadas, clase.getActividad())) {
-            throw new RuntimeException("Lo sentimos, no ha sido posible registrar la clase, ya que en ese turno se encuentra registrada la misma disciplina");
         }
 
         if (!this.cupoDisponibleEnTurno(clasesFechaYHoraSolicitadas, clase.getCupo())) {
@@ -273,22 +280,24 @@ public class ClaseService {
         List<Clase> clasesDelTurnoSinLaActual =
                 listarClasesDelTurnoExcluyendoClaseActual(nuevaFecha, nuevaHora, id);
 
-        if (clasesDelTurnoSinLaActual.size() >= 3) {
-            throw new RuntimeException("La modificación no es posible ya que ese turno se encuentra ocupado");
-        }
-
         Integer profesorIdNuevo = claseActualizada.getProfesor() != null
                 ? claseActualizada.getProfesor().getId()
                 : claseExistente.getProfesor() != null ? claseExistente.getProfesor().getId() : null;
 
         validarActividadDelProfesor(actividadAValidar, profesorIdNuevo);
 
-        if (this.profesorOcupadoExcluyendo(nuevaFecha, nuevaHora, profesorIdNuevo, id)) {
-            throw new RuntimeException("El profesor seleccionado ya tiene una clase asignada en ese horario.");
-        }
-
+        // El conflicto de disciplina se evalúa primero: cubre los casos de "3 clases en el turno"
+        // y "profesor ocupado", ya que esos siempre desembocan en una clase de la misma actividad.
         if (mismaDisciplinaEnElTurno(clasesDelTurnoSinLaActual, actividadAValidar)) {
             throw new RuntimeException("La modificación no es posible ya que hay una clase de la misma disciplina en el turno seleccionado.");
+        }
+
+        if (clasesDelTurnoSinLaActual.size() >= 3) {
+            throw new RuntimeException("La modificación no es posible ya que ese turno se encuentra ocupado");
+        }
+
+        if (this.profesorOcupadoExcluyendo(nuevaFecha, nuevaHora, profesorIdNuevo, id)) {
+            throw new RuntimeException("El profesor seleccionado ya tiene una clase asignada en ese horario.");
         }
 
         if (!cupoDisponibleEnTurno(clasesDelTurnoSinLaActual, nuevoCupo)) {
@@ -327,6 +336,57 @@ public class ClaseService {
 
         claseExistente.setCancelada(true);
         return claseRepository.save(claseExistente);
+    }
+
+    // CREAR LOTE DE CLASES — atómico (todo o nada)
+    // Si alguna fecha conflictúa, se hace rollback completo y no se crea ninguna.
+    @Transactional
+    public List<Clase> crearClasesLote(CrearClasesLoteRequest request) {
+        if (request.getFechas() == null || request.getFechas().isEmpty()) {
+            throw new RuntimeException("Debe enviar al menos una fecha");
+        }
+        if (request.getActividadId() == null) {
+            throw new RuntimeException("La actividad es obligatoria");
+        }
+        if (request.getProfesorId() == null) {
+            throw new RuntimeException("El profesor es obligatorio");
+        }
+        if (request.getHora() == null) {
+            throw new RuntimeException("La hora es obligatoria");
+        }
+        if (request.getCupo() == null || request.getCupo() <= 0) {
+            throw new RuntimeException("El cupo es obligatorio y debe ser mayor a 0");
+        }
+
+        Actividad actividad = actividadRepository.findById(request.getActividadId())
+                .orElseThrow(() -> new RuntimeException("Actividad no encontrada"));
+        Profesor profesor = profesorRepository.findById(request.getProfesorId())
+                .orElseThrow(() -> new RuntimeException("Profesor no encontrado"));
+
+        // Validamos que el profesor dicte esa actividad una sola vez (no fecha por fecha)
+        if (profesor.getActividad() == null
+                || !profesor.getActividad().getIdActividad().equals(actividad.getIdActividad())) {
+            throw new RuntimeException("El profesor seleccionado no dicta esta actividad.");
+        }
+
+        List<Clase> creadas = new ArrayList<>();
+        for (LocalDate fecha : request.getFechas()) {
+            Clase nueva = new Clase();
+            nueva.setFecha(fecha);
+            nueva.setHora(request.getHora());
+            nueva.setCupo(request.getCupo());
+            nueva.setActividad(actividad);
+            nueva.setProfesor(profesor);
+            nueva.setCancelada(false);
+            nueva.setPrecio(0.0);
+
+            // Reusa toda la lógica de validación existente
+            // Si alguna lanza excepción → rollback de toda la transacción
+            Clase guardada = crearClase(nueva);
+            creadas.add(guardada);
+        }
+
+        return creadas;
     }
 
     // PREVIEW DEL ABONO MENSUAL
