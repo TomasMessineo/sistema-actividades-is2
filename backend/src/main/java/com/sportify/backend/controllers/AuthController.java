@@ -77,6 +77,11 @@ public class AuthController {
                         "Los datos ingresados son inválidos, debe intentarse nuevamente.");
             }
 
+            if (!usuario.isActivo()) {
+                throw new IllegalArgumentException(
+                        "Los datos ingresados son inválidos, debe intentarse nuevamente.");
+            }
+
             String rol = obtenerRolUsuario(usuario.getId());
 
             Map<String, Object> respuesta = new HashMap<>();
