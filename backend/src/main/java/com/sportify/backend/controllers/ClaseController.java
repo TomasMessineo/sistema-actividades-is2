@@ -1,5 +1,6 @@
 package com.sportify.backend.controllers;
 
+import com.sportify.backend.dtos.AbonoPreviewDTO;
 import com.sportify.backend.dtos.ClaseCalendarioDTO;
 import com.sportify.backend.entities.Clase;
 import com.sportify.backend.services.ClaseService;
@@ -82,6 +83,20 @@ public class ClaseController {
         try {
             Clase claseCancelada = claseService.cancelarClase(id);
             return ResponseEntity.ok(claseCancelada);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/abono/preview")
+    @Transactional
+    public ResponseEntity<?> previewAbono(
+            @RequestParam("idClase") Integer idClase,
+            @RequestParam(value = "idAlumno", required = false) Integer idAlumno
+    ) {
+        try {
+            List<AbonoPreviewDTO> preview = claseService.previewAbono(idClase, idAlumno);
+            return ResponseEntity.ok(preview);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

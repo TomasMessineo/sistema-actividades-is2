@@ -44,6 +44,7 @@ public class InscripcionService {
             pago.setClase(clase);
             pago.setFecha(LocalDate.now());
             pago.setTipoPago(request.getMetodoPago());
+            pago.setTipo(request.getTipoClase() != null ? request.getTipoClase() : Pago.TipoClase.INDIVIDUAL);
 
             if (request.getMetodoPago() == Pago.TipoPago.CREDITOS) {
                 if (alumno.getCreditos() <= 0) {

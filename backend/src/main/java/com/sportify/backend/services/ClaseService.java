@@ -1,5 +1,6 @@
 package com.sportify.backend.services;
 
+import com.sportify.backend.dtos.AbonoPreviewDTO;
 import com.sportify.backend.entities.Actividad;
 import com.sportify.backend.entities.Alumno;
 import com.sportify.backend.entities.Clase;
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -325,6 +327,89 @@ public class ClaseService {
 
         claseExistente.setCancelada(true);
         return claseRepository.save(claseExistente);
+    }
+
+    // PREVIEW DEL ABONO MENSUAL
+    // Devuelve todas las clases del mes calendario de la clase elegida que coinciden
+    // en actividad + día de semana + hora, con su estado de disponibilidad.
+    public List<AbonoPreviewDTO> previewAbono(Integer idClase, Integer idAlumno) {
+        Clase claseElegida = claseRepository.findById(idClase)
+                .orElseThrow(() -> new RuntimeException("Clase no encontrada"));
+
+        LocalDate fechaBase = claseElegida.getFecha();
+        int hora = claseElegida.getHora();
+        DayOfWeek diaSemana = fechaBase.getDayOfWeek();
+        Integer idActividad = claseElegida.getActividad() != null
+                ? claseElegida.getActividad().getIdActividad()
+                : null;
+        String nombreActividad = claseElegida.getActividad() != null && claseElegida.getActividad().getTipo() != null
+                ? claseElegida.getActividad().getTipo().name()
+                : "CLASE";
+
+        LocalDate primerDiaMes = fechaBase.withDayOfMonth(1);
+        LocalDate ultimoDiaMes = fechaBase.withDayOfMonth(fechaBase.lengthOfMonth());
+
+        // Filtra todas las clases del mes que matcheen actividad + día semana + hora
+        List<Clase> clasesDelAbono = claseRepository.findAll().stream()
+                .filter(c -> c.getActividad() != null
+                        && idActividad != null
+                        && idActividad.equals(c.getActividad().getIdActividad()))
+                .filter(c -> c.getHora() != null && c.getHora() == hora)
+                .filter(c -> c.getFecha() != null
+                        && !c.getFecha().isBefore(primerDiaMes)
+                        && !c.getFecha().isAfter(ultimoDiaMes))
+                .filter(c -> c.getFecha().getDayOfWeek() == diaSemana)
+                .sorted((a, b) -> a.getFecha().compareTo(b.getFecha()))
+                .toList();
+
+        List<AbonoPreviewDTO> resultado = new ArrayList<>();
+        for (Clase c : clasesDelAbono) {
+            AbonoPreviewDTO.Motivo motivo = evaluarDisponibilidad(c, idAlumno);
+            resultado.add(new AbonoPreviewDTO(
+                    c.getIdClase(),
+                    c.getFecha(),
+                    c.getHora(),
+                    nombreActividad,
+                    motivo == null,
+                    motivo
+            ));
+        }
+        return resultado;
+    }
+
+    private AbonoPreviewDTO.Motivo evaluarDisponibilidad(Clase clase, Integer idAlumno) {
+        if (Boolean.TRUE.equals(clase.getCancelada())) {
+            return AbonoPreviewDTO.Motivo.CANCELADA;
+        }
+
+        int inscriptos = clase.getListaAsistencia() != null && clase.getListaAsistencia().getAlumnos() != null
+                ? clase.getListaAsistencia().getAlumnos().size()
+                : 0;
+        int cupo = clase.getCupo() == null ? 0 : clase.getCupo();
+
+        if (idAlumno != null && clase.getListaAsistencia() != null && clase.getListaAsistencia().getAlumnos() != null
+                && clase.getListaAsistencia().getAlumnos().stream().anyMatch(a -> a.getId() == idAlumno)) {
+            return AbonoPreviewDTO.Motivo.YA_INSCRIPTO;
+        }
+
+        if (inscriptos >= cupo) {
+            return AbonoPreviewDTO.Motivo.LLENA;
+        }
+
+        if (idAlumno != null && tieneConflictoHorario(idAlumno, clase)) {
+            return AbonoPreviewDTO.Motivo.CONFLICTO_HORARIO;
+        }
+
+        return null; // disponible
+    }
+
+    private boolean tieneConflictoHorario(Integer idAlumno, Clase clase) {
+        // Busca otra clase del alumno en la misma fecha y hora, distinta de esta
+        return claseRepository.findByFechaAndHoraAndCanceladaFalse(clase.getFecha(), clase.getHora()).stream()
+                .filter(c -> c.getIdClase() != clase.getIdClase())
+                .anyMatch(c -> c.getListaAsistencia() != null
+                        && c.getListaAsistencia().getAlumnos() != null
+                        && c.getListaAsistencia().getAlumnos().stream().anyMatch(a -> a.getId() == idAlumno));
     }
 
 }

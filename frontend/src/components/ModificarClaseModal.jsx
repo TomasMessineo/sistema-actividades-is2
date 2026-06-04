@@ -6,6 +6,25 @@ const HORAS = Array.from({ length: 17 }, (_, i) => i + 6)
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8080/api').replace(/\/$/, '')
 
+// Mapeo del tipo de actividad (string que devuelve el backend) al id en la base
+const ACTIVIDAD_TIPO_A_ID = {
+  YOGA: 1,
+  PILATES: 2,
+  FUNCIONAL: 3
+}
+
+const obtenerIdActividadDeClase = (clase) => {
+  if (!clase) return null
+  // Si en algún momento el backend pasa a mandar objeto, lo soportamos
+  const idObjeto = clase.actividad?.idActividad ?? clase.actividad?.id ?? clase.actividadId
+  if (idObjeto) return idObjeto
+  // Caso actual: actividad viene como string ("YOGA", "PILATES", "FUNCIONAL")
+  if (typeof clase.actividad === 'string') {
+    return ACTIVIDAD_TIPO_A_ID[clase.actividad.toUpperCase()] ?? null
+  }
+  return null
+}
+
 function ModificarClaseModal({
   abierto,
   onCerrar,
@@ -45,7 +64,14 @@ function ModificarClaseModal({
       setClaseModificada(null)
       setAccionEnProceso(false)
       setMostrarConfirmacionCancelacion(false)
-      cargarProfesores()
+
+      const idActividad = obtenerIdActividadDeClase(claseSeleccionada)
+
+      if (idActividad) {
+        cargarProfesoresPorActividad(idActividad)
+      } else {
+        setProfesores([])
+      }
     }
   }, [abierto, claseSeleccionada])
 
@@ -112,11 +138,11 @@ function ModificarClaseModal({
     return JSON.stringify(data)
   }
 
-  const cargarProfesores = async () => {
+  const cargarProfesoresPorActividad = async (idActividad) => {
     setCargandoProfesores(true)
 
     try {
-      const response = await fetch(`${API_BASE_URL}/profesores`, {
+      const response = await fetch(`${API_BASE_URL}/profesores/actividad/${idActividad}`, {
         method: 'GET'
       })
 
@@ -175,6 +201,9 @@ function ModificarClaseModal({
   }
 
   const obtenerNombreActividad = () => {
+    if (typeof claseSeleccionada.actividad === 'string') {
+      return claseSeleccionada.actividad
+    }
     return (
       claseSeleccionada.actividad?.tipo ||
       claseSeleccionada.actividad?.nombre ||
@@ -403,7 +432,11 @@ function ModificarClaseModal({
                 required
               >
                 <option value="">
-                  {cargandoProfesores ? 'Cargando profesores...' : 'Seleccionar profesor'}
+                  {cargandoProfesores
+                    ? 'Cargando profesores...'
+                    : profesores.length === 0
+                      ? 'No hay profesores para esta actividad'
+                      : 'Seleccionar profesor'}
                 </option>
 
                 {profesores.map((profesor) => {
