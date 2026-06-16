@@ -17,7 +17,8 @@ import java.util.List;
 public class Actividad {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "actividad_gen")
+    @SequenceGenerator(name = "actividad_gen", sequenceName = "actividad_seq", allocationSize = 1)
     private Integer idActividad;
 
     @Enumerated(EnumType.STRING)

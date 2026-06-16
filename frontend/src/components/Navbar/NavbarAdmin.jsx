@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import logoSvg from '../assets/logo.svg';
+import { useAuth } from '../../context/AuthContext';
+import logoSvg from '../../assets/logo.svg';
 
-import '../styles/Navbar.css';
+import '../../styles/Navbar.css';
 function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const { logout } = useAuth();
+  const { user } = useAuth();
+  const nombre = user?.nombre || '';
 
   useEffect(() => {
     const handleScroll = () => {
@@ -28,9 +29,17 @@ function Navbar() {
   return (
     <nav className={`navbar navbar--alumno ${scrolled ? 'navbar--scrolled' : ''}`} id="navbar">
       <div className="navbar__container">
-        <Link to="/" className="navbar__logo" id="navbar-logo" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-          <img src={logoSvg} alt="Sportify" className="navbar__logo-img" />
-        </Link>
+        <div className="navbar__brand">
+          <Link to="/" className="navbar__logo" id="navbar-logo" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+            <img src={logoSvg} alt="Sportify" className="navbar__logo-img" />
+          </Link>
+
+          {user && (
+            <span className="navbar__welcome">
+              Bienvenido, administrador {nombre}
+            </span>
+          )}
+        </div>
 
         <ul className={`navbar__links ${menuOpen ? 'navbar__links--open' : ''}`} id="navbar-links">
           <li>
@@ -44,8 +53,7 @@ function Navbar() {
         <div className="navbar__actions" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <button 
             onClick={() => {
-              logout();
-              window.location.href = '/';
+              localStorage.removeItem('sportify_user'); window.location.href = '/';
             }} 
             className="navbar__link navbar__link-logout" 
             style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit' }}

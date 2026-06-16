@@ -21,6 +21,12 @@ function ProfileEmailMenu({ initialEmail, onSave, onCancel, submitError, isSubmi
       return;
     }
 
+    const currentEmail = (initialEmail || '').trim().toLowerCase();
+    if (trimmedEmail.toLowerCase() === currentEmail) {
+      setEmailError('El correo nuevo debe ser distinto al actual');
+      return;
+    }
+
     setEmailError('');
     onSave(trimmedEmail.toLowerCase());
   };

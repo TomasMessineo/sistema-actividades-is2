@@ -16,6 +16,7 @@ const schema = yup.object({
 
 function LoginPage() {
   const [status, setStatus] = useState({ type: '', message: '' });
+  const [mostrarPassword, setMostrarPassword] = useState(false);
   const navigate = useNavigate();
 
   const { login } = useAuth();
@@ -98,13 +99,32 @@ function LoginPage() {
             </div>
             <div className="form-group">
               <label htmlFor="password">Contraseña</label>
-              <input
-                type="password"
-                id="password"
-                {...register('password')}
-                className={errors.password ? 'input-error' : ''}
-                placeholder="••••••••"
-              />
+              <div className="password-field">
+                <input
+                  type={mostrarPassword ? 'text' : 'password'}
+                  id="password"
+                  {...register('password')}
+                  className={errors.password ? 'input-error' : ''}
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setMostrarPassword((actual) => !actual)}
+                  aria-label={mostrarPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  aria-pressed={mostrarPassword}
+                >
+                  {mostrarPassword ? (
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M3.98 8.223A11.6 11.6 0 0 1 12 5c5.5 0 9.72 3.32 11.52 7-.72 1.47-1.76 2.82-3.02 3.94l-1.42-1.42A10.2 10.2 0 0 0 22 12c-1.6-3.1-5.07-5-10-5-1.34 0-2.6.18-3.76.5L6.82 5.08l-1.4 1.4 18.1 18.1-1.42 1.42-3.22-3.22A11.65 11.65 0 0 1 12 19c-5.5 0-9.72-3.32-11.52-7 .76-1.55 1.87-2.98 3.28-4.14l2.2 2.2A9.4 9.4 0 0 0 2 12c1.6 3.1 5.07 5 10 5 1.03 0 2-.1 2.9-.3l-1.86-1.86A4 4 0 0 1 9.16 9.26l-2-2A11.5 11.5 0 0 1 3.98 8.22Zm7.9 7.9A4 4 0 0 1 8.1 10.32l3.78 3.78Z" />
+                    </svg>
+                  ) : (
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M12 5c5.5 0 9.72 3.32 11.52 7-.72 1.47-1.76 2.82-3.02 3.94-2.04 1.82-4.78 3.06-8.5 3.06-5.5 0-9.72-3.32-11.52-7C2.28 8.32 6.5 5 12 5Zm0 2c-4.08 0-7.44 2.33-8.95 5 1.51 2.67 4.87 5 8.95 5 3.4 0 5.86-1.07 7.58-2.59 1.03-.9 1.83-1.96 2.37-2.41-.54-.45-1.34-1.51-2.37-2.41C17.86 8.07 15.4 7 12 7Zm0 1.5A3.5 3.5 0 1 1 8.5 12 3.5 3.5 0 0 1 12 8.5Zm0 2A1.5 1.5 0 1 0 13.5 12 1.5 1.5 0 0 0 12 10.5Z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
               {errors.password && <span className="field-error-text">{errors.password.message}</span>}
             </div>
             <div className="form-options">

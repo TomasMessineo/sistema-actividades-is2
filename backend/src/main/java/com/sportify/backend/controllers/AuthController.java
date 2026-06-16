@@ -49,8 +49,8 @@ public class AuthController {
                     .password(registroDTO.getPassword())
                     .fechaUltimoCambioPassword(LocalDateTime.now())
                     .fechaNacimiento(registroDTO.getFechaNacimiento())
+                    .activo(true)
                     .build();
-
             Alumno alumnoRegistrado = alumnoService.guardar(nuevoAlumno);
             return new ResponseEntity<>(alumnoRegistrado, HttpStatus.CREATED);
 
@@ -64,11 +64,20 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> iniciarSesion(@RequestBody LoginDTO loginDTO) {
         try {
-            Usuario usuario = usuarioRepository.findByEmail(loginDTO.getEmail())
+            String emailNormalizado = loginDTO.getEmail() == null
+                    ? null
+                    : loginDTO.getEmail().trim().toLowerCase();
+
+            Usuario usuario = usuarioRepository.findByEmail(emailNormalizado)
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Los datos ingresados son inválidos, debe intentarse nuevamente."));
 
             if (!usuario.getPassword().equals(loginDTO.getPassword())) {
+                throw new IllegalArgumentException(
+                        "Los datos ingresados son inválidos, debe intentarse nuevamente.");
+            }
+
+            if (!usuario.isActivo()) {
                 throw new IllegalArgumentException(
                         "Los datos ingresados son inválidos, debe intentarse nuevamente.");
             }
@@ -80,6 +89,7 @@ public class AuthController {
             respuesta.put("nombre", usuario.getNombre());
             respuesta.put("apellido", usuario.getApellido());
             respuesta.put("email", usuario.getEmail());
+            respuesta.put("fechaUltimoCambioPassword", usuario.getFechaUltimoCambioPassword());
             respuesta.put("rol", rol);
 
             if ("ALUMNO".equals(rol)) {

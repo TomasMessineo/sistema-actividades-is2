@@ -70,6 +70,14 @@
   padding: 0 !important;
 }
 
+.navbar__brand {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
 .navbar__logo-img {
   height: 90px;
   /* Logo grande, tal cual te gustó */
@@ -78,10 +86,26 @@
 
 .navbar__logo {
   flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.navbar__brand .navbar__logo {
+  flex: 0 0 auto;
 }
 
 .navbar__logo:hover {
   transform: scale(1.03);
+}
+
+.navbar__welcome {
+  color: #F9F7F2;
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  padding-left: 32px;
 }
 
 /* Enlaces */
@@ -458,5 +482,14 @@ a.navbar__contacto-item:hover {
 
   .navbar__actions {
     display: none;
+  }
+
+  .navbar__brand {
+    gap: 12px;
+  }
+
+  .navbar__welcome {
+    font-size: 13px;
+    white-space: normal;
   }
 }

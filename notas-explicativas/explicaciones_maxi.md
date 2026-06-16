@@ -214,3 +214,69 @@ function VistaMercadoPago() {
 
 export default VistaMercadoPago;
 ```
+
+
+### 2 de junio 2026
+### FIX sql Seed
+
+ Resumen de lo que hice:
+
+**1. Bug actividad_id arreglado**
+- PILATES ahora usa `actividad_id = 2` (correcto)
+- FUNCIONAL ahora usa `actividad_id = 3` (correcto)
+
+**2. Nuevos profesores agregados**
+| ID | Nombre | Email | Password | Actividad |
+|---|---|---|---|---|
+| 8 | Juan Luis Guerra | profesor1 | profesor123 | YOGA |
+| 9 | Marcelo Mendoza | profesor2 | profesor123 | FUNCIONAL |
+| 10 | Carlos Ruiz | profesor3 | profesor123 | PILATES |
+| 11 | Lucía Torres | profesor4 | profesor123 | FUNCIONAL *(repetido)* |
+
+**3. Clases reasignadas**
+- Yoga (1-10) → Juan Luis (8)
+- Pilates (11-20) → Carlos (10)
+- Funcional (21-25) → Marcelo (9), (26-30) → Lucía (11)
+
+**4. Clase 11 (pilates) movida a miércoles** — `2026-06-03`, y todas las del bloque pilates de "martes" se corrieron al miércoles siguiente para mantener consistencia semanal.
+
+**5. Alumno 3 (Lucas) anotado a clase 11**
+- Pago COMPLETADO (id 1) que une alumno 3 con clase 11
+- Lista_asistencia (id 1) vinculada a clase 11
+- Lucas (id 3) en `lista_asistencia_alumnos`
+
+**6. Actualicé `usuario_seq`** para que arranque después del 11.
+
+Los 2 administradores que están cargados en el seed:
+```
+ID	Nombre	         Email	                  Password
+1	Alejo Admin	admin1@sportify.com	admin123
+2	Valentina Admin	admin2@sportify.com	admin123
+```
+Resumen final:
+
+## Backend
+
+| Archivo | Cambio |
+|---|---|
+| `Profesor.java` | `@ManyToOne Actividad actividad` (obligatoria) |
+| `data.sql` | Cada profesor del seed tiene su `actividad_id` |
+| `ProfesorRepository` | `findByActividad_IdActividad(Integer)` |
+| `ProfesorService` | `listarPorActividad(Integer)` |
+| `ProfesorController` | Nuevo `GET /profesores/actividad/{id}` + incluye `actividad` en el DTO |
+| `ClaseService` | Nuevo helper `validarActividadDelProfesor()` llamado en `crearClase()` y `modificarClase()` — lanza `"El profesor seleccionado no dicta esta actividad."` si no coinciden |
+
+## Frontend (`CrearClaseModal.jsx`)
+
+- Al abrir el modal ya no carga profesores
+- Cuando el admin elige actividad → llama a `GET /profesores/actividad/{id}`
+- Al cambiar actividad resetea el profesor seleccionado
+- El select de profesor está deshabilitado hasta que se elija actividad
+- Mensajes contextuales en el placeholder: "Elegí una actividad primero" / "Cargando profesores..." / "No hay profesores para esta actividad" / "Seleccionar profesor"
+
+## Comportamiento final
+
+- En la UI un admin solo puede elegir entre profesores que dictan la actividad seleccionada
+- Si igual intenta forzarlo (Postman, etc.), el backend rechaza con el mensaje claro
+
+Como agregamos una columna `actividad_id NOT NULL` a `profesor`, cuando arranque la app va a borrar la DB (`ddl-auto=create`) y va a recargar con el seed nuevo. Debería funcionar limpio.

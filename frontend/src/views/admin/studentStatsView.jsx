@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react'
-import Navbar from '../../components/NavbarAdmin.jsx'
+import Navbar from '../../components/Navbar/NavbarAdmin.jsx'
 import api from '../../services/api.js'
 import '../../styles/studentStats.css'
 
 function StudentStatsView() {
-  const [alumnos, setAlumnos] = useState([])
+  const [alumnosActivos, setAlumnosActivos] = useState([])
+  const [alumnosEliminados, setAlumnosEliminados] = useState([])
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
   const [eliminando, setEliminando] = useState(null)
-  const [confirmId, setConfirmId] = useState(null)
+  const [confirmarEliminacionId, setConfirmarEliminacionId] = useState(null)
 
   useEffect(() => {
     cargarAlumnos()
@@ -18,8 +19,13 @@ function StudentStatsView() {
     try {
       setCargando(true)
       setError(null)
-      const respuesta = await api.get('/alumnos')
-      setAlumnos(respuesta.data)
+      const [respuestaActivos, respuestaEliminados] = await Promise.all([
+        api.get('/alumnos'),
+        api.get('/alumnos/eliminados')
+      ])
+
+      setAlumnosActivos(Array.isArray(respuestaActivos.data) ? respuestaActivos.data : [])
+      setAlumnosEliminados(Array.isArray(respuestaEliminados.data) ? respuestaEliminados.data : [])
     } catch {
       setError('No se pudo cargar la lista de alumnos.')
     } finally {
@@ -31,12 +37,13 @@ function StudentStatsView() {
     try {
       setEliminando(id)
       await api.patch(`/alumnos/${id}/desactivar`)
-      setAlumnos((prev) => prev.filter((a) => a.id !== id))
-    } catch {
-      setError('No se pudo eliminar el alumno.')
+      await cargarAlumnos()
+    } catch (error) {
+      const mensaje = error.response?.data || 'No se pudo eliminar el alumno.'
+      setError(mensaje)
     } finally {
       setEliminando(null)
-      setConfirmId(null)
+      setConfirmarEliminacionId(null)
     }
   }
 
@@ -47,7 +54,9 @@ function StudentStatsView() {
 
         <div className="alumnos-header">
           <h1>Alumnos</h1>
-          <p>{!cargando && `${alumnos.length} alumno${alumnos.length !== 1 ? 's' : ''} registrado${alumnos.length !== 1 ? 's' : ''}`}</p>
+          <p>
+            {!cargando && `${alumnosActivos.length} alumno${alumnosActivos.length !== 1 ? 's' : ''} activo${alumnosActivos.length !== 1 ? 's' : ''}`}
+          </p>
         </div>
 
         {error && <div className="alumnos-error">{error}</div>}
@@ -56,47 +65,99 @@ function StudentStatsView() {
           <div className="alumnos-spinner-wrapper">
             <div className="alumnos-spinner" />
           </div>
-        ) : alumnos.length === 0 ? (
-          <p className="alumnos-empty">No hay alumnos registrados.</p>
         ) : (
-          <div className="alumnos-lista">
-            {alumnos.map((alumno) => (
-              <div key={alumno.id} className="alumno-card">
-
-                <div className="alumno-card-izquierda">
-                  <div className="alumno-avatar">
-                    {alumno.nombre?.[0]?.toUpperCase()}{alumno.apellido?.[0]?.toUpperCase()}
-                  </div>
-                  <div>
-                    <p className="alumno-nombre">{alumno.nombre} {alumno.apellido}</p>
-                    <p className="alumno-detalle">{alumno.email} · DNI {alumno.dni}</p>
-                  </div>
-                </div>
-
-                <div className="alumno-acciones">
-                  {confirmId === alumno.id ? (
-                    <>
-                      <span className="alumno-confirmar-texto">¿Confirmar?</span>
-                      <button
-                        className="btn-eliminar-confirmar"
-                        onClick={() => eliminarAlumno(alumno.id)}
-                        disabled={eliminando === alumno.id}
-                      >
-                        {eliminando === alumno.id ? 'Eliminando...' : 'Sí, eliminar'}
-                      </button>
-                      <button className="btn-cancelar" onClick={() => setConfirmId(null)}>
-                        Cancelar
-                      </button>
-                    </>
-                  ) : (
-                    <button className="btn-eliminar" onClick={() => setConfirmId(alumno.id)}>
-                      Eliminar
-                    </button>
-                  )}
-                </div>
-
+          <div className="alumnos-columnas">
+            <section className="alumnos-columna">
+              <div className="alumnos-columna__header">
+                <h2>Activos</h2>
+                <p>{alumnosActivos.length} alumno{alumnosActivos.length !== 1 ? 's' : ''}</p>
               </div>
-            ))}
+
+              {alumnosActivos.length === 0 ? (
+                <p className="alumnos-empty">No hay alumnos activos.</p>
+              ) : (
+                <div className="alumnos-lista">
+                  {alumnosActivos.map((alumno) => (
+                    <div key={alumno.id} className="alumno-card">
+                      <div className="alumno-card-izquierda">
+                        <div className="alumno-avatar">
+                          {alumno.nombre?.[0]?.toUpperCase()}{alumno.apellido?.[0]?.toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="alumno-nombre">{alumno.nombre} {alumno.apellido}</p>
+                          <p className="alumno-detalle">{alumno.email} · DNI {alumno.dni}</p>
+                        </div>
+                      </div>
+
+                      <div className="alumno-acciones">
+                        <button className="btn-eliminar" onClick={() => setConfirmarEliminacionId(alumno.id)}>
+                          Eliminar
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section className="alumnos-columna alumnos-columna--eliminados">
+              <div className="alumnos-columna__header">
+                <h2>Eliminados</h2>
+                <p>{alumnosEliminados.length} alumno{alumnosEliminados.length !== 1 ? 's' : ''}</p>
+              </div>
+
+              {alumnosEliminados.length === 0 ? (
+                <p className="alumnos-empty">No hay alumnos eliminados.</p>
+              ) : (
+                <div className="alumnos-lista alumnos-lista--compacta">
+                  {alumnosEliminados.map((alumno) => (
+                    <div key={alumno.id} className="alumno-card alumno-card--eliminado">
+                      <div className="alumno-card-izquierda">
+                        <div className="alumno-avatar">
+                          {alumno.nombre?.[0]?.toUpperCase()}{alumno.apellido?.[0]?.toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="alumno-nombre">{alumno.nombre} {alumno.apellido}</p>
+                          <p className="alumno-detalle">{alumno.email} · DNI {alumno.dni}</p>
+                        </div>
+                      </div>
+
+                      <span className="alumno-badge-eliminado">Eliminado</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+        )}
+
+        {confirmarEliminacionId !== null && (
+          <div className="alumnos-modal-overlay" onClick={() => setConfirmarEliminacionId(null)}>
+            <div className="alumnos-modal" onClick={(e) => e.stopPropagation()}>
+              <p className="alumnos-modal__label">Confirmar eliminación</p>
+              <h2>¿Querés desactivar este alumno?</h2>
+              <p>
+                El alumno se moverá a la lista de eliminados y dejará de aparecer como activo.
+              </p>
+
+              <div className="alumnos-modal__actions">
+                <button
+                  type="button"
+                  className="btn-cancelar"
+                  onClick={() => setConfirmarEliminacionId(null)}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="btn-eliminar-confirmar"
+                  onClick={() => eliminarAlumno(confirmarEliminacionId)}
+                  disabled={eliminando === confirmarEliminacionId}
+                >
+                  {eliminando === confirmarEliminacionId ? 'Eliminando...' : 'Sí, eliminar'}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

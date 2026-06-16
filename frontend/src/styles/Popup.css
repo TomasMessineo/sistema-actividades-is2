@@ -248,3 +248,77 @@
     line-height: 1.4;
     text-align: left;
 }
+
+/* Tooltip del abono mensual */
+.btn-opt-wrapper {
+    position: relative;
+    display: flex;
+    flex: 1;
+}
+
+.btn-opt-wrapper .btn-opt-primary-chic {
+    width: 100%;
+}
+
+.abono-tooltip {
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    min-width: 200px;
+    max-width: 260px;
+    padding: 12px 14px;
+    background: rgba(20, 22, 28, 0.96);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+    color: #e8e8ec;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 160ms ease, transform 160ms ease;
+    z-index: 30;
+}
+
+.abono-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: rgba(20, 22, 28, 0.96);
+}
+
+.btn-opt-wrapper:hover .abono-tooltip,
+.btn-opt-wrapper:focus-within .abono-tooltip {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.abono-tooltip__title {
+    margin: 0 0 6px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.92);
+}
+
+.abono-tooltip__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.abono-tooltip__list li {
+    color: rgba(255, 255, 255, 0.78);
+    font-variant-numeric: tabular-nums;
+}
+
+.abono-tooltip__loading,
+.abono-tooltip__empty {
+    color: rgba(255, 255, 255, 0.7);
+    font-style: italic;
+}

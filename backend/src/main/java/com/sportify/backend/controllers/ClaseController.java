@@ -1,8 +1,11 @@
 package com.sportify.backend.controllers;
 
+import com.sportify.backend.dtos.AbonoPreviewDTO;
 import com.sportify.backend.dtos.ClaseCalendarioDTO;
+import com.sportify.backend.dtos.CrearClasesLoteRequest;
 import com.sportify.backend.entities.Clase;
 import com.sportify.backend.services.ClaseService;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -28,6 +31,7 @@ public class ClaseController {
     private ClaseService claseService;
 
     @GetMapping
+    @Transactional
     public List<ClaseCalendarioDTO> listar(@RequestParam(value = "alumnoId", required = false) Integer alumnoId) {
         return (alumnoId == null ? claseService.listarClases() : claseService.listAvailableForAlumno(alumnoId))
                 .stream()
@@ -50,6 +54,16 @@ public class ClaseController {
         try {
             Clase claseCreada = claseService.crearClase(clase);
             return ResponseEntity.ok(claseCreada);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/lote")
+    public ResponseEntity<?> crearClasesLote(@RequestBody CrearClasesLoteRequest request) {
+        try {
+            List<Clase> creadas = claseService.crearClasesLote(request);
+            return ResponseEntity.ok(creadas);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -80,6 +94,20 @@ public class ClaseController {
         try {
             Clase claseCancelada = claseService.cancelarClase(id);
             return ResponseEntity.ok(claseCancelada);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/abono/preview")
+    @Transactional
+    public ResponseEntity<?> previewAbono(
+            @RequestParam("idClase") Integer idClase,
+            @RequestParam(value = "idAlumno", required = false) Integer idAlumno
+    ) {
+        try {
+            List<AbonoPreviewDTO> preview = claseService.previewAbono(idClase, idAlumno);
+            return ResponseEntity.ok(preview);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

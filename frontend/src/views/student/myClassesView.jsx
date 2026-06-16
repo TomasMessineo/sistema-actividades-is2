@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import Navbar from '../../components/NavbarAlumno.jsx'
+import Navbar from '../../components/Navbar/NavbarAlumno.jsx'
 import { useAuth } from '../../context/AuthContext'
 import { listarClasesDelAlumno } from '../../services/claseService'
 import '../../styles/AvailableClasses.css'

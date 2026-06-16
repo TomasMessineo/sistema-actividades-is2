@@ -3,6 +3,7 @@ package com.sportify.backend.controllers;
 import com.sportify.backend.dtos.ClaseCalendarioDTO;
 import com.sportify.backend.dtos.AptoMedicoDTO;
 import com.sportify.backend.services.ClaseService;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -42,6 +43,7 @@ public class AlumnoController {
     private AlumnoService alumnoService;
 
     @GetMapping("/{id}/clases")
+    @Transactional(readOnly = true)
     public List<ClaseCalendarioDTO> listarClasesDelAlumno(@PathVariable Integer id) {
         return claseService.listForAlumno(id).stream()
                 .map(ClaseCalendarioDTO::fromEntity)
@@ -57,6 +59,16 @@ public class AlumnoController {
     public ResponseEntity<?> listarAlumnos() {
         try {
             List<Alumno> alumnos = alumnoService.listarTodos();
+            return ResponseEntity.ok(alumnos);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/eliminados")
+    public ResponseEntity<?> listarAlumnosEliminados() {
+        try {
+            List<Alumno> alumnos = alumnoService.listarEliminados();
             return ResponseEntity.ok(alumnos);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());

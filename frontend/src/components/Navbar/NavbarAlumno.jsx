@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import logoSvg from '../assets/logo.svg';
-import '../styles/Navbar.css';
+import { useAuth } from '../../context/AuthContext';
+import logoSvg from '../../assets/logo.svg';
+import '../../styles/Navbar.css';
 
 const CreditIcon = () => (
   <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
@@ -17,7 +17,8 @@ const CreditIcon = () => (
 function NavbarAlumno() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const { logout, user } = useAuth();
+  const { user } = useAuth();
+  const nombre = user?.nombre || '';
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -30,15 +31,22 @@ function NavbarAlumno() {
   return (
     <nav className={`navbar navbar--alumno ${scrolled ? 'navbar--scrolled' : ''}`} id="navbar">
       <div className="navbar__container">
+        <div className="navbar__brand">
+          <Link
+            to="/"
+            className="navbar__logo"
+            id="navbar-logo"
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          >
+            <img src={logoSvg} alt="Sportify" className="navbar__logo-img" />
+          </Link>
 
-        <Link
-          to="/"
-          className="navbar__logo"
-          id="navbar-logo"
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-        >
-          <img src={logoSvg} alt="Sportify" className="navbar__logo-img" />
-        </Link>
+          {user && (
+            <span className="navbar__welcome">
+              Bienvenido, alumno {nombre}
+            </span>
+          )}
+        </div>
 
         <ul className={`navbar__links ${menuOpen ? 'navbar__links--open' : ''}`} id="navbar-links">
           <li>
@@ -76,7 +84,7 @@ function NavbarAlumno() {
           )}
 
           <button
-            onClick={() => { logout(); window.location.href = '/'; }}
+            onClick={() => { localStorage.removeItem('sportify_user'); window.location.href = '/'; }}
             className="navbar__link navbar__link-logout"
           >
             Cerrar Sesión

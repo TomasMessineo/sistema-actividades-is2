@@ -1,6 +1,7 @@
 package com.sportify.backend.entities;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -17,7 +18,8 @@ import java.util.List;
 public class ListaEspera {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "lista_espera_gen")
+    @SequenceGenerator(name = "lista_espera_gen", sequenceName = "lista_espera_seq", allocationSize = 1)
     private int idListaEspera;
 
     @ManyToMany
@@ -28,6 +30,7 @@ public class ListaEspera {
     )
     private List<Alumno> alumnos;
 
+    @JsonIgnore
     @OneToOne
     @JoinColumn(name = "clase_id")
     private Clase clase;

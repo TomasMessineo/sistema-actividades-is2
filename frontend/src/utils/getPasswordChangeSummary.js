@@ -16,26 +16,26 @@ const getPasswordChangeSummary = (value) => {
   const elapsedYears = Math.floor(elapsedDays / 365);
 
   if (elapsedMinutes < 1) {
-    return 'hace menos de un minuto';
+    return 'El ultimo cambio de contraseña fue hace menos de un minuto';
   }
 
   if (elapsedMinutes < 60) {
-    return `hace ${elapsedMinutes} minuto${elapsedMinutes === 1 ? '' : 's'}`;
+    return `El ultimo cambio de contraseña fue hace ${elapsedMinutes} minuto${elapsedMinutes === 1 ? '' : 's'}`;
   }
 
   if (elapsedHours < 24) {
-    return `hace ${elapsedHours} hora${elapsedHours === 1 ? '' : 's'}`;
+    return `El ultimo cambio de contraseña fue hace ${elapsedHours} hora${elapsedHours === 1 ? '' : 's'}`;
   }
 
   if (elapsedDays < 30) {
-    return `hace ${elapsedDays} día${elapsedDays === 1 ? '' : 's'}`;
+    return `El ultimo cambio de contraseña fue hace ${elapsedDays} día${elapsedDays === 1 ? '' : 's'}`;
   }
 
   if (elapsedMonths < 12) {
-    return `hace ${elapsedMonths} mes${elapsedMonths === 1 ? '' : 'es'}`;
+    return `El ultimo cambio de contraseña fue hace ${elapsedMonths} mes${elapsedMonths === 1 ? '' : 'es'}`;
   }
 
-  return `hace ${elapsedYears} año${elapsedYears === 1 ? '' : 's'}`;
+  return `El ultimo cambio de contraseña fue hace ${elapsedYears} año${elapsedYears === 1 ? '' : 's'}`;
 };
 
 export default getPasswordChangeSummary;
