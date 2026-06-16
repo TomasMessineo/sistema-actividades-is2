@@ -1,8 +1,14 @@
 import { apiFetch } from './apiClient';
 
-export const listarClases = (alumnoId) => {
-  const query = alumnoId ? `?alumnoId=${alumnoId}` : '';
-  return apiFetch(`/clases${query}`);
+// Lista clases. Si se pasan desde/hasta (YYYY-MM-DD), el backend materializa esa
+// ventana (lazy) y devuelve solo las clases del rango.
+export const listarClases = (alumnoId, desde, hasta) => {
+  const params = new URLSearchParams();
+  if (alumnoId) params.set('alumnoId', alumnoId);
+  if (desde) params.set('desde', desde);
+  if (hasta) params.set('hasta', hasta);
+  const query = params.toString();
+  return apiFetch(`/clases${query ? `?${query}` : ''}`);
 };
 
 export const listarClasesDelAlumno = (alumnoId) => {

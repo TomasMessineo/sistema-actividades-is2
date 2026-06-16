@@ -22,7 +22,9 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 
@@ -334,6 +336,67 @@ public class ClaseService {
             fechas.add(f);
         }
         return fechas;
+    }
+
+    /**
+     * Materialización lazy: crea en la BD las instancias (Clase) que falten para
+     * cada plantilla activa dentro del rango pedido. Es idempotente — saltea las
+     * fechas que ya tienen instancia (incluidas las canceladas), así que es seguro
+     * llamarlo en cada GET de calendario.
+     *
+     * No re-corre las validaciones de turno: la plantilla ya es una serie
+     * aprobada, y validar durante una lectura podría romper el GET.
+     */
+    @Transactional
+    public void materializarRango(LocalDate desde, LocalDate hasta) {
+        if (desde == null || hasta == null || hasta.isBefore(desde)) {
+            return;
+        }
+
+        // Tope de seguridad: nunca materializar más de un año de una sola vez.
+        if (hasta.isAfter(desde.plusYears(1))) {
+            hasta = desde.plusYears(1);
+        }
+
+        for (ClasePlantilla plantilla : clasePlantillaRepository.findAll()) {
+            if (!Boolean.TRUE.equals(plantilla.getActiva())) {
+                continue;
+            }
+
+            Set<LocalDate> fechasExistentes = claseRepository
+                    .findByPlantilla_IdPlantilla(plantilla.getIdPlantilla())
+                    .stream()
+                    .map(Clase::getFecha)
+                    .collect(Collectors.toCollection(HashSet::new));
+
+            for (LocalDate fecha = desde; !fecha.isAfter(hasta); fecha = fecha.plusDays(1)) {
+                if (fecha.getDayOfWeek() != plantilla.getDiaSemana()) {
+                    continue;
+                }
+                if (plantilla.getVigenciaDesde() != null && fecha.isBefore(plantilla.getVigenciaDesde())) {
+                    continue;
+                }
+                if (plantilla.getVigenciaHasta() != null && fecha.isAfter(plantilla.getVigenciaHasta())) {
+                    continue;
+                }
+                if (fechasExistentes.contains(fecha)) {
+                    continue;
+                }
+
+                Clase clase = new Clase();
+                clase.setPlantilla(plantilla);
+                clase.setFecha(fecha);
+                clase.setHora(plantilla.getHora());
+                clase.setCupo(plantilla.getCupo());
+                clase.setPrecio(plantilla.getPrecio());
+                clase.setActividad(plantilla.getActividad());
+                clase.setProfesor(plantilla.getProfesor());
+                clase.setCancelada(false);
+                claseRepository.save(clase);
+
+                fechasExistentes.add(fecha);
+            }
+        }
     }
 
     @Transactional
