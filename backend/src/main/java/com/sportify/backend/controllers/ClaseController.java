@@ -1,6 +1,9 @@
 package com.sportify.backend.controllers;
 
+import com.sportify.backend.dtos.CambiarProfesorRequest;
 import com.sportify.backend.dtos.ClaseCalendarioDTO;
+import com.sportify.backend.dtos.ClasePlantillaRequest;
+import com.sportify.backend.dtos.ClaseSerieResponse;
 import com.sportify.backend.entities.Clase;
 import com.sportify.backend.services.ClaseService;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,6 +55,28 @@ public class ClaseController {
         try {
             Clase claseCreada = claseService.crearClase(clase);
             return ResponseEntity.ok(claseCreada);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // Crea una serie perpetua (plantilla) y genera sus instancias semanales.
+    @PostMapping("/plantilla")
+    public ResponseEntity<?> crearSerie(@RequestBody ClasePlantillaRequest request) {
+        try {
+            ClaseSerieResponse respuesta = claseService.crearSerie(request);
+            return ResponseEntity.ok(respuesta);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // Cambia el profesor de una clase individual o de toda la serie.
+    @PutMapping("/{id}/profesor")
+    public ResponseEntity<?> cambiarProfesor(@PathVariable Integer id, @RequestBody CambiarProfesorRequest request) {
+        try {
+            ClaseCalendarioDTO clase = claseService.cambiarProfesor(id, request);
+            return ResponseEntity.ok(clase);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

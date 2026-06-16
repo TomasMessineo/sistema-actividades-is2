@@ -14,3 +14,20 @@ export const cancelarClase = (idClase) => {
     method: 'PATCH',
   });
 };
+
+// Crea una serie perpetua (plantilla) y sus instancias semanales.
+// payload: { dia, hora, cupo, actividadId, profesorId, precio? }
+export const crearSerieClase = (payload) => {
+  return apiFetch('/clases/plantilla', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+};
+
+// Cambia el profesor de una clase. alcance: 'INDIVIDUAL' | 'SERIE'
+export const cambiarProfesorClase = (idClase, profesorId, alcance) => {
+  return apiFetch(`/clases/${idClase}/profesor`, {
+    method: 'PUT',
+    body: JSON.stringify({ profesorId, alcance }),
+  });
+};
