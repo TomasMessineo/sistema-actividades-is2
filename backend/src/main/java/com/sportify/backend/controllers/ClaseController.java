@@ -1,10 +1,12 @@
 package com.sportify.backend.controllers;
 
-import com.sportify.backend.dtos.AbonoPreviewDTO;
+import com.sportify.backend.dtos.CambiarProfesorRequest;
 import com.sportify.backend.dtos.ClaseCalendarioDTO;
-import com.sportify.backend.dtos.CrearClasesLoteRequest;
+import com.sportify.backend.dtos.ClasePlantillaRequest;
+import com.sportify.backend.dtos.ClaseSerieResponse;
 import com.sportify.backend.entities.Clase;
 import com.sportify.backend.services.ClaseService;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -32,9 +35,26 @@ public class ClaseController {
 
     @GetMapping
     @Transactional
-    public List<ClaseCalendarioDTO> listar(@RequestParam(value = "alumnoId", required = false) Integer alumnoId) {
+    public List<ClaseCalendarioDTO> listar(
+            @RequestParam(value = "alumnoId", required = false) Integer alumnoId,
+            @RequestParam(value = "desde", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
+            @RequestParam(value = "hasta", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta) {
+
+        // Lazy: si se pide una ventana, materializamos las instancias faltantes antes de leer.
+        boolean conRango = desde != null && hasta != null;
+        if (conRango) {
+            claseService.materializarRango(desde, hasta);
+        }
+
         return (alumnoId == null ? claseService.listarClases() : claseService.listAvailableForAlumno(alumnoId))
                 .stream()
+                .filter(clase -> {
+                    if (!conRango) {
+                        return true;
+                    }
+                    LocalDate fecha = clase.getFecha();
+                    return fecha != null && !fecha.isBefore(desde) && !fecha.isAfter(hasta);
+                })
                 .map(ClaseCalendarioDTO::fromEntity)
                 .toList();
     }
@@ -59,11 +79,23 @@ public class ClaseController {
         }
     }
 
-    @PostMapping("/lote")
-    public ResponseEntity<?> crearClasesLote(@RequestBody CrearClasesLoteRequest request) {
+    // Crea una serie perpetua (plantilla) y genera sus instancias semanales.
+    @PostMapping("/plantilla")
+    public ResponseEntity<?> crearSerie(@RequestBody ClasePlantillaRequest request) {
         try {
-            List<Clase> creadas = claseService.crearClasesLote(request);
-            return ResponseEntity.ok(creadas);
+            ClaseSerieResponse respuesta = claseService.crearSerie(request);
+            return ResponseEntity.ok(respuesta);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // Cambia el profesor de una clase individual o de toda la serie.
+    @PutMapping("/{id}/profesor")
+    public ResponseEntity<?> cambiarProfesor(@PathVariable Integer id, @RequestBody CambiarProfesorRequest request) {
+        try {
+            ClaseCalendarioDTO clase = claseService.cambiarProfesor(id, request);
+            return ResponseEntity.ok(clase);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

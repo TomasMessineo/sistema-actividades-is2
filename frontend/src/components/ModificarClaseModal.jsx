@@ -1,29 +1,13 @@
 import { useEffect, useState } from 'react'
 import '../styles/ModificarClaseModal.css'
-import { cancelarClase as cancelarClaseApi } from '../services/claseService'
-
-const HORAS = Array.from({ length: 17 }, (_, i) => i + 6)
+import {
+  cancelarClase as cancelarClaseApi,
+  cambiarProfesorClase
+} from '../services/claseService'
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8080/api').replace(/\/$/, '')
 
-// Mapeo del tipo de actividad (string que devuelve el backend) al id en la base
-const ACTIVIDAD_TIPO_A_ID = {
-  YOGA: 1,
-  PILATES: 2,
-  FUNCIONAL: 3
-}
-
-const obtenerIdActividadDeClase = (clase) => {
-  if (!clase) return null
-  // Si en algún momento el backend pasa a mandar objeto, lo soportamos
-  const idObjeto = clase.actividad?.idActividad ?? clase.actividad?.id ?? clase.actividadId
-  if (idObjeto) return idObjeto
-  // Caso actual: actividad viene como string ("YOGA", "PILATES", "FUNCIONAL")
-  if (typeof clase.actividad === 'string') {
-    return ACTIVIDAD_TIPO_A_ID[clase.actividad.toUpperCase()] ?? null
-  }
-  return null
-}
+const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
 function ModificarClaseModal({
   abierto,
@@ -31,11 +15,8 @@ function ModificarClaseModal({
   onClaseModificada,
   claseSeleccionada
 }) {
-  const [form, setForm] = useState({
-    fecha: '',
-    hora: '',
-    profesorId: ''
-  })
+  const [profesorId, setProfesorId] = useState('')
+  const [alcance, setAlcance] = useState('INDIVIDUAL')
 
   const [profesores, setProfesores] = useState([])
   const [cargandoProfesores, setCargandoProfesores] = useState(false)
@@ -49,16 +30,13 @@ function ModificarClaseModal({
 
   useEffect(() => {
     if (abierto && claseSeleccionada) {
-      setForm({
-        fecha: claseSeleccionada.fecha || '',
-        hora: claseSeleccionada.hora || '',
-        profesorId:
-          claseSeleccionada.profesor?.id ||
-          claseSeleccionada.profesor?.idUsuario ||
-          claseSeleccionada.profesor?.idProfesor ||
-          ''
-      })
-
+      setProfesorId(
+        claseSeleccionada.profesor?.id ||
+        claseSeleccionada.profesor?.idUsuario ||
+        claseSeleccionada.profesor?.idProfesor ||
+        ''
+      )
+      setAlcance('INDIVIDUAL')
       setError('')
       setMostrarExito(false)
       setClaseModificada(null)
@@ -81,11 +59,7 @@ function ModificarClaseModal({
 
   const leerRespuesta = async (response) => {
     const texto = await response.text()
-
-    if (!texto) {
-      return null
-    }
-
+    if (!texto) return null
     try {
       return JSON.parse(texto)
     } catch {
@@ -115,26 +89,11 @@ function ModificarClaseModal({
   }
 
   const obtenerMensajeError = (data, mensajeGenerico) => {
-    if (!data) {
-      return mensajeGenerico
-    }
-
-    if (typeof data === 'string') {
-      return data
-    }
-
-    if (data.message) {
-      return data.message
-    }
-
-    if (data.error) {
-      return data.error
-    }
-
-    if (data.detail) {
-      return data.detail
-    }
-
+    if (!data) return mensajeGenerico
+    if (typeof data === 'string') return data
+    if (data.message) return data.message
+    if (data.error) return data.error
+    if (data.detail) return data.detail
     return JSON.stringify(data)
   }
 
@@ -142,10 +101,7 @@ function ModificarClaseModal({
     setCargandoProfesores(true)
 
     try {
-      const response = await fetch(`${API_BASE_URL}/profesores/actividad/${idActividad}`, {
-        method: 'GET'
-      })
-
+      const response = await fetch(`${API_BASE_URL}/profesores`, { method: 'GET' })
       const data = await leerRespuesta(response)
 
       if (!response.ok) {
@@ -162,41 +118,28 @@ function ModificarClaseModal({
   }
 
   const convertirEntero = (valor) => {
-    if (valor === '' || valor === null || valor === undefined) {
-      return null
-    }
-
+    if (valor === '' || valor === null || valor === undefined) return null
     const numero = Number(valor)
-
     return Number.isInteger(numero) ? numero : null
   }
 
-  const obtenerIdClase = () => {
-    return claseSeleccionada.idClase || claseSeleccionada.id
-  }
+  const obtenerIdClase = () => claseSeleccionada.idClase || claseSeleccionada.id
 
   const obtenerIdProfesor = (profesor) => {
     return profesor?.id ?? profesor?.idUsuario ?? profesor?.idProfesor ?? null
   }
 
   const obtenerNombreProfesor = (profesor) => {
-    if (!profesor) {
-      return 'Sin seleccionar'
-    }
-
+    if (!profesor) return 'Sin seleccionar'
     const nombreCompleto = `${profesor.nombre || ''} ${profesor.apellido || ''}`.trim()
-
-    if (nombreCompleto) {
-      return nombreCompleto
-    }
-
+    if (nombreCompleto) return nombreCompleto
     return profesor.email || `Profesor #${obtenerIdProfesor(profesor)}`
   }
 
   const obtenerProfesorSeleccionado = () => {
     return profesores.find((profesor) => {
       const idProfesor = obtenerIdProfesor(profesor)
-      return Number(idProfesor) === Number(form.profesorId)
+      return Number(idProfesor) === Number(profesorId)
     })
   }
 
@@ -207,61 +150,25 @@ function ModificarClaseModal({
     return (
       claseSeleccionada.actividad?.tipo ||
       claseSeleccionada.actividad?.nombre ||
+      claseSeleccionada.actividad ||
       'Clase seleccionada'
     )
   }
 
-  const esFindeSemana = (fechaStr) => {
-    if (!fechaStr) return false
-    const dia = new Date(fechaStr + 'T00:00:00').getDay()
-    return dia === 0 || dia === 6
+  const obtenerNombreDia = () => {
+    if (!claseSeleccionada.fecha) return 'Sin fecha'
+    const dia = new Date(`${claseSeleccionada.fecha}T00:00:00`).getDay()
+    return DIAS_SEMANA[dia] || ''
   }
 
-  const fechaHoyISO = (() => {
-    const hoy = new Date()
-    const y = hoy.getFullYear()
-    const m = String(hoy.getMonth() + 1).padStart(2, '0')
-    const d = String(hoy.getDate()).padStart(2, '0')
-    return `${y}-${m}-${d}`
-  })()
-
-  const esFechaHoraPasada = (fechaStr, hora) => {
-    if (!fechaStr || hora === null || hora === undefined || hora === '') return false
-    const fechaHora = new Date(`${fechaStr}T${String(hora).padStart(2, '0')}:00:00`)
-    return Number.isFinite(fechaHora.getTime()) && fechaHora.getTime() <= Date.now()
-  }
-
-  const manejarCambio = (e) => {
-    const { name, value } = e.target
-
-    setForm((formActual) => ({
-      ...formActual,
-      [name]: value
-    }))
-  }
-
-  const manejarCambioFecha = (e) => {
-    const nuevaFecha = e.target.value
-
-    if (esFindeSemana(nuevaFecha)) {
-      setError('El gimnasio no opera los fines de semana. Seleccioná un día de lunes a viernes.')
-      setForm((prev) => ({ ...prev, fecha: '' }))
-      return
-    }
-
-    setError('')
-    setForm((prev) => ({ ...prev, fecha: nuevaFecha }))
-  }
-
-  const modificarClase = async (e) => {
+  const guardarCambioProfesor = async (e) => {
     e.preventDefault()
 
     setCargando(true)
     setError('')
 
     const idClase = obtenerIdClase()
-    const hora = convertirEntero(form.hora)
-    const profesorId = convertirEntero(form.profesorId)
+    const idProfesor = convertirEntero(profesorId)
 
     if (!idClase) {
       setError('No se pudo identificar la clase seleccionada.')
@@ -269,59 +176,14 @@ function ModificarClaseModal({
       return
     }
 
-    if (!form.fecha) {
-      setError('Debe seleccionar una fecha.')
-      setCargando(false)
-      return
-    }
-
-    if (hora === null || hora < 0 || hora > 23) {
-      setError('Debe ingresar una hora válida entre 0 y 23.')
-      setCargando(false)
-      return
-    }
-
-    if (esFechaHoraPasada(form.fecha, hora)) {
-      setError('No se puede modificar la clase a una fecha y hora que ya pasaron.')
-      setCargando(false)
-      return
-    }
-
-    if (profesorId === null || profesorId <= 0) {
+    if (idProfesor === null || idProfesor <= 0) {
       setError('Debe seleccionar un profesor válido.')
       setCargando(false)
       return
     }
 
-    const claseActualizada = {
-      fecha: form.fecha,
-      hora,
-      profesor: {
-        id: profesorId
-      }
-    }
-
-    console.log('Clase modificada enviada al backend:', claseActualizada)
-    console.log('JSON modificación:', JSON.stringify(claseActualizada))
-
     try {
-      const response = await fetch(`${API_BASE_URL}/clases/${idClase}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(claseActualizada)
-      })
-
-      const data = await leerRespuesta(response)
-
-      console.log('Status modificación clase:', response.status)
-      console.log('Respuesta modificación clase:', data)
-
-      if (!response.ok) {
-        throw new Error(obtenerMensajeError(data, 'No se pudo modificar la clase.'))
-      }
-
+      const data = await cambiarProfesorClase(idClase, idProfesor, alcance)
       setClaseModificada(data)
       setMostrarExito(true)
     } catch (err) {
@@ -342,15 +204,9 @@ function ModificarClaseModal({
     setAccionEnProceso(true)
     setError('')
 
-    if (claseEstaOcurriendoOYaPaso()) {
-      setError('No se puede cancelar una clase que está ocurriendo o ya pasó.')
-      setAccionEnProceso(false)
-      return
-    }
-
     try {
+      // apiFetch ya parsea el body y lanza Error si la respuesta no es ok.
       const data = await cancelarClaseApi(idClase)
-
       setClaseModificada(data)
       setMostrarExito(true)
     } catch (err) {
@@ -403,7 +259,7 @@ function ModificarClaseModal({
           <p className="modificar-clase-modal__label">Panel administrativo</p>
           <h2>Modificar clase</h2>
           <p>
-            Cambiá el día, horario o profesor de la clase seleccionada.
+            Cambiá el profesor de esta clase o de toda la serie.
           </p>
         </div>
 
@@ -414,41 +270,13 @@ function ModificarClaseModal({
         )}
 
         <div className="modificar-clase-modal__content">
-          <form className="modificar-clase-modal__form" onSubmit={modificarClase}>
-            <label className="modificar-clase-modal__field">
-              <span>Día</span>
-              <input
-                type="date"
-                name="fecha"
-                value={form.fecha}
-                onChange={manejarCambioFecha}
-                onKeyDown={(e) => { if (e.key !== 'Tab') e.preventDefault() }}
-                min={fechaHoyISO}
-                required
-              />
-            </label>
-
-            <label className="modificar-clase-modal__field">
-              <span>Hora</span>
-              <select
-                name="hora"
-                value={form.hora}
-                onChange={manejarCambio}
-                required
-              >
-                <option value="">Seleccionar hora</option>
-                {HORAS.map((h) => (
-                  <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
-                ))}
-              </select>
-            </label>
-
+          <form className="modificar-clase-modal__form" onSubmit={guardarCambioProfesor}>
             <label className="modificar-clase-modal__field modificar-clase-modal__field--full">
               <span>Profesor</span>
               <select
                 name="profesorId"
-                value={form.profesorId}
-                onChange={manejarCambio}
+                value={profesorId}
+                onChange={(e) => setProfesorId(e.target.value)}
                 disabled={cargandoProfesores}
                 required
               >
@@ -462,11 +290,7 @@ function ModificarClaseModal({
 
                 {profesores.map((profesor) => {
                   const idProfesor = obtenerIdProfesor(profesor)
-
-                  if (!idProfesor) {
-                    return null
-                  }
-
+                  if (!idProfesor) return null
                   return (
                     <option key={idProfesor} value={idProfesor}>
                       {obtenerNombreProfesor(profesor)}
@@ -475,6 +299,30 @@ function ModificarClaseModal({
                 })}
               </select>
             </label>
+
+            <fieldset className="modificar-clase-modal__field modificar-clase-modal__field--full">
+              <span>Alcance del cambio</span>
+              <label className="modificar-clase-modal__radio">
+                <input
+                  type="radio"
+                  name="alcance"
+                  value="INDIVIDUAL"
+                  checked={alcance === 'INDIVIDUAL'}
+                  onChange={() => setAlcance('INDIVIDUAL')}
+                />
+                Solo esta clase ({claseSeleccionada.fecha || 'esta fecha'})
+              </label>
+              <label className="modificar-clase-modal__radio">
+                <input
+                  type="radio"
+                  name="alcance"
+                  value="SERIE"
+                  checked={alcance === 'SERIE'}
+                  onChange={() => setAlcance('SERIE')}
+                />
+                Toda la serie ({obtenerNombreDia()} a las {claseSeleccionada.hora ?? '--'} hs, de aquí en adelante)
+              </label>
+            </fieldset>
 
             <div className="modificar-clase-modal__actions">
               <button
@@ -499,7 +347,7 @@ function ModificarClaseModal({
                 className="modificar-clase-modal__button modificar-clase-modal__button--primary"
                 disabled={cargando || cargandoProfesores}
               >
-                {cargando ? 'Modificando...' : 'Modificar'}
+                {cargando ? 'Guardando...' : 'Guardar'}
               </button>
             </div>
           </form>
@@ -513,32 +361,33 @@ function ModificarClaseModal({
             </div>
 
             <div className="modificar-clase-modal__summary-item">
-              <span>Día actual</span>
+              <span>Día</span>
+              <strong>{obtenerNombreDia()}</strong>
+            </div>
+
+            <div className="modificar-clase-modal__summary-item">
+              <span>Fecha</span>
               <strong>{claseSeleccionada.fecha || 'Sin fecha'}</strong>
             </div>
 
             <div className="modificar-clase-modal__summary-item">
-              <span>Hora actual</span>
-              <strong>{claseSeleccionada.hora ? `${claseSeleccionada.hora} hs` : 'Sin hora'}</strong>
+              <span>Hora</span>
+              <strong>{claseSeleccionada.hora != null ? `${claseSeleccionada.hora} hs` : 'Sin hora'}</strong>
             </div>
 
             <div className="modificar-clase-modal__summary-item">
-              <span>Nuevo día</span>
-              <strong>{form.fecha || 'Sin seleccionar'}</strong>
-            </div>
-
-            <div className="modificar-clase-modal__summary-item">
-              <span>Nueva hora</span>
-              <strong>{form.hora ? `${form.hora} hs` : 'Sin seleccionar'}</strong>
-            </div>
-
-            <div className="modificar-clase-modal__summary-item">
-              <span>Profesor</span>
+              <span>Nuevo profesor</span>
               <strong>{obtenerNombreProfesor(obtenerProfesorSeleccionado())}</strong>
             </div>
 
+            <div className="modificar-clase-modal__summary-item">
+              <span>Alcance</span>
+              <strong>{alcance === 'SERIE' ? 'Toda la serie' : 'Solo esta clase'}</strong>
+            </div>
+
             <p className="modificar-clase-modal__note">
-              La modificación solo se registrará si la clase no tiene alumnos inscriptos y el nuevo turno está disponible.
+              "Toda la serie" cambia el profesor de esta clase y de todas las
+              siguientes de la misma serie. Cancelar marca la clase como cancelada.
             </p>
           </aside>
         </div>

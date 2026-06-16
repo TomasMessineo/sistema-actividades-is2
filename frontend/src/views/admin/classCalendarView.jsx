@@ -47,6 +47,14 @@ const getDayKeyFromDate = (date) => {
   return null
 }
 
+// Formatea una fecha local como YYYY-MM-DD (sin desfase de zona horaria).
+const formatDate = (date) => {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
 function ClassCalendarView() {
   const mainRef = useRef(null)
   const [weekOffset, setWeekOffset] = useState(0)
@@ -62,7 +70,7 @@ function ClassCalendarView() {
     setError('')
 
     try {
-      const response = await listarClases()
+      const response = await listarClases(undefined, formatDate(weekStart), formatDate(weekEnd))
       setClasses(Array.isArray(response) ? response : [])
     } catch (loadError) {
       setError(loadError.message || 'No se pudieron cargar las clases.')
@@ -94,7 +102,8 @@ function ClassCalendarView() {
 
   useEffect(() => {
     cargarClases()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weekStart, weekEnd])
 
   const abrirModificarClase = (clase) => {
     const claseCompleta = classes.find((item) => item.idClase === clase.id) ?? clase

@@ -50,6 +50,14 @@ const getDayKeyFromDate = (date) => {
   return null
 }
 
+// Formatea una fecha local como YYYY-MM-DD (sin desfase de zona horaria).
+const formatDate = (date) => {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
 function AvailableClassesView() {
   const mainRef = useRef(null)
   const [weekOffset, setWeekOffset] = useState(0)
@@ -89,7 +97,7 @@ function AvailableClassesView() {
       setError('')
 
       try {
-        const response = await listarClases(user?.id)
+        const response = await listarClases(user?.id, formatDate(weekStart), formatDate(weekEnd))
         setClasses(Array.isArray(response) ? response : [])
       } catch (loadError) {
         setError(loadError.message || 'No se pudieron cargar las clases.')
@@ -99,7 +107,8 @@ function AvailableClassesView() {
     }
 
     loadClasses()
-  }, [authLoading, user?.id])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, user?.id, weekStart, weekEnd])
 
   const calendarClasses = useMemo(() => {
     return classes

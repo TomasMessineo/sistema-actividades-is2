@@ -41,6 +41,12 @@ public class Clase {
     @JoinColumn(name = "actividad_id")
     private Actividad actividad;
 
+    // Serie a la que pertenece esta instancia. Null = clase suelta (one-off).
+    @JsonIgnore
+    @ManyToOne
+    @JoinColumn(name = "plantilla_id")
+    private ClasePlantilla plantilla;
+
     @JsonIgnore
     @OneToMany(mappedBy = "clase")
     private List<Pago> pagos;

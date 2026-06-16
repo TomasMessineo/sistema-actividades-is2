@@ -24,4 +24,7 @@ public interface ClaseRepository extends JpaRepository<Clase, Integer> {
     List<Clase> findByFecha(LocalDate fecha);
     List<Clase> findByActividad(Actividad actividad);
     List<Clase> findByActividad_IdActividad(Integer actividadId);
+
+    // Instancias pertenecientes a una serie (plantilla)
+    List<Clase> findByPlantilla_IdPlantilla(Integer idPlantilla);
 }

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import '../styles/CrearClaseModal.css'
+import { crearSerieClase } from '../services/claseService'
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8080/api').replace(/\/$/, '')
 
@@ -253,118 +254,29 @@ function CrearClaseModal({
       return
     }
 
-    // Compute the weekly dates for the next two months starting from the
-    // next occurrence of the selected weekday.
-    const weekdayMap = {
-      monday: 1,
-      tuesday: 2,
-      wednesday: 3,
-      thursday: 4,
-      friday: 5
-    }
-
-    const weekdayIndex = weekdayMap[form.dia]
-
-    if (!weekdayIndex) {
-      setError('Día inválido.')
-      setCargando(false)
-      return
-    }
-
-    const today = new Date()
-    // find next date with the selected weekday (0=Sun..6=Sat), using JS getDay()
-    const targetDay = weekdayIndex // monday=1 .. friday=5
-
-    const getNextOrSameWeekday = (fromDate, targetDay) => {
-      const d = new Date(fromDate)
-      const currentDay = d.getDay()
-      // Convert Sunday=0, Monday=1... targetDay is 1..5
-      let diff = targetDay - currentDay
-      if (diff < 0) diff += 7
-      d.setDate(d.getDate() + diff)
-      d.setHours(0, 0, 0, 0)
-      return d
-    }
-
-    let startDate = getNextOrSameWeekday(today, targetDay)
-    // if startDate is today but chosen hour already passed, start next week
-    const nowHour = new Date().getHours()
-    if (
-      startDate.getTime() === new Date(new Date().setHours(0, 0, 0, 0)).getTime() &&
-      hora <= nowHour
-    ) {
-      startDate.setDate(startDate.getDate() + 7)
-    }
-
-    const endDate = new Date()
-    endDate.setMonth(endDate.getMonth() + 2)
-    endDate.setHours(23, 59, 59, 999)
-
-    const dates = []
-    const cur = new Date(startDate)
-    while (cur <= endDate) {
-      const y = cur.getFullYear()
-      const m = String(cur.getMonth() + 1).padStart(2, '0')
-      const d = String(cur.getDate()).padStart(2, '0')
-      dates.push(`${y}-${m}-${d}`)
-      cur.setDate(cur.getDate() + 7)
-    }
-
-    if (dates.length === 0) {
-      setError('No hay fechas disponibles en los próximos dos meses para ese día.')
-      setCargando(false)
-      return
-    }
-
-    // Crear todas las clases en una sola operación atómica:
-    // el backend valida cada fecha y si alguna falla hace rollback de todo.
-    const payload = {
-      actividadId,
-      profesorId,
-      hora,
-      cupo,
-      fechas: dates
-    }
-
-    let created = []
-    let failed = []
-
+    // Una sola llamada: el backend crea la plantilla perpetua y genera las
+    // instancias semanales (validando cupo, turno y disciplina por fecha).
     try {
-      const response = await fetch(`${API_BASE_URL}/clases/lote`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+      const resultado = await crearSerieClase({
+        dia: form.dia,
+        hora,
+        cupo,
+        actividadId,
+        profesorId
       })
 
-      const data = await leerRespuesta(response)
+      setClaseCreada(resultado)
 
-      if (!response.ok) {
-        // Rollback total — ninguna clase se creó
-        setError(obtenerMensajeError(data, 'No se pudieron crear las clases. Revisá los conflictos e intentá de nuevo.'))
-        setCargando(false)
-        return
-      }
-
-      created = Array.isArray(data) ? data : []
-    } catch (err) {
-      setError(err.message || 'Error de red al crear las clases.')
-      setCargando(false)
-      return
-    }
-
-    if (failed.length > 0) {
-      if (created.length === 0) {
-        setError(failed[0].error)
+      if (resultado && resultado.fallidas > 0) {
+        setError(`Se crearon ${resultado.creadas} clase(s), pero ${resultado.fallidas} no pudieron registrarse por conflictos de turno.`)
       } else {
-        setError(`Se crearon ${created.length} clase(s) correctamente, pero ${failed.length} no pudieron registrarse.`)
-        setClaseCreada(created)
+        setMostrarExito(true)
       }
-    } else {
-      setClaseCreada(created)
-      setMostrarExito(true)
+    } catch (err) {
+      setError(err.message || 'Ocurrió un error al crear la clase.')
+    } finally {
+      setCargando(false)
     }
-
-    setCargando(false)
   }
 
   const cerrarPopupExito = () => {

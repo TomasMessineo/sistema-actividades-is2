@@ -1,14 +1,17 @@
 package com.sportify.backend.services;
 
-import com.sportify.backend.dtos.AbonoPreviewDTO;
-import com.sportify.backend.dtos.CrearClasesLoteRequest;
+import com.sportify.backend.dtos.CambiarProfesorRequest;
+import com.sportify.backend.dtos.ClaseCalendarioDTO;
+import com.sportify.backend.dtos.ClasePlantillaRequest;
+import com.sportify.backend.dtos.ClaseSerieResponse;
 import com.sportify.backend.entities.Actividad;
 import com.sportify.backend.entities.Alumno;
 import com.sportify.backend.entities.Clase;
+import com.sportify.backend.entities.ClasePlantilla;
 import com.sportify.backend.entities.ListaAsistencia;
 import com.sportify.backend.entities.Profesor;
-import com.sportify.backend.repositories.ActividadRepository;
 import com.sportify.backend.repositories.AlumnoRepository;
+import com.sportify.backend.repositories.ClasePlantillaRepository;
 import com.sportify.backend.repositories.ClaseRepository;
 import com.sportify.backend.repositories.ProfesorRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,9 +20,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 
@@ -33,10 +38,10 @@ public class ClaseService {
     private AlumnoRepository alumnoRepository;
 
     @Autowired
-    private ProfesorRepository profesorRepository;
+    private ClasePlantillaRepository clasePlantillaRepository;
 
     @Autowired
-    private ActividadRepository actividadRepository;
+    private ProfesorRepository profesorRepository;
 
     // 1. LISTAR
     public List<Clase> listarClases() {
@@ -350,138 +355,224 @@ public class ClaseService {
         return claseRepository.save(claseExistente);
     }
 
-    // CREAR LOTE DE CLASES — atómico (todo o nada)
-    // Si alguna fecha conflictúa, se hace rollback completo y no se crea ninguna.
+    // ============================================================
+    // SERIES PERPETUAS (ClasePlantilla) + INSTANCIAS (Clase)
+    // ============================================================
+
+    private static final java.util.Map<String, DayOfWeek> DIAS = java.util.Map.of(
+            "monday", DayOfWeek.MONDAY,
+            "tuesday", DayOfWeek.TUESDAY,
+            "wednesday", DayOfWeek.WEDNESDAY,
+            "thursday", DayOfWeek.THURSDAY,
+            "friday", DayOfWeek.FRIDAY
+    );
+
+    // HELPER — genera las fechas semanales desde la próxima ocurrencia del día
+    // elegido hasta dentro de 2 meses (misma ventana que usaba el front).
+    private List<LocalDate> generarFechasSerie(DayOfWeek dia, int hora) {
+        LocalDate hoy = LocalDate.now();
+        int diff = (dia.getValue() - hoy.getDayOfWeek().getValue() + 7) % 7;
+        LocalDate inicio = hoy.plusDays(diff);
+
+        // Si la primera ocurrencia es hoy pero la hora ya pasó, arrancamos la próxima semana.
+        if (diff == 0 && hora <= LocalTime.now().getHour()) {
+            inicio = inicio.plusWeeks(1);
+        }
+
+        LocalDate fin = hoy.plusMonths(2);
+        List<LocalDate> fechas = new ArrayList<>();
+        for (LocalDate f = inicio; !f.isAfter(fin); f = f.plusWeeks(1)) {
+            fechas.add(f);
+        }
+        return fechas;
+    }
+
+    /**
+     * Materialización lazy: crea en la BD las instancias (Clase) que falten para
+     * cada plantilla activa dentro del rango pedido. Es idempotente — saltea las
+     * fechas que ya tienen instancia (incluidas las canceladas), así que es seguro
+     * llamarlo en cada GET de calendario.
+     *
+     * No re-corre las validaciones de turno: la plantilla ya es una serie
+     * aprobada, y validar durante una lectura podría romper el GET.
+     */
     @Transactional
-    public List<Clase> crearClasesLote(CrearClasesLoteRequest request) {
-        if (request.getFechas() == null || request.getFechas().isEmpty()) {
-            throw new RuntimeException("Debe enviar al menos una fecha");
+    public void materializarRango(LocalDate desde, LocalDate hasta) {
+        if (desde == null || hasta == null || hasta.isBefore(desde)) {
+            return;
         }
-        if (request.getActividadId() == null) {
-            throw new RuntimeException("La actividad es obligatoria");
+
+        // Tope de seguridad: nunca materializar más de un año de una sola vez.
+        if (hasta.isAfter(desde.plusYears(1))) {
+            hasta = desde.plusYears(1);
         }
-        if (request.getProfesorId() == null) {
-            throw new RuntimeException("El profesor es obligatorio");
+
+        for (ClasePlantilla plantilla : clasePlantillaRepository.findAll()) {
+            if (!Boolean.TRUE.equals(plantilla.getActiva())) {
+                continue;
+            }
+
+            Set<LocalDate> fechasExistentes = claseRepository
+                    .findByPlantilla_IdPlantilla(plantilla.getIdPlantilla())
+                    .stream()
+                    .map(Clase::getFecha)
+                    .collect(Collectors.toCollection(HashSet::new));
+
+            for (LocalDate fecha = desde; !fecha.isAfter(hasta); fecha = fecha.plusDays(1)) {
+                if (fecha.getDayOfWeek() != plantilla.getDiaSemana()) {
+                    continue;
+                }
+                if (plantilla.getVigenciaDesde() != null && fecha.isBefore(plantilla.getVigenciaDesde())) {
+                    continue;
+                }
+                if (plantilla.getVigenciaHasta() != null && fecha.isAfter(plantilla.getVigenciaHasta())) {
+                    continue;
+                }
+                if (fechasExistentes.contains(fecha)) {
+                    continue;
+                }
+
+                Clase clase = new Clase();
+                clase.setPlantilla(plantilla);
+                clase.setFecha(fecha);
+                clase.setHora(plantilla.getHora());
+                clase.setCupo(plantilla.getCupo());
+                clase.setPrecio(plantilla.getPrecio());
+                clase.setActividad(plantilla.getActividad());
+                clase.setProfesor(plantilla.getProfesor());
+                clase.setCancelada(false);
+                claseRepository.save(clase);
+
+                fechasExistentes.add(fecha);
+            }
+        }
+    }
+
+    @Transactional
+    public ClaseSerieResponse crearSerie(ClasePlantillaRequest request) {
+        if (request.getDia() == null || !DIAS.containsKey(request.getDia())) {
+            throw new RuntimeException("Debe seleccionar un día de la semana válido (lunes a viernes).");
         }
         if (request.getHora() == null) {
-            throw new RuntimeException("La hora es obligatoria");
+            throw new RuntimeException("Debe seleccionar una hora válida.");
         }
-        if (request.getCupo() == null || request.getCupo() <= 0) {
-            throw new RuntimeException("El cupo es obligatorio y debe ser mayor a 0");
+        if (request.getCupo() == null || request.getCupo() <= 0 || request.getCupo() > 30) {
+            throw new RuntimeException("Debe ingresar un cupo válido entre 1 y 30.");
+        }
+        if (request.getActividadId() == null || request.getActividadId() <= 0) {
+            throw new RuntimeException("Debe seleccionar una actividad válida.");
+        }
+        if (request.getProfesorId() == null || request.getProfesorId() <= 0) {
+            throw new RuntimeException("Debe seleccionar un profesor válido.");
         }
 
-        Actividad actividad = actividadRepository.findById(request.getActividadId())
-                .orElseThrow(() -> new RuntimeException("Actividad no encontrada"));
+        DayOfWeek dia = DIAS.get(request.getDia());
+        int hora = request.getHora();
+        double precio = request.getPrecio() != null ? request.getPrecio() : 0.0;
+
         Profesor profesor = profesorRepository.findById(request.getProfesorId())
-                .orElseThrow(() -> new RuntimeException("Profesor no encontrado"));
+                .orElseThrow(() -> new RuntimeException("El profesor seleccionado no existe."));
 
-        // Validamos que el profesor dicte esa actividad una sola vez (no fecha por fecha)
-        if (profesor.getActividad() == null
-                || !profesor.getActividad().getIdActividad().equals(actividad.getIdActividad())) {
-            throw new RuntimeException("El profesor seleccionado no dicta esta actividad.");
+        Actividad actividad = new Actividad();
+        actividad.setIdActividad(request.getActividadId());
+
+        List<LocalDate> fechas = generarFechasSerie(dia, hora);
+        if (fechas.isEmpty()) {
+            throw new RuntimeException("No hay fechas disponibles en los próximos dos meses para ese día.");
         }
 
-        List<Clase> creadas = new ArrayList<>();
-        for (LocalDate fecha : request.getFechas()) {
-            Clase nueva = new Clase();
-            nueva.setFecha(fecha);
-            nueva.setHora(request.getHora());
-            nueva.setCupo(request.getCupo());
-            nueva.setActividad(actividad);
-            nueva.setProfesor(profesor);
-            nueva.setCancelada(false);
-            nueva.setPrecio(0.0);
+        ClasePlantilla plantilla = new ClasePlantilla();
+        plantilla.setActividad(actividad);
+        plantilla.setProfesor(profesor);
+        plantilla.setDiaSemana(dia);
+        plantilla.setHora(hora);
+        plantilla.setCupo(request.getCupo());
+        plantilla.setPrecio(precio);
+        plantilla.setActiva(true);
+        plantilla.setVigenciaDesde(fechas.get(0));
+        plantilla.setVigenciaHasta(null);
+        ClasePlantilla plantillaGuardada = clasePlantillaRepository.save(plantilla);
 
-            // Reusa toda la lógica de validación existente
-            // Si alguna lanza excepción → rollback de toda la transacción
-            Clase guardada = crearClase(nueva);
-            creadas.add(guardada);
+        int creadas = 0;
+        List<String> errores = new ArrayList<>();
+
+        for (LocalDate fecha : fechas) {
+            Clase clase = new Clase();
+            clase.setPlantilla(plantillaGuardada);
+            clase.setFecha(fecha);
+            clase.setHora(hora);
+            clase.setCupo(request.getCupo());
+            clase.setPrecio(precio);
+            clase.setActividad(actividad);
+            clase.setProfesor(profesor);
+            clase.setCancelada(false);
+
+            try {
+                crearClase(clase);
+                creadas++;
+            } catch (RuntimeException e) {
+                errores.add(fecha + ": " + e.getMessage());
+            }
         }
 
-        return creadas;
+        if (creadas == 0) {
+            // Nada pudo crearse: revertimos también la plantilla.
+            throw new RuntimeException(errores.isEmpty()
+                    ? "No se pudo crear ninguna clase de la serie."
+                    : errores.get(0));
+        }
+
+        return new ClaseSerieResponse(
+                plantillaGuardada.getIdPlantilla(),
+                creadas,
+                errores.size(),
+                errores
+        );
     }
 
-    // PREVIEW DEL ABONO MENSUAL
-    // Devuelve todas las clases del mes calendario de la clase elegida que coinciden
-    // en actividad + día de semana + hora, con su estado de disponibilidad.
-    public List<AbonoPreviewDTO> previewAbono(Integer idClase, Integer idAlumno) {
-        Clase claseElegida = claseRepository.findById(idClase)
+    @Transactional
+    public ClaseCalendarioDTO cambiarProfesor(Integer idClase, CambiarProfesorRequest request) {
+        if (request.getProfesorId() == null || request.getProfesorId() <= 0) {
+            throw new RuntimeException("Debe seleccionar un profesor válido.");
+        }
+
+        Clase clase = claseRepository.findById(idClase)
                 .orElseThrow(() -> new RuntimeException("Clase no encontrada"));
 
-        LocalDate fechaBase = claseElegida.getFecha();
-        int hora = claseElegida.getHora();
-        DayOfWeek diaSemana = fechaBase.getDayOfWeek();
-        Integer idActividad = claseElegida.getActividad() != null
-                ? claseElegida.getActividad().getIdActividad()
-                : null;
-        String nombreActividad = claseElegida.getActividad() != null && claseElegida.getActividad().getTipo() != null
-                ? claseElegida.getActividad().getTipo().name()
-                : "CLASE";
+        Profesor profesor = profesorRepository.findById(request.getProfesorId())
+                .orElseThrow(() -> new RuntimeException("El profesor seleccionado no existe."));
 
-        LocalDate primerDiaMes = fechaBase.withDayOfMonth(1);
-        LocalDate ultimoDiaMes = fechaBase.withDayOfMonth(fechaBase.lengthOfMonth());
+        String alcance = request.getAlcance() == null ? "INDIVIDUAL" : request.getAlcance().toUpperCase();
 
-        // Filtra todas las clases del mes que matcheen actividad + día semana + hora
-        List<Clase> clasesDelAbono = claseRepository.findAll().stream()
-                .filter(c -> c.getActividad() != null
-                        && idActividad != null
-                        && idActividad.equals(c.getActividad().getIdActividad()))
-                .filter(c -> c.getHora() != null && c.getHora() == hora)
-                .filter(c -> c.getFecha() != null
-                        && !c.getFecha().isBefore(primerDiaMes)
-                        && !c.getFecha().isAfter(ultimoDiaMes))
-                .filter(c -> c.getFecha().getDayOfWeek() == diaSemana)
-                .sorted((a, b) -> a.getFecha().compareTo(b.getFecha()))
-                .toList();
+        if ("SERIE".equals(alcance)) {
+            ClasePlantilla plantilla = clase.getPlantilla();
+            if (plantilla == null) {
+                throw new RuntimeException("Esta clase no pertenece a una serie, no se puede cambiar el profesor de toda la serie.");
+            }
 
-        List<AbonoPreviewDTO> resultado = new ArrayList<>();
-        for (Clase c : clasesDelAbono) {
-            AbonoPreviewDTO.Motivo motivo = evaluarDisponibilidad(c, idAlumno);
-            resultado.add(new AbonoPreviewDTO(
-                    c.getIdClase(),
-                    c.getFecha(),
-                    c.getHora(),
-                    nombreActividad,
-                    motivo == null,
-                    motivo
-            ));
-        }
-        return resultado;
-    }
+            plantilla.setProfesor(profesor);
+            clasePlantillaRepository.save(plantilla);
 
-    private AbonoPreviewDTO.Motivo evaluarDisponibilidad(Clase clase, Integer idAlumno) {
-        if (Boolean.TRUE.equals(clase.getCancelada())) {
-            return AbonoPreviewDTO.Motivo.CANCELADA;
+            // Cambia para todas las clases de la serie de aquí en adelante (no canceladas).
+            List<Clase> instancias = claseRepository.findByPlantilla_IdPlantilla(plantilla.getIdPlantilla());
+            LocalDate desde = clase.getFecha();
+            List<Clase> afectadas = instancias.stream()
+                    .filter(c -> !Boolean.TRUE.equals(c.getCancelada()))
+                    .filter(c -> c.getFecha() != null && !c.getFecha().isBefore(desde))
+                    .peek(c -> c.setProfesor(profesor))
+                    .collect(Collectors.toList());
+
+            claseRepository.saveAll(afectadas);
+            return ClaseCalendarioDTO.fromEntity(clase);
         }
 
-        int inscriptos = clase.getListaAsistencia() != null && clase.getListaAsistencia().getAlumnos() != null
-                ? clase.getListaAsistencia().getAlumnos().size()
-                : 0;
-        int cupo = clase.getCupo() == null ? 0 : clase.getCupo();
-
-        if (idAlumno != null && clase.getListaAsistencia() != null && clase.getListaAsistencia().getAlumnos() != null
-                && clase.getListaAsistencia().getAlumnos().stream().anyMatch(a -> java.util.Objects.equals(a.getId(), idAlumno))) {
-            return AbonoPreviewDTO.Motivo.YA_INSCRIPTO;
+        // INDIVIDUAL — solo esta clase. Validamos que el profesor no esté ocupado ese turno.
+        if (profesorOcupadoExcluyendo(clase.getFecha(), clase.getHora(), profesor.getId(), clase.getIdClase())) {
+            throw new RuntimeException("El profesor seleccionado ya tiene una clase asignada en ese horario.");
         }
 
-        if (inscriptos >= cupo) {
-            return AbonoPreviewDTO.Motivo.LLENA;
-        }
-
-        if (idAlumno != null && tieneConflictoHorario(idAlumno, clase)) {
-            return AbonoPreviewDTO.Motivo.CONFLICTO_HORARIO;
-        }
-
-        return null; // disponible
-    }
-
-    private boolean tieneConflictoHorario(Integer idAlumno, Clase clase) {
-        // Busca otra clase del alumno en la misma fecha y hora, distinta de esta
-        return claseRepository.findByFechaAndHoraAndCanceladaFalse(clase.getFecha(), clase.getHora()).stream()
-                .filter(c -> c.getIdClase() != clase.getIdClase())
-                .anyMatch(c -> c.getListaAsistencia() != null
-                        && c.getListaAsistencia().getAlumnos() != null
-                        && c.getListaAsistencia().getAlumnos().stream().anyMatch(a -> java.util.Objects.equals(a.getId(), idAlumno)));
+        clase.setProfesor(profesor);
+        return ClaseCalendarioDTO.fromEntity(claseRepository.save(clase));
     }
 
 }
