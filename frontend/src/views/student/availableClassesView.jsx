@@ -270,6 +270,7 @@ function AvailableClassesView() {
         {!loading && error && <p className="calendar-status calendar-status--error">{error}</p>}
         <AvailableClassesCalendar
           weekLabel={weekLabel}
+          weekStart={weekStart}
           onPreviousWeek={() => setWeekOffset((current) => current - 1)}
           onNextWeek={() => setWeekOffset((current) => current + 1)}
           classes={calendarClasses}
@@ -285,6 +286,8 @@ function AvailableClassesView() {
           creditos={user?.creditos || 0}
           error={errorInscripcion}
           claseInfo={claseInfo}
+          idClase={idClaseSeleccionada}
+          idAlumno={user?.id || null}
         />
         <PopupListaEspera
           isOpen={mostrarPopupEspera}

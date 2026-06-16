@@ -28,6 +28,16 @@ public class ProfesorController {
         return ResponseEntity.ok(profesores);
     }
 
+    @GetMapping("/actividad/{idActividad}")
+    public ResponseEntity<List<Map<String, Object>>> listarPorActividad(@PathVariable Integer idActividad) {
+        List<Map<String, Object>> profesores = profesorService.listarPorActividad(idActividad)
+                .stream()
+                .map(this::convertirADto)
+                .toList();
+
+        return ResponseEntity.ok(profesores);
+    }
+
     private Map<String, Object> convertirADto(Profesor profesor) {
         Map<String, Object> dto = new HashMap<>();
 
@@ -35,6 +45,13 @@ public class ProfesorController {
         dto.put("nombre", profesor.getNombre());
         dto.put("apellido", profesor.getApellido());
         dto.put("email", profesor.getEmail());
+
+        if (profesor.getActividad() != null) {
+            Map<String, Object> actividadDto = new HashMap<>();
+            actividadDto.put("idActividad", profesor.getActividad().getIdActividad());
+            actividadDto.put("tipo", profesor.getActividad().getTipo());
+            dto.put("actividad", actividadDto);
+        }
 
         return dto;
     }

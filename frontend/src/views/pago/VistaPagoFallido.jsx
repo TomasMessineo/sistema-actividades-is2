@@ -4,7 +4,7 @@ import '../../styles/pago.css';
 function VistaPagoFallido() {
   const navigate = useNavigate();
   const location = useLocation();
-  const error = location.state?.error || 'Ocurrió un error al procesar el pago';
+  const error = location.state?.error || 'Ocurrió un error de conexion';
 
   return (
     <div className="pago-page">

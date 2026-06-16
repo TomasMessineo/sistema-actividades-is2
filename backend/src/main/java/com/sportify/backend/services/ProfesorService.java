@@ -17,6 +17,10 @@ public class ProfesorService {
         return profesorRepository.findAll();
     }
 
+    public List<Profesor> listarPorActividad(Integer idActividad) {
+        return profesorRepository.findByActividad_IdActividad(idActividad);
+    }
+
     public Profesor buscarPorId(Integer id) {
         return profesorRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Profesor no encontrado"));

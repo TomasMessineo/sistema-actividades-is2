@@ -42,7 +42,14 @@ function ModificarClaseModal({
       setClaseModificada(null)
       setAccionEnProceso(false)
       setMostrarConfirmacionCancelacion(false)
-      cargarProfesores()
+
+      const idActividad = obtenerIdActividadDeClase(claseSeleccionada)
+
+      if (idActividad) {
+        cargarProfesoresPorActividad(idActividad)
+      } else {
+        setProfesores([])
+      }
     }
   }, [abierto, claseSeleccionada])
 
@@ -60,6 +67,27 @@ function ModificarClaseModal({
     }
   }
 
+  const obtenerFechaHoraClase = () => {
+    if (!claseSeleccionada?.fecha || claseSeleccionada?.hora === null || claseSeleccionada?.hora === undefined) {
+      return null
+    }
+
+    const horaClase = String(Number(claseSeleccionada.hora)).padStart(2, '0')
+    const fechaHora = new Date(`${claseSeleccionada.fecha}T${horaClase}:00:00`)
+
+    return Number.isNaN(fechaHora.getTime()) ? null : fechaHora
+  }
+
+  const claseEstaOcurriendoOYaPaso = () => {
+    const fechaHoraClase = obtenerFechaHoraClase()
+
+    if (!fechaHoraClase) {
+      return true
+    }
+
+    return fechaHoraClase.getTime() <= Date.now()
+  }
+
   const obtenerMensajeError = (data, mensajeGenerico) => {
     if (!data) return mensajeGenerico
     if (typeof data === 'string') return data
@@ -69,7 +97,7 @@ function ModificarClaseModal({
     return JSON.stringify(data)
   }
 
-  const cargarProfesores = async () => {
+  const cargarProfesoresPorActividad = async (idActividad) => {
     setCargandoProfesores(true)
 
     try {
@@ -116,6 +144,9 @@ function ModificarClaseModal({
   }
 
   const obtenerNombreActividad = () => {
+    if (typeof claseSeleccionada.actividad === 'string') {
+      return claseSeleccionada.actividad
+    }
     return (
       claseSeleccionada.actividad?.tipo ||
       claseSeleccionada.actividad?.nombre ||
@@ -187,12 +218,17 @@ function ModificarClaseModal({
 
   const abrirConfirmacionCancelacion = () => {
     setError('')
+
+    if (claseEstaOcurriendoOYaPaso()) {
+      setError('No se puede cancelar una clase que está ocurriendo o ya pasó.')
+      return
+    }
+
     setMostrarConfirmacionCancelacion(true)
   }
 
   const cerrarConfirmacionCancelacion = () => {
     setMostrarConfirmacionCancelacion(false)
-    setError('La clase no se canceló.')
   }
 
   const cerrarPopupExito = () => {
@@ -245,7 +281,11 @@ function ModificarClaseModal({
                 required
               >
                 <option value="">
-                  {cargandoProfesores ? 'Cargando profesores...' : 'Seleccionar profesor'}
+                  {cargandoProfesores
+                    ? 'Cargando profesores...'
+                    : profesores.length === 0
+                      ? 'No hay profesores para esta actividad'
+                      : 'Seleccionar profesor'}
                 </option>
 
                 {profesores.map((profesor) => {

@@ -53,12 +53,24 @@ function CrearClaseModal({
         profesorId: ''
       })
 
+      setProfesores([])
       setError('')
       setClaseCreada(null)
       setMostrarExito(false)
-      cargarProfesores()
     }
   }, [abierto])
+
+  // Carga profesores cuando cambia la actividad
+  useEffect(() => {
+    if (!abierto) return
+
+    if (!form.actividadId) {
+      setProfesores([])
+      return
+    }
+
+    cargarProfesoresPorActividad(form.actividadId)
+  }, [form.actividadId, abierto])
 
   if (!abierto) {
     return null
@@ -102,11 +114,11 @@ function CrearClaseModal({
     return JSON.stringify(data)
   }
 
-  const cargarProfesores = async () => {
+  const cargarProfesoresPorActividad = async (actividadId) => {
     setCargandoProfesores(true)
 
     try {
-      const response = await fetch(`${API_BASE_URL}/profesores`, {
+      const response = await fetch(`${API_BASE_URL}/profesores/actividad/${actividadId}`, {
         method: 'GET'
       })
 
@@ -206,6 +218,7 @@ function CrearClaseModal({
 
     setCargando(true)
     setError('')
+    setMostrarExito(false)
 
     const hora = convertirEntero(form.hora)
     const cupo = convertirEntero(form.cupo)
@@ -223,13 +236,7 @@ function CrearClaseModal({
       return
     }
 
-    if (cupo !== null && cupo < 0) {
-      setError('La clase no puede crearse con cupo negativo.')
-      setCargando(false)
-      return
-    }
-
-    if (cupo === null || cupo === 0 || cupo > 30) {
+    if (cupo === null || cupo <= 0 || cupo > 30) {
       setError('Debe ingresar un cupo válido entre 1 y 30.')
       setCargando(false)
       return
@@ -352,7 +359,7 @@ function CrearClaseModal({
               <select
                 name="actividadId"
                 value={form.actividadId}
-                onChange={manejarCambio}
+                onChange={(e) => setForm((prev) => ({ ...prev, actividadId: e.target.value, profesorId: '' }))}
                 required
               >
                 <option value="">Seleccionar actividad</option>
@@ -370,11 +377,17 @@ function CrearClaseModal({
                 name="profesorId"
                 value={form.profesorId}
                 onChange={manejarCambio}
-                disabled={cargandoProfesores}
+                disabled={!form.actividadId || cargandoProfesores}
                 required
               >
                 <option value="">
-                  {cargandoProfesores ? 'Cargando profesores...' : 'Seleccionar profesor'}
+                  {!form.actividadId
+                    ? 'Elegí una actividad primero'
+                    : cargandoProfesores
+                      ? 'Cargando profesores...'
+                      : profesores.length === 0
+                        ? 'No hay profesores para esta actividad'
+                        : 'Seleccionar profesor'}
                 </option>
 
                 {profesores.map((profesor) => {

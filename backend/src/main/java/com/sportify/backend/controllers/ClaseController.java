@@ -130,4 +130,18 @@ public class ClaseController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    @GetMapping("/abono/preview")
+    @Transactional
+    public ResponseEntity<?> previewAbono(
+            @RequestParam("idClase") Integer idClase,
+            @RequestParam(value = "idAlumno", required = false) Integer idAlumno
+    ) {
+        try {
+            List<AbonoPreviewDTO> preview = claseService.previewAbono(idClase, idAlumno);
+            return ResponseEntity.ok(preview);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 }

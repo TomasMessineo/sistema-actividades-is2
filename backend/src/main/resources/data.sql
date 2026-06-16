@@ -150,9 +150,10 @@ VALUES (8, true, 'Guerra', '40666777', 'profesor1@sportify.com', 'Juan Luis', 'p
                             nombre = EXCLUDED.nombre,
                             password = EXCLUDED.password;
 
-INSERT INTO profesor (id)
-VALUES (8)
-    ON CONFLICT (id) DO NOTHING;
+INSERT INTO profesor (id, actividad_id)
+VALUES (8, 1)
+    ON CONFLICT (id) DO UPDATE
+        SET actividad_id = EXCLUDED.actividad_id;
 
 
 INSERT INTO usuario (id, activo, apellido, dni, email, nombre, password)
@@ -165,9 +166,42 @@ VALUES (9, true, 'Mendoza', '40777888', 'profesor2@sportify.com', 'Marcelo', 'pr
                             nombre = EXCLUDED.nombre,
                             password = EXCLUDED.password;
 
-INSERT INTO profesor (id)
-VALUES (9)
-    ON CONFLICT (id) DO NOTHING;
+INSERT INTO profesor (id, actividad_id)
+VALUES (9, 3)
+    ON CONFLICT (id) DO UPDATE
+        SET actividad_id = EXCLUDED.actividad_id;
+
+
+INSERT INTO usuario (id, activo, apellido, dni, email, nombre, password)
+VALUES (10, true, 'Ruiz', '40888999', 'profesor3@sportify.com', 'Carlos', 'profesor123')
+    ON CONFLICT (id) DO UPDATE
+                            SET activo = EXCLUDED.activo,
+                            apellido = EXCLUDED.apellido,
+                            dni = EXCLUDED.dni,
+                            email = EXCLUDED.email,
+                            nombre = EXCLUDED.nombre,
+                            password = EXCLUDED.password;
+
+INSERT INTO profesor (id, actividad_id)
+VALUES (10, 2)
+    ON CONFLICT (id) DO UPDATE
+        SET actividad_id = EXCLUDED.actividad_id;
+
+
+INSERT INTO usuario (id, activo, apellido, dni, email, nombre, password)
+VALUES (11, true, 'Torres', '40999000', 'profesor4@sportify.com', 'Lucía', 'profesor123')
+    ON CONFLICT (id) DO UPDATE
+                            SET activo = EXCLUDED.activo,
+                            apellido = EXCLUDED.apellido,
+                            dni = EXCLUDED.dni,
+                            email = EXCLUDED.email,
+                            nombre = EXCLUDED.nombre,
+                            password = EXCLUDED.password;
+
+INSERT INTO profesor (id, actividad_id)
+VALUES (11, 3)
+    ON CONFLICT (id) DO UPDATE
+        SET actividad_id = EXCLUDED.actividad_id;
 
 
 -- =========================
@@ -220,7 +254,7 @@ INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, can
             plantilla_id = EXCLUDED.plantilla_id;
 
 -- =========================
--- CLASES FUNCIONAL
+-- CLASES FUNCIONAL (profesor 9 - Marcelo Mendoza y profesor 11 - Lucía Torres)
 -- =========================
 INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, cancelada, hora, plantilla_id) VALUES
   (21, 15, '2026-06-03', 3500.0, 2, 8, false, 13, 3),
@@ -244,7 +278,7 @@ INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, can
             plantilla_id = EXCLUDED.plantilla_id;
 
 -- =========================
--- CLASES PILATES
+-- CLASES PILATES (profesor 10 - Carlos Ruiz)
 -- =========================
 INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, cancelada, hora, plantilla_id) VALUES
   (11, 1, '2026-06-02', 2500.0, 3, 8, false, 13, 5),
@@ -272,6 +306,27 @@ INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, can
 -- =========================
 
 UPDATE alumno SET creditos = 15 WHERE id = 4;
+
+
+-- =========================
+-- ANOTACIÓN ALUMNO 3 (Lucas) A PILATES MIÉRCOLES (clase 12)
+-- =========================
+
+INSERT INTO pago (id_pago, alumno_id, clase_id, valor, fecha, fecha_creacion, fecha_actualizacion, tipo, tipo_pago, estado, descripcion, id_transaccion)
+VALUES (1, 3, 12, 2500.0, '2026-06-01', NOW(), NOW(), 'INDIVIDUAL', 'MERCADOPAGO', 'COMPLETADO', 'Anotación inicial Lucas - PILATES miércoles', 'SEED-PAGO-1')
+    ON CONFLICT (id_pago) DO UPDATE
+        SET alumno_id = EXCLUDED.alumno_id,
+            clase_id = EXCLUDED.clase_id,
+            estado = EXCLUDED.estado;
+
+INSERT INTO lista_asistencia (id_lista_asistencia, clase_id)
+VALUES (1, 12)
+    ON CONFLICT (id_lista_asistencia) DO UPDATE
+        SET clase_id = EXCLUDED.clase_id;
+
+INSERT INTO lista_asistencia_alumnos (lista_asistencia_id, alumno_id)
+VALUES (1, 3)
+    ON CONFLICT DO NOTHING;
 
 -- =========================
 -- APTOS MÉDICOS (prueba, solo hasta uqe este el subir aoto medico)
@@ -324,7 +379,7 @@ SELECT setval('clase_plantilla_seq', GREATEST(COALESCE((SELECT MAX(id_plantilla)
 
 DROP SEQUENCE IF EXISTS usuario_seq;
 CREATE SEQUENCE usuario_seq INCREMENT BY 1 START WITH 1;
-SELECT setval('usuario_seq', GREATEST(COALESCE((SELECT MAX(id) FROM usuario), 0), 9) + 1, false);
+SELECT setval('usuario_seq', GREATEST(COALESCE((SELECT MAX(id) FROM usuario), 0), 11) + 1, false);
 
 DROP SEQUENCE IF EXISTS actividad_seq;
 CREATE SEQUENCE actividad_seq INCREMENT BY 1 START WITH 1;
