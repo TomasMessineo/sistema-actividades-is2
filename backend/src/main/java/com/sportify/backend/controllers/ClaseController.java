@@ -1,5 +1,6 @@
 package com.sportify.backend.controllers;
 
+import com.sportify.backend.dtos.AbonoPreviewDTO;
 import com.sportify.backend.dtos.CambiarProfesorRequest;
 import com.sportify.backend.dtos.ClaseCalendarioDTO;
 import com.sportify.backend.dtos.ClasePlantillaRequest;
