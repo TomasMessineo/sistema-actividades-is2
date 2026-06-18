@@ -3,13 +3,15 @@ import Navbar from '../../components/Navbar/NavbarAlumno.jsx'
 import AvailableClassesCalendar from '../../components/AvailableClassesCalendar.jsx'
 import { useAuth } from '../../context/AuthContext'
 import { listarClases } from '../../services/claseService'
+import { getDayKey, buildWeekDays } from '../../utils/weekDays'
 import '../../styles/AvailableClasses.css'
 import PopupInscripcionClase from '../../components/PopupInscripcionClase.jsx'
 import PopupListaEspera from '../../components/PopupListaEspera.jsx'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios';
 
-const monthFormatter = new Intl.DateTimeFormat('es-AR', { month: 'long' });
+const VIEW_MODE_FIXED = 'fixed'
+const VIEW_MODE_ROLLING = 'rolling'
 
 const getStartOfWeek = (date) => {
   const result = new Date(date)
@@ -20,34 +22,10 @@ const getStartOfWeek = (date) => {
   return result
 }
 
-const formatWeekLabel = (date) => {
-  const weekStart = getStartOfWeek(date)
-  const weekEnd = new Date(weekStart)
-  weekEnd.setDate(weekStart.getDate() + 6)
-
-  const startDay = weekStart.getDate()
-  const endDay = weekEnd.getDate()
-  const startMonth = monthFormatter.format(weekStart)
-  const endMonth = monthFormatter.format(weekEnd)
-  const startMonthLabel = startMonth.charAt(0).toUpperCase() + startMonth.slice(1)
-  const endMonthLabel = endMonth.charAt(0).toUpperCase() + endMonth.slice(1)
-
-  if (weekStart.getMonth() === weekEnd.getMonth()) {
-    return `${startDay} - ${endDay} ${startMonthLabel}`
-  }
-
-  return `${startDay} ${startMonthLabel} - ${endDay} ${endMonthLabel}`
-}
-
-const getDayKeyFromDate = (date) => {
-  const day = date.getDay()
-
-  if (day === 1) return 'monday'
-  if (day === 2) return 'tuesday'
-  if (day === 3) return 'wednesday'
-  if (day === 4) return 'thursday'
-  if (day === 5) return 'friday'
-  return null
+const getRangeStart = (date) => {
+  const result = new Date(date)
+  result.setHours(0, 0, 0, 0)
+  return result
 }
 
 // Formatea una fecha local como YYYY-MM-DD (sin desfase de zona horaria).
@@ -60,25 +38,16 @@ const formatDate = (date) => {
 
 function AvailableClassesView() {
   const mainRef = useRef(null)
-  const [weekOffset, setWeekOffset] = useState(0)
+  const [viewMode, setViewMode] = useState(VIEW_MODE_FIXED)
   const [classes, setClasses] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const { user, loading: authLoading, updateUser } = useAuth()
 
-  const weekLabel = useMemo(() => {
-    const currentWeek = new Date()
-    currentWeek.setDate(currentWeek.getDate() + weekOffset * 7)
-    return formatWeekLabel(currentWeek)
-  }, [weekOffset])
-
-  const currentWeekDate = useMemo(() => {
-    const currentWeek = new Date()
-    currentWeek.setDate(currentWeek.getDate() + weekOffset * 7)
-    return currentWeek
-  }, [weekOffset])
-
-  const weekStart = useMemo(() => getStartOfWeek(currentWeekDate), [currentWeekDate])
+  const weekStart = useMemo(() => {
+    const today = new Date()
+    return viewMode === VIEW_MODE_ROLLING ? getRangeStart(today) : getStartOfWeek(today)
+  }, [viewMode])
 
   const weekEnd = useMemo(() => {
     const end = new Date(weekStart)
@@ -86,6 +55,8 @@ function AvailableClassesView() {
     end.setHours(23, 59, 59, 999)
     return end
   }, [weekStart])
+
+  const days = useMemo(() => buildWeekDays(weekStart), [weekStart])
 
   useEffect(() => {
     if (authLoading) {
@@ -116,9 +87,8 @@ function AvailableClassesView() {
         if (!item?.fecha || typeof item.hora !== 'number') return null
 
         const classDate = new Date(`${item.fecha}T00:00:00`)
-        const day = getDayKeyFromDate(classDate)
+        const day = getDayKey(classDate)
 
-        if (!day) return null
         if (classDate < weekStart || classDate > weekEnd) return null
 
         return {
@@ -269,10 +239,26 @@ function AvailableClassesView() {
         {loading && <p className="calendar-status">Cargando clases...</p>}
         {!loading && error && <p className="calendar-status calendar-status--error">{error}</p>}
         <AvailableClassesCalendar
-          weekLabel={weekLabel}
+          headerRight={(
+            <div className="calendar-mode-toggle" role="group" aria-label="Modo de visualización del calendario">
+              <button
+                type="button"
+                className={`calendar-mode-button ${viewMode === VIEW_MODE_FIXED ? 'calendar-mode-button--active' : ''}`}
+                onClick={() => setViewMode(VIEW_MODE_FIXED)}
+              >
+                Lun - Dom
+              </button>
+              <button
+                type="button"
+                className={`calendar-mode-button ${viewMode === VIEW_MODE_ROLLING ? 'calendar-mode-button--active' : ''}`}
+                onClick={() => setViewMode(VIEW_MODE_ROLLING)}
+              >
+                Próximos 7 días
+              </button>
+            </div>
+          )}
           weekStart={weekStart}
-          onPreviousWeek={() => setWeekOffset((current) => current - 1)}
-          onNextWeek={() => setWeekOffset((current) => current + 1)}
+          days={days}
           classes={calendarClasses}
           showFullBadge
           onClassClick={abrirPopup}

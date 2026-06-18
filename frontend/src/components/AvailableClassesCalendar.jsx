@@ -1,14 +1,6 @@
 import { Fragment } from 'react';
 import '../styles/AvailableClassesCalendar.css';
 
-const weekDays = [
-  { key: 'monday', label: 'Lunes' },
-  { key: 'tuesday', label: 'Martes' },
-  { key: 'wednesday', label: 'Miércoles' },
-  { key: 'thursday', label: 'Jueves' },
-  { key: 'friday', label: 'Viernes' },
-];
-
 const getDayDate = (weekStart, index) => {
   if (!weekStart) return null;
   const date = new Date(weekStart);
@@ -52,40 +44,35 @@ const formatHourRange = (hour) => `${String(hour).padStart(2, '0')}:00 - ${Strin
 const formatCapacity = (inscritos, cupo) => `${inscritos ?? 0}/${cupo ?? 0}`;
 
 function AvailableClassesCalendar({
-  weekLabel,
   weekStart = null,
-  onPreviousWeek,
-  onNextWeek,
+  days,
   classes = [],
   showCapacity = false,
   showFullBadge = false,
   showCancelledState = false,
-  headerAction = null,
+  headerLeft = null,
+  headerCenter = null,
+  headerRight = null,
   onClassClick = null,
 }) {
   return (
     <section className="available-classes-calendar" aria-label="Calendario de clases disponibles">
       <div className="calendar-intro">
-        {headerAction || (
-          <div>
-            <p className="calendar-kicker">Disponibilidad semanal</p>
-            <h2>Clases por día y hora</h2>
-          </div>
-        )}
-        <div className="calendar-week-controls" aria-label="Navegación de semana">
-          <button type="button" className="calendar-week-button" onClick={onPreviousWeek} aria-label="Semana anterior">
-            &lt;
-          </button>
-          <span className="calendar-week-label">{weekLabel}</span>
-          <button type="button" className="calendar-week-button" onClick={onNextWeek} aria-label="Semana siguiente">
-            &gt;
-          </button>
+        <div className="calendar-intro-left">
+          {headerLeft || (
+            <div>
+              <p className="calendar-kicker">Disponibilidad semanal</p>
+              <h2>Clases por día y hora</h2>
+            </div>
+          )}
         </div>
+        <div className="calendar-intro-center">{headerCenter}</div>
+        <div className="calendar-intro-right">{headerRight}</div>
       </div>
 
       <div className="calendar-grid" role="table" aria-label="Matriz de horarios de clases">
         <div className="calendar-corner" aria-hidden="true">Hora</div>
-        {weekDays.map((day, index) => (
+        {days.map((day, index) => (
           <div key={day.key} className="calendar-day-header" role="columnheader">
             <span className="calendar-day-name">{day.label}</span>
             {getDayDate(weekStart, index) && (
@@ -99,7 +86,7 @@ function AvailableClassesCalendar({
             <div key={`hour-${hour}`} className="calendar-hour-label" role="rowheader">
               {String(hour).padStart(2, '0')}:00
             </div>
-            {weekDays.map((day) => {
+            {days.map((day) => {
               const slotClasses = getClassesAtSlot(classes, day.key, hour);
 
               return (
