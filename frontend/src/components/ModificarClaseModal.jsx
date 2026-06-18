@@ -318,14 +318,6 @@ function ModificarClaseModal({
             )}
 
             <div className="modificar-clase-modal__actions">
-              <button
-                type="button"
-                className="modificar-clase-modal__button modificar-clase-modal__button--link"
-                onClick={onCerrar}
-              >
-                Cancelar
-              </button>
-
               {!mostrarOpcionesModificar ? (
                 <div className="modificar-clase-modal__actions-group">
                   <button
