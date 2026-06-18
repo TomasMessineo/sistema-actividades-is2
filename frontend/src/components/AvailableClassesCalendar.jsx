@@ -39,6 +39,10 @@ const getClassesAtSlot = (classes, dayKey, hour) => {
   return classes.filter((item) => item.day === dayKey && item.hour === hour);
 };
 
+const weekendClosedLabel = { saturday: 'sábados', sunday: 'domingos' };
+
+const isWeekendDay = (day) => Boolean(weekendClosedLabel[day.key]);
+
 const formatHourRange = (hour) => `${String(hour).padStart(2, '0')}:00 - ${String(hour + 1).padStart(2, '0')}:00`;
 
 const formatCapacity = (inscritos, cupo) => `${inscritos ?? 0}/${cupo ?? 0}`;
@@ -50,6 +54,7 @@ function AvailableClassesCalendar({
   showCapacity = false,
   showFullBadge = false,
   showCancelledState = false,
+  showDayDates = true,
   headerLeft = null,
   headerCenter = null,
   headerRight = null,
@@ -71,26 +76,49 @@ function AvailableClassesCalendar({
       </div>
 
       <div className="calendar-grid" role="table" aria-label="Matriz de horarios de clases">
-        <div className="calendar-corner" aria-hidden="true">Hora</div>
+        <div className="calendar-corner" aria-hidden="true" style={{ gridColumn: 1, gridRow: 1 }}>Hora</div>
         {days.map((day, index) => (
-          <div key={day.key} className="calendar-day-header" role="columnheader">
+          <div key={day.key} className="calendar-day-header" role="columnheader" style={{ gridColumn: index + 2, gridRow: 1 }}>
             <span className="calendar-day-name">{day.label}</span>
-            {getDayDate(weekStart, index) && (
+            {showDayDates && getDayDate(weekStart, index) && (
               <span className="calendar-day-date">{getDayDate(weekStart, index)}</span>
             )}
           </div>
         ))}
 
-        {hours.map((hour) => (
+        {days.map((day, index) => (
+          isWeekendDay(day) && (
+            <div
+              key={`closed-${day.key}`}
+              className="calendar-slot calendar-closed-slot"
+              role="cell"
+              style={{ gridColumn: index + 2, gridRow: `2 / span ${hours.length}` }}
+            >
+              <div className="calendar-closed-card">
+                El gimnasio está cerrado los {weekendClosedLabel[day.key]}
+              </div>
+            </div>
+          )
+        ))}
+
+        {hours.map((hour, hourIndex) => (
           <Fragment key={hour}>
-            <div key={`hour-${hour}`} className="calendar-hour-label" role="rowheader">
+            <div key={`hour-${hour}`} className="calendar-hour-label" role="rowheader" style={{ gridColumn: 1, gridRow: hourIndex + 2 }}>
               {String(hour).padStart(2, '0')}:00
             </div>
-            {days.map((day) => {
+            {days.map((day, dayIndex) => {
+              if (isWeekendDay(day)) return null;
+
               const slotClasses = getClassesAtSlot(classes, day.key, hour);
 
               return (
-                <div key={`${day.key}-${hour}`} className="calendar-slot" data-count={slotClasses.length} role="cell">
+                <div
+                  key={`${day.key}-${hour}`}
+                  className="calendar-slot"
+                  data-count={slotClasses.length}
+                  role="cell"
+                  style={{ gridColumn: dayIndex + 2, gridRow: hourIndex + 2 }}
+                >
                   {slotClasses.map((classItem, index) => (
                     <article
                       key={classItem.id}

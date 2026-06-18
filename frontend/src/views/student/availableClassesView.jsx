@@ -246,14 +246,14 @@ function AvailableClassesView() {
                 className={`calendar-mode-button ${viewMode === VIEW_MODE_FIXED ? 'calendar-mode-button--active' : ''}`}
                 onClick={() => setViewMode(VIEW_MODE_FIXED)}
               >
-                Lun - Dom
+                Inscripción Mensual
               </button>
               <button
                 type="button"
                 className={`calendar-mode-button ${viewMode === VIEW_MODE_ROLLING ? 'calendar-mode-button--active' : ''}`}
                 onClick={() => setViewMode(VIEW_MODE_ROLLING)}
               >
-                Próximos 7 días
+                Inscripción Individual
               </button>
             </div>
           )}
@@ -261,6 +261,7 @@ function AvailableClassesView() {
           days={days}
           classes={calendarClasses}
           showFullBadge
+          showDayDates={viewMode !== VIEW_MODE_FIXED}
           onClassClick={abrirPopup}
         />
         <PopupInscripcionClase
