@@ -302,6 +302,20 @@ INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, can
             plantilla_id = EXCLUDED.plantilla_id;
 
 -- =========================
+-- LICENCIAS DE PROFESOR (prueba)
+-- =========================
+-- Marcelo Mendoza (9) de vacaciones: queda NO disponible para cambios de
+-- profesor en ese rango (sirve para probar el escenario 2 de las HU).
+
+INSERT INTO licencia_profesor (id_licencia, profesor_id, desde, hasta, motivo)
+VALUES (1, 9, '2026-06-01', '2026-12-31', 'Vacaciones')
+    ON CONFLICT (id_licencia) DO UPDATE
+        SET profesor_id = EXCLUDED.profesor_id,
+            desde = EXCLUDED.desde,
+            hasta = EXCLUDED.hasta,
+            motivo = EXCLUDED.motivo;
+
+-- =========================
 -- CREDITOS (prueba)
 -- =========================
 
@@ -376,6 +390,10 @@ SELECT setval('clase_seq', GREATEST(COALESCE((SELECT MAX(id_clase) FROM clase), 
 DROP SEQUENCE IF EXISTS clase_plantilla_seq;
 CREATE SEQUENCE clase_plantilla_seq INCREMENT BY 1 START WITH 1;
 SELECT setval('clase_plantilla_seq', GREATEST(COALESCE((SELECT MAX(id_plantilla) FROM clase_plantilla), 0), 6) + 1, false);
+
+DROP SEQUENCE IF EXISTS licencia_profesor_seq;
+CREATE SEQUENCE licencia_profesor_seq INCREMENT BY 1 START WITH 1;
+SELECT setval('licencia_profesor_seq', COALESCE((SELECT MAX(id_licencia) FROM licencia_profesor), 0) + 1, false);
 
 DROP SEQUENCE IF EXISTS usuario_seq;
 CREATE SEQUENCE usuario_seq INCREMENT BY 1 START WITH 1;
