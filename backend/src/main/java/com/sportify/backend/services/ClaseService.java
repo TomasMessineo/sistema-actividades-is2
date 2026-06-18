@@ -389,6 +389,64 @@ public class ClaseService {
         return fechas;
     }
 
+    // HELPER — true si dos rangos de vigencia [desde, hasta] se superponen.
+    // hasta == null significa "sin fecha de fin" (vigencia perpetua).
+    private boolean seSuperponenVigencias(LocalDate desdeA, LocalDate hastaA, LocalDate desdeB, LocalDate hastaB) {
+        boolean aEmpiezaAntesDeQueTermineB = hastaB == null || !desdeA.isAfter(hastaB);
+        boolean bEmpiezaAntesDeQueTermineA = hastaA == null || !desdeB.isAfter(hastaA);
+        return aEmpiezaAntesDeQueTermineB && bEmpiezaAntesDeQueTermineA;
+    }
+
+    // HELPER — plantillas activas en el mismo día y hora cuya vigencia se superpone
+    // con la de la plantilla que se quiere crear.
+    private List<ClasePlantilla> plantillasSuperpuestasEnElTurno(
+            DayOfWeek dia,
+            int hora,
+            LocalDate vigenciaDesdeNueva,
+            LocalDate vigenciaHastaNueva
+    ) {
+        return clasePlantillaRepository.findByDiaSemanaAndHoraAndActivaTrue(dia, hora)
+                .stream()
+                .filter(p -> seSuperponenVigencias(
+                        p.getVigenciaDesde(), p.getVigenciaHasta(),
+                        vigenciaDesdeNueva, vigenciaHastaNueva))
+                .toList();
+    }
+
+    // HELPER — análogo a mismaDisciplinaEnElTurno, pero evaluado contra plantillas.
+    private boolean mismaDisciplinaEnElTurnoPlantilla(List<ClasePlantilla> plantillasSuperpuestas, Actividad actividad) {
+        if (actividad == null || actividad.getIdActividad() == null) {
+            return false;
+        }
+
+        Integer idActividadNueva = actividad.getIdActividad();
+
+        return plantillasSuperpuestas.stream()
+                .filter(p -> p.getActividad() != null)
+                .filter(p -> p.getActividad().getIdActividad() != null)
+                .anyMatch(p -> p.getActividad().getIdActividad().equals(idActividadNueva));
+    }
+
+    // HELPER — análogo a horaDisponible, pero evaluado contra plantillas.
+    private boolean turnoDisponiblePlantilla(List<ClasePlantilla> plantillasSuperpuestas) {
+        return plantillasSuperpuestas.size() < 3;
+    }
+
+    // HELPER — análogo a profesorOcupado, pero evaluado contra plantillas.
+    private boolean profesorOcupadoPlantilla(List<ClasePlantilla> plantillasSuperpuestas, Integer profesorId) {
+        if (profesorId == null) return false;
+        return plantillasSuperpuestas.stream()
+                .anyMatch(p -> p.getProfesor() != null && profesorId.equals(p.getProfesor().getId()));
+    }
+
+    // HELPER — análogo a cupoDisponibleEnTurno, pero evaluado contra plantillas.
+    private boolean cupoDisponibleEnTurnoPlantilla(List<ClasePlantilla> plantillasSuperpuestas, int cupoNuevo) {
+        int cupoExistente = plantillasSuperpuestas.stream()
+                .mapToInt(p -> p.getCupo() == null ? 0 : p.getCupo())
+                .sum();
+        return cupoExistente + cupoNuevo <= 30;
+    }
+
     /**
      * Materialización lazy: crea en la BD las instancias (Clase) que falten para
      * cada plantilla activa dentro del rango pedido. Es idempotente — saltea las
@@ -483,6 +541,28 @@ public class ClaseService {
             throw new RuntimeException("No hay fechas disponibles en los próximos dos meses para ese día.");
         }
 
+        LocalDate vigenciaDesde = fechas.get(0);
+        List<ClasePlantilla> plantillasSuperpuestas =
+                plantillasSuperpuestasEnElTurno(dia, hora, vigenciaDesde, null);
+
+        // Mismo orden que las validaciones de turno para una Clase concreta:
+        // disciplina repetida primero, luego cupo de turno, profesor y cupo total.
+        if (mismaDisciplinaEnElTurnoPlantilla(plantillasSuperpuestas, actividad)) {
+            throw new RuntimeException("Ya existe una serie de la misma disciplina en ese día y horario.");
+        }
+
+        if (!turnoDisponiblePlantilla(plantillasSuperpuestas)) {
+            throw new RuntimeException("Ese día y horario ya tiene 3 series asignadas. Por favor, pruebe con un horario distinto.");
+        }
+
+        if (profesorOcupadoPlantilla(plantillasSuperpuestas, profesor.getId())) {
+            throw new RuntimeException("El profesor seleccionado ya tiene una serie asignada en ese día y horario.");
+        }
+
+        if (!cupoDisponibleEnTurnoPlantilla(plantillasSuperpuestas, request.getCupo())) {
+            throw new RuntimeException("El cupo total de las series en ese turno superaría el máximo de 30 personas.");
+        }
+
         ClasePlantilla plantilla = new ClasePlantilla();
         plantilla.setActividad(actividad);
         plantilla.setProfesor(profesor);
@@ -491,7 +571,7 @@ public class ClaseService {
         plantilla.setCupo(request.getCupo());
         plantilla.setPrecio(precio);
         plantilla.setActiva(true);
-        plantilla.setVigenciaDesde(fechas.get(0));
+        plantilla.setVigenciaDesde(vigenciaDesde);
         plantilla.setVigenciaHasta(null);
         ClasePlantilla plantillaGuardada = clasePlantillaRepository.save(plantilla);
 
