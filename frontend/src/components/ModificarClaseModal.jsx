@@ -43,13 +43,7 @@ function ModificarClaseModal({
       setAccionEnProceso(false)
       setMostrarConfirmacionCancelacion(false)
 
-      const idActividad = obtenerIdActividadDeClase(claseSeleccionada)
-
-      if (idActividad) {
-        cargarProfesoresPorActividad(idActividad)
-      } else {
-        setProfesores([])
-      }
+      cargarProfesores()
     }
   }, [abierto, claseSeleccionada])
 
@@ -97,7 +91,7 @@ function ModificarClaseModal({
     return JSON.stringify(data)
   }
 
-  const cargarProfesoresPorActividad = async (idActividad) => {
+  const cargarProfesores = async () => {
     setCargandoProfesores(true)
 
     try {
