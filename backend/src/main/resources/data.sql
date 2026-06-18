@@ -329,6 +329,38 @@ VALUES (1, 3)
     ON CONFLICT DO NOTHING;
 
 -- =========================
+-- PAGOS DE PRUEBA (para estadísticas de ingresos)
+-- =========================
+-- Pagos COMPLETADO repartidos en los meses de 2026, mezclando clases
+-- individuales y abonos mensuales, para alimentar los gráficos de ingresos.
+
+INSERT INTO pago (id_pago, alumno_id, clase_id, valor, fecha, fecha_creacion, fecha_actualizacion, tipo, tipo_pago, estado, descripcion, id_transaccion) VALUES
+  (2,  4, 1,  14000.0, '2026-01-05', NOW(), NOW(), 'ABONADO',    'MERCADOPAGO',     'COMPLETADO', 'Abono mensual',  'SEED-PAGO-2'),
+  (3,  5, 6,   3000.0, '2026-01-12', NOW(), NOW(), 'INDIVIDUAL', 'TARJETADECREDITO','COMPLETADO', 'Clase individual','SEED-PAGO-3'),
+  (4,  6, 11,  2500.0, '2026-02-03', NOW(), NOW(), 'INDIVIDUAL', 'MERCADOPAGO',     'COMPLETADO', 'Clase individual','SEED-PAGO-4'),
+  (5,  3, 21, 15000.0, '2026-02-10', NOW(), NOW(), 'ABONADO',    'TARJETADECREDITO','COMPLETADO', 'Abono mensual',  'SEED-PAGO-5'),
+  (6,  7, 7,   3000.0, '2026-03-04', NOW(), NOW(), 'INDIVIDUAL', 'MERCADOPAGO',     'COMPLETADO', 'Clase individual','SEED-PAGO-6'),
+  (7,  4, 16, 12000.0, '2026-03-15', NOW(), NOW(), 'ABONADO',    'MERCADOPAGO',     'COMPLETADO', 'Abono mensual',  'SEED-PAGO-7'),
+  (8,  5, 2,   3000.0, '2026-04-02', NOW(), NOW(), 'INDIVIDUAL', 'TARJETADECREDITO','COMPLETADO', 'Clase individual','SEED-PAGO-8'),
+  (9,  6, 22, 14000.0, '2026-04-18', NOW(), NOW(), 'ABONADO',    'MERCADOPAGO',     'COMPLETADO', 'Abono mensual',  'SEED-PAGO-9'),
+  (10, 3, 13,  2500.0, '2026-05-06', NOW(), NOW(), 'INDIVIDUAL', 'MERCADOPAGO',     'COMPLETADO', 'Clase individual','SEED-PAGO-10'),
+  (11, 7, 26, 15000.0, '2026-05-20', NOW(), NOW(), 'ABONADO',    'TARJETADECREDITO','COMPLETADO', 'Abono mensual',  'SEED-PAGO-11'),
+  (12, 4, 8,   3000.0, '2026-06-08', NOW(), NOW(), 'INDIVIDUAL', 'MERCADOPAGO',     'COMPLETADO', 'Clase individual','SEED-PAGO-12'),
+  (13, 5, 17,  2500.0, '2026-06-22', NOW(), NOW(), 'INDIVIDUAL', 'TARJETADECREDITO','COMPLETADO', 'Clase individual','SEED-PAGO-13'),
+  (14, 6, 3,  14000.0, '2026-07-05', NOW(), NOW(), 'ABONADO',    'MERCADOPAGO',     'COMPLETADO', 'Abono mensual',  'SEED-PAGO-14'),
+  (15, 7, 27,  3500.0, '2026-07-14', NOW(), NOW(), 'INDIVIDUAL', 'MERCADOPAGO',     'COMPLETADO', 'Clase individual','SEED-PAGO-15'),
+  (16, 3, 18, 12000.0, '2026-08-03', NOW(), NOW(), 'ABONADO',    'MERCADOPAGO',     'COMPLETADO', 'Abono mensual',  'SEED-PAGO-16'),
+  (17, 4, 9,   3000.0, '2026-08-19', NOW(), NOW(), 'INDIVIDUAL', 'TARJETADECREDITO','COMPLETADO', 'Clase individual','SEED-PAGO-17')
+    ON CONFLICT (id_pago) DO UPDATE
+        SET alumno_id = EXCLUDED.alumno_id,
+            clase_id = EXCLUDED.clase_id,
+            valor = EXCLUDED.valor,
+            fecha = EXCLUDED.fecha,
+            tipo = EXCLUDED.tipo,
+            tipo_pago = EXCLUDED.tipo_pago,
+            estado = EXCLUDED.estado;
+
+-- =========================
 -- APTOS MÉDICOS (prueba, solo hasta uqe este el subir aoto medico)
 -- =========================
 

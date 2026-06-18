@@ -1,5 +1,6 @@
 package com.sportify.backend.services;
 
+import com.sportify.backend.dtos.AbonoPreviewDTO;
 import com.sportify.backend.dtos.CambiarProfesorRequest;
 import com.sportify.backend.dtos.ClaseCalendarioDTO;
 import com.sportify.backend.dtos.ClasePlantillaRequest;
@@ -20,8 +21,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -573,6 +576,94 @@ public class ClaseService {
 
         clase.setProfesor(profesor);
         return ClaseCalendarioDTO.fromEntity(claseRepository.save(clase));
+    }
+
+    // HELPER — true si la clase ya alcanzó su cupo.
+    private boolean claseLlena(Clase clase) {
+        int inscritos = (clase.getListaAsistencia() != null && clase.getListaAsistencia().getAlumnos() != null)
+                ? clase.getListaAsistencia().getAlumnos().size()
+                : 0;
+        int cupo = clase.getCupo() != null ? clase.getCupo() : 0;
+        return inscritos >= cupo;
+    }
+
+    // HELPER — true si el alumno ya está inscripto en OTRA clase en la misma fecha y hora.
+    private boolean alumnoTieneOtraClaseEnHorario(Integer alumnoId, Clase clase) {
+        if (alumnoId == null) {
+            return false;
+        }
+        return listForAlumno(alumnoId).stream()
+                .anyMatch(c -> c.getIdClase() != clase.getIdClase()
+                        && java.util.Objects.equals(c.getFecha(), clase.getFecha())
+                        && java.util.Objects.equals(c.getHora(), clase.getHora()));
+    }
+
+    /**
+     * Preview del abono mensual: lista las clases que le quedan al alumno en el mes
+     * de la clase elegida, dentro de su misma serie (cobro proporcional). Cada ítem
+     * indica si está disponible y, si no, el motivo. Lo consume el front (preview) y
+     * PagoService al confirmar un abono.
+     */
+    @Transactional
+    public List<AbonoPreviewDTO> previewAbono(Integer idClase, Integer idAlumno) {
+        Clase claseElegida = claseRepository.findById(idClase)
+                .orElseThrow(() -> new RuntimeException("Clase no encontrada"));
+
+        LocalDate fechaInicio = claseElegida.getFecha();
+        if (fechaInicio == null) {
+            return List.of();
+        }
+
+        LocalDate finDeMes = fechaInicio.withDayOfMonth(fechaInicio.lengthOfMonth());
+        materializarRango(fechaInicio, finDeMes);
+
+        List<Clase> instancias;
+        ClasePlantilla plantilla = claseElegida.getPlantilla();
+        if (plantilla != null) {
+            instancias = claseRepository.findByPlantilla_IdPlantilla(plantilla.getIdPlantilla()).stream()
+                    .filter(c -> c.getFecha() != null
+                            && !c.getFecha().isBefore(fechaInicio)
+                            && !c.getFecha().isAfter(finDeMes))
+                    .sorted(Comparator.comparing(Clase::getFecha))
+                    .collect(Collectors.toList());
+        } else {
+            instancias = List.of(claseElegida);
+        }
+
+        List<AbonoPreviewDTO> preview = new ArrayList<>();
+        for (Clase clase : instancias) {
+            boolean disponible = true;
+            AbonoPreviewDTO.Motivo motivo = null;
+
+            if (Boolean.TRUE.equals(clase.getCancelada())) {
+                disponible = false;
+                motivo = AbonoPreviewDTO.Motivo.CANCELADA;
+            } else if (isAlumnoEnrolled(clase, idAlumno)) {
+                disponible = false;
+                motivo = AbonoPreviewDTO.Motivo.YA_INSCRIPTO;
+            } else if (alumnoTieneOtraClaseEnHorario(idAlumno, clase)) {
+                disponible = false;
+                motivo = AbonoPreviewDTO.Motivo.CONFLICTO_HORARIO;
+            } else if (claseLlena(clase)) {
+                disponible = false;
+                motivo = AbonoPreviewDTO.Motivo.LLENA;
+            }
+
+            String actividad = (clase.getActividad() != null && clase.getActividad().getTipo() != null)
+                    ? clase.getActividad().getTipo().name()
+                    : "CLASE";
+
+            preview.add(new AbonoPreviewDTO(
+                    clase.getIdClase(),
+                    clase.getFecha(),
+                    clase.getHora() != null ? clase.getHora() : 0,
+                    actividad,
+                    disponible,
+                    motivo
+            ));
+        }
+
+        return preview;
     }
 
 }
