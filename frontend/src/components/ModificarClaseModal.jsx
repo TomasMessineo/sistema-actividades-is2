@@ -239,6 +239,18 @@ function ModificarClaseModal({
     }
   }
 
+  const manejarClaseCancelada = (resultado) => {
+    setMostrarModalCancelarClase(false)
+
+    if (onClaseModificada) {
+      onClaseModificada(resultado)
+    }
+
+    if (onCerrar) {
+      onCerrar()
+    }
+  }
+
   return (
     <>
     <div className="modificar-clase-modal__overlay" onClick={onCerrar}>
@@ -450,7 +462,9 @@ function ModificarClaseModal({
 
     <CancelarClaseModal
       abierto={mostrarModalCancelarClase}
+      claseSeleccionada={claseSeleccionada}
       onCerrar={() => setMostrarModalCancelarClase(false)}
+      onClaseCancelada={manejarClaseCancelada}
     />
     </>
   )

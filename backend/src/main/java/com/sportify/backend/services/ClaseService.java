@@ -2,7 +2,10 @@ package com.sportify.backend.services;
 
 import com.sportify.backend.dtos.AbonoPreviewDTO;
 import com.sportify.backend.dtos.CambiarProfesorRequest;
+import com.sportify.backend.dtos.CancelarDesdeRequest;
+import com.sportify.backend.dtos.CancelarRangoRequest;
 import com.sportify.backend.dtos.ClaseCalendarioDTO;
+import com.sportify.backend.dtos.ClaseCancelacionResponse;
 import com.sportify.backend.dtos.ClasePlantillaRequest;
 import com.sportify.backend.dtos.ClaseSerieResponse;
 import com.sportify.backend.entities.Actividad;
@@ -355,6 +358,101 @@ public class ClaseService {
 
         claseExistente.setCancelada(true);
         return claseRepository.save(claseExistente);
+    }
+
+    // Cancela una clase individual y reporta a cuántos alumnos se les
+    // acreditó un crédito (para mostrarlo en el panel administrativo).
+    @Transactional
+    public ClaseCancelacionResponse cancelarClaseConDetalle(Integer id) {
+        Clase clase = claseRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Clase no encontrada"));
+
+        if (Boolean.TRUE.equals(clase.getCancelada())) {
+            throw new RuntimeException("La clase ya se encuentra cancelada");
+        }
+
+        int alumnosAcreditados = contarAlumnosInscriptos(clase);
+        cancelarClase(id);
+
+        return new ClaseCancelacionResponse(1, 1, alumnosAcreditados);
+    }
+
+    // HELPER — cuántos alumnos tiene anotados una clase (se consulta antes de
+    // cancelarla para poder reportar a cuántos se les acreditó un crédito).
+    private int contarAlumnosInscriptos(Clase clase) {
+        ListaAsistencia listaAsistencia = clase.getListaAsistencia();
+        return listaAsistencia != null && listaAsistencia.getAlumnos() != null
+                ? listaAsistencia.getAlumnos().size()
+                : 0;
+    }
+
+    // HELPER — cancela (idempotente sobre las ya canceladas) una lista de
+    // instancias reusando cancelarClase, que ya maneja el reembolso de créditos.
+    private ClaseCancelacionResponse cancelarInstancias(List<Clase> instancias) {
+        int canceladas = 0;
+        int alumnosAcreditados = 0;
+
+        for (Clase clase : instancias) {
+            if (Boolean.TRUE.equals(clase.getCancelada())) {
+                continue;
+            }
+            alumnosAcreditados += contarAlumnosInscriptos(clase);
+            cancelarClase(clase.getIdClase());
+            canceladas++;
+        }
+
+        return new ClaseCancelacionResponse(canceladas, 0, alumnosAcreditados);
+    }
+
+    // Cancela todas las instancias de una serie dentro de un rango de fechas,
+    // materializando primero las que falten para que el rango quede completo.
+    @Transactional
+    public ClaseCancelacionResponse cancelarRangoSerie(Integer idPlantilla, CancelarRangoRequest request) {
+        LocalDate desde = request.getDesde();
+        LocalDate hasta = request.getHasta();
+
+        if (desde == null || hasta == null || hasta.isBefore(desde)) {
+            throw new RuntimeException("Debe indicar un rango de fechas válido.");
+        }
+
+        clasePlantillaRepository.findById(idPlantilla)
+                .orElseThrow(() -> new RuntimeException("La serie seleccionada no existe."));
+
+        materializarRango(desde, hasta);
+
+        List<Clase> instancias = claseRepository.findByPlantilla_IdPlantilla(idPlantilla).stream()
+                .filter(c -> c.getFecha() != null && !c.getFecha().isBefore(desde) && !c.getFecha().isAfter(hasta))
+                .toList();
+
+        ClaseCancelacionResponse resultado = cancelarInstancias(instancias);
+        resultado.setTotalEnRango(instancias.size());
+        return resultado;
+    }
+
+    // Corta la vigencia de una serie a partir de una fecha (no se generan más
+    // instancias desde ahí) y cancela las instancias ya materializadas en o
+    // después de esa fecha.
+    @Transactional
+    public ClaseCancelacionResponse cancelarDesdeSerie(Integer idPlantilla, CancelarDesdeRequest request) {
+        LocalDate desde = request.getDesde();
+
+        if (desde == null) {
+            throw new RuntimeException("Debe indicar una fecha válida.");
+        }
+
+        ClasePlantilla plantilla = clasePlantillaRepository.findById(idPlantilla)
+                .orElseThrow(() -> new RuntimeException("La serie seleccionada no existe."));
+
+        plantilla.setVigenciaHasta(desde.minusDays(1));
+        clasePlantillaRepository.save(plantilla);
+
+        List<Clase> instanciasFuturas = claseRepository.findByPlantilla_IdPlantilla(idPlantilla).stream()
+                .filter(c -> c.getFecha() != null && !c.getFecha().isBefore(desde))
+                .toList();
+
+        ClaseCancelacionResponse resultado = cancelarInstancias(instanciasFuturas);
+        resultado.setTotalEnRango(instanciasFuturas.size());
+        return resultado;
     }
 
     // ============================================================
