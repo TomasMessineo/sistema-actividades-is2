@@ -9,6 +9,25 @@ const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8080/api
 
 const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
+// El backend devuelve la actividad como string ("YOGA", "PILATES", "FUNCIONAL")
+// en el DTO del calendario. Este mapeo sirve para volver al id que necesita el endpoint
+// /profesores/actividad/{id}.
+const ACTIVIDAD_TIPO_A_ID = {
+  YOGA: 1,
+  PILATES: 2,
+  FUNCIONAL: 3
+}
+
+const obtenerIdActividadDeClase = (clase) => {
+  if (!clase) return null
+  const idObjeto = clase.actividad?.idActividad ?? clase.actividad?.id ?? clase.actividadId
+  if (idObjeto) return idObjeto
+  if (typeof clase.actividad === 'string') {
+    return ACTIVIDAD_TIPO_A_ID[clase.actividad.toUpperCase()] ?? null
+  }
+  return null
+}
+
 function ModificarClaseModal({
   abierto,
   onCerrar,

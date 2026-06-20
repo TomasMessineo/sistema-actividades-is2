@@ -329,3 +329,113 @@
     width: 100%;
   }
 }
+
+
+/* === Profesores: header con acción y badges === */
+.alumnos-header--con-accion {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.btn-registrar {
+  background: var(--primary);
+  color: var(--bg-primary, #0a0a0b);
+  border: none;
+  border-radius: var(--radius-full, 999px);
+  padding: 0.65rem 1.4rem;
+  font-weight: 700;
+  font-family: inherit;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.btn-registrar:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.profesor-actividad-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 2px 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-full, 999px);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+}
+
+/* === Modal de error con clases pendientes === */
+.alumnos-modal--error {
+  border-color: rgba(239, 68, 68, 0.4);
+  text-align: center;
+}
+
+.alumnos-modal__icono {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 2px solid rgba(239, 68, 68, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin: 0 auto 1rem;
+}
+
+.alumnos-modal__label--error {
+  color: #ef4444;
+}
+
+.alumnos-modal__clases {
+  margin: 1.25rem 0 0;
+  padding: 0.85rem 1rem;
+  list-style: none;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  text-align: left;
+  max-height: 240px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.alumnos-modal__clases li {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--text-primary);
+  font-size: 0.88rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.alumnos-modal__clase-fecha {
+  font-weight: 600;
+}
+
+.alumnos-modal__clase-sep {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.alumnos-modal__clase-actividad {
+  color: var(--primary);
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.alumnos-modal__actions--centrado {
+  justify-content: center;
+}

@@ -46,6 +46,9 @@ function Navbar() {
             <Link to="/alumnos" className="navbar__link" id="nav-inicio">Ver alumnos</Link>
           </li>
           <li>
+            <Link to="/profesores" className="navbar__link" id="nav-profesores">Ver profesores</Link>
+          </li>
+          <li>
             <Link to="/calendario" className="navbar__link" id="nav-info">Calendario</Link>
           </li>
         </ul>
