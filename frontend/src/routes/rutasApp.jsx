@@ -4,6 +4,8 @@ import AvailableClassesView from '../views/student/availableClassesView.jsx';
 import ClassCalendarView from '../views/admin/classCalendarView.jsx';
 import MyClassesView from '../views/student/myClassesView.jsx';
 import StudentStatsView from '../views/admin/studentStatsView.jsx';
+import RegistrarProfesorView from '../views/admin/RegistrarProfesorView.jsx';
+import TeacherStatsView from '../views/admin/teacherStatsView.jsx';
 
 import LandingPage from '../views/general/LandingPage.jsx';
 import LoginPage from '../views/general/LoginPage.jsx';
@@ -35,6 +37,12 @@ function RutasApp() {
       <Route element={<ProtectedRoute allowedRoles={['ADMINISTRADOR', 'PROFESOR']} />}>
         <Route path="/calendario" element={<ClassCalendarView />} />
         <Route path="/alumnos" element={<StudentStatsView />} />
+      </Route>
+
+      {/* Rutas protegidas - Solo Admin */}
+      <Route element={<ProtectedRoute allowedRoles={['ADMINISTRADOR']} />}>
+        <Route path="/profesores" element={<TeacherStatsView />} />
+        <Route path="/profesores/registrar" element={<RegistrarProfesorView />} />
       </Route>
 
       {/* Ruta fallback */}
