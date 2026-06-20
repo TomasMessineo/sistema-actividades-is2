@@ -15,6 +15,11 @@ export const listarClasesDelAlumno = (alumnoId) => {
   return apiFetch(`/alumnos/${alumnoId}/clases`);
 };
 
+// Todas las clases (pasadas y futuras) asignadas a un profesor.
+export const listarClasesDelProfesor = (profesorId) => {
+  return apiFetch(`/profesores/${profesorId}/clases`);
+};
+
 export const cancelarClase = (idClase) => {
   return apiFetch(`/clases/${idClase}/cancelar`, {
     method: 'PATCH',
@@ -36,4 +41,15 @@ export const cambiarProfesorClase = (idClase, profesorId, alcance) => {
     method: 'PUT',
     body: JSON.stringify({ profesorId, alcance }),
   });
+};
+
+// Clase que el profesor está dando en este momento, o null si no tiene ninguna.
+export const obtenerClaseActualDelProfesor = async (profesorId) => {
+  const data = await apiFetch(`/profesores/${profesorId}/clase-actual`);
+  return data || null;
+};
+
+// Alumnos anotados en una clase puntual.
+export const listarAlumnosDeClase = (idClase) => {
+  return apiFetch(`/clases/${idClase}/alumnos`);
 };

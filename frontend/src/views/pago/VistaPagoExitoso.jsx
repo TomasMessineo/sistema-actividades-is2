@@ -6,7 +6,7 @@ function VistaPagoExitoso() {
   const location = useLocation();
   const titulo = location.state?.titulo || '¡Pago confirmado!';
   const descripcion = location.state?.descripcion || 'Tu inscripción ha sido procesada exitosamente.';
-  const destino = location.state?.destino || '/misClases';
+  const destino = location.state?.destino || '/alumno/misClases';
   const labelBoton = location.state?.labelBoton || 'Ir a Mis Clases';
 
   return (

@@ -56,6 +56,11 @@ public class AlumnoService {
         return alumnoRepository.findByActivoFalse();
     }
 
+    // 1.2 LISTAR (alumnos activos anotados en clases de un profesor)
+    public List<Alumno> listarPorProfesor(Integer profesorId) {
+        return alumnoRepository.findActivosPorProfesor(profesorId);
+    }
+
     // 2. AGREGAR / GUARDAR
     public Alumno guardar(Alumno alumno) {
 

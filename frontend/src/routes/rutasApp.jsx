@@ -4,6 +4,8 @@ import AvailableClassesView from '../views/student/availableClassesView.jsx';
 import ClassCalendarView from '../views/admin/classCalendarView.jsx';
 import MyClassesView from '../views/student/myClassesView.jsx';
 import StudentStatsView from '../views/admin/studentStatsView.jsx';
+import MisClasesProfesorView from '../views/profesor/misClasesView.jsx';
+import VerAlumnosProfesorView from '../views/profesor/verAlumnosView.jsx';
 
 import LandingPage from '../views/general/LandingPage.jsx';
 import LoginPage from '../views/general/LoginPage.jsx';
@@ -26,15 +28,21 @@ function RutasApp() {
       </Route>
 
       {/* Rutas protegidas - Alumnos */}
-      <Route element={<ProtectedRoute allowedRoles={['ALUMNO']} />}>
-        <Route path="/clasesDisponibles" element={<AvailableClassesView />} />
-        <Route path="/misClases" element={<MyClassesView />} />
+      <Route element={<ProtectedRoute allowedRoles={['ALUMNO', 'test']} />}>
+        <Route path="/alumno/clasesDisponibles" element={<AvailableClassesView />} />
+        <Route path="/alumno/misClases" element={<MyClassesView />} />
       </Route>
 
-      {/* Rutas protegidas - Admin/Profesores */}
-      <Route element={<ProtectedRoute allowedRoles={['ADMINISTRADOR', 'PROFESOR']} />}>
-        <Route path="/calendario" element={<ClassCalendarView />} />
-        <Route path="/alumnos" element={<StudentStatsView />} />
+      {/* Rutas protegidas - Admin */}
+      <Route element={<ProtectedRoute allowedRoles={['ADMINISTRADOR', 'test']} />}>
+        <Route path="/admin/calendario" element={<ClassCalendarView />} />
+        <Route path="/admin/verAlumnos" element={<StudentStatsView />} />
+      </Route>
+
+      {/* Rutas protegidas - Profesor */}
+      <Route element={<ProtectedRoute allowedRoles={['PROFESOR', 'test']} />}>
+        <Route path="/profesor/misClases" element={<MisClasesProfesorView />} />
+        <Route path="/profesor/verAlumnos" element={<VerAlumnosProfesorView />} />
       </Route>
 
       {/* Ruta fallback */}

@@ -250,7 +250,7 @@ function AvailableClassesView() {
         state: {
           titulo: '¡Te anotamos!',
           descripcion: 'Quedaste en la lista de espera. Te avisamos si se libera un cupo.',
-          destino: '/clasesDisponibles',
+          destino: '/alumno/clasesDisponibles',
           labelBoton: 'Ver clases disponibles',
         }
       })

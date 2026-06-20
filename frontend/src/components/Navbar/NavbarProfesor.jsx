@@ -4,17 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import logoSvg from '../../assets/logo.svg';
 import '../../styles/Navbar.css';
 
-const CreditIcon = () => (
-  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
-    <polygon
-      points="6.5,0.8 11.8,3.5 11.8,9.5 6.5,12.2 1.2,9.5 1.2,3.5"
-      stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinejoin="round"
-    />
-    <circle cx="6.5" cy="6.5" r="2" fill="currentColor" />
-  </svg>
-);
-
-function NavbarAlumno() {
+function NavbarProfesor() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const { user } = useAuth();
@@ -25,8 +15,6 @@ function NavbarAlumno() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  const creditos = user?.creditos ?? 0;
 
   return (
     <nav className={`navbar navbar--alumno ${scrolled ? 'navbar--scrolled' : ''}`} id="navbar">
@@ -43,46 +31,25 @@ function NavbarAlumno() {
 
           {user && (
             <span className="navbar__welcome">
-              Bienvenido, alumno {nombre}
+              Bienvenido, profesor {nombre}
             </span>
           )}
         </div>
 
         <ul className={`navbar__links ${menuOpen ? 'navbar__links--open' : ''}`} id="navbar-links">
           <li>
-            <Link to="/alumno/misClases" className="navbar__link" id="nav-mis-clases">
+            <Link to="/profesor/misClases" className="navbar__link" id="nav-mis-clases">
               Mis Clases
             </Link>
           </li>
           <li>
-            <Link to="/alumno/clasesDisponibles" className="navbar__link" id="nav-clases-disponibles">
-              Clases Disponibles
+            <Link to="/profesor/verAlumnos" className="navbar__link" id="nav-ver-alumnos">
+              Ver Alumnos
             </Link>
           </li>
         </ul>
 
         <div className="navbar__actions">
-          {user && (
-            <span className="navbar__creditos-wrapper">
-              <span className="navbar__creditos" tabIndex={0} aria-describedby="creditos-tooltip">
-                <CreditIcon />
-                {creditos} {creditos === 1 ? 'crédito' : 'créditos'}
-              </span>
-                <div id="creditos-tooltip" className="navbar__creditos-tooltip" role="tooltip">
-                <p className="navbar__creditos-tooltip-title">
-                  <CreditIcon /> Créditos Sportify
-                </p>
-                <ul className="navbar__creditos-tooltip-list">
-                  <li>Son acumulativos durante el período</li>
-                  <li>Los no utilizados se pierden al cambio de período</li>
-                </ul>
-                <p className="navbar__creditos-tooltip-balance">
-                  Saldo actual: <strong>{creditos} {creditos === 1 ? 'crédito' : 'créditos'}</strong>
-                </p>
-              </div>
-            </span>
-          )}
-
           <button
             onClick={() => { localStorage.removeItem('sportify_user'); window.location.href = '/'; }}
             className="navbar__link navbar__link-logout"
@@ -110,4 +77,4 @@ function NavbarAlumno() {
   );
 }
 
-export default NavbarAlumno;
+export default NavbarProfesor;
