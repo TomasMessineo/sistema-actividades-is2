@@ -8,6 +8,16 @@ const getDayDate = (weekStart, index) => {
   return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}`;
 };
 
+const esHoy = (weekStart, index) => {
+  if (!weekStart) return false;
+  const date = new Date(weekStart);
+  date.setDate(date.getDate() + index);
+  const hoy = new Date();
+  return date.getFullYear() === hoy.getFullYear()
+    && date.getMonth() === hoy.getMonth()
+    && date.getDate() === hoy.getDate();
+};
+
 const hours = Array.from({ length: 13 }, (_, index) => index + 8);
 
 const fallbackColorOrder = ['mint', 'sky', 'amber', 'violet', 'rose', 'emerald'];
@@ -55,6 +65,7 @@ function AvailableClassesCalendar({
   showFullBadge = false,
   showCancelledState = false,
   showDayDates = true,
+  showHoyBadge = true,
   headerLeft = null,
   headerCenter = null,
   headerRight = null,
@@ -78,11 +89,17 @@ function AvailableClassesCalendar({
       <div className="calendar-grid" role="table" aria-label="Matriz de horarios de clases">
         <div className="calendar-corner" aria-hidden="true" style={{ gridColumn: 1, gridRow: 1 }}>Hora</div>
         {days.map((day, index) => (
-          <div key={day.key} className="calendar-day-header" role="columnheader" style={{ gridColumn: index + 2, gridRow: 1 }}>
+          <div
+            key={day.key}
+            className={`calendar-day-header${showHoyBadge && esHoy(weekStart, index) ? ' calendar-day-header--hoy' : ''}`}
+            role="columnheader"
+            style={{ gridColumn: index + 2, gridRow: 1 }}
+          >
             <span className="calendar-day-name">{day.label}</span>
             {showDayDates && getDayDate(weekStart, index) && (
               <span className="calendar-day-date">{getDayDate(weekStart, index)}</span>
             )}
+            {showHoyBadge && esHoy(weekStart, index) && <span className="calendar-day-today-badge">Hoy</span>}
           </div>
         ))}
 
