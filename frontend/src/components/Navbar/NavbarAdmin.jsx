@@ -46,6 +46,9 @@ function Navbar() {
             <Link to="/admin/verAlumnos" className="navbar__link" id="nav-inicio">Ver alumnos</Link>
           </li>
           <li>
+            <Link to="/profesores" className="navbar__link" id="nav-profesores">Ver profesores</Link>
+          </li>
+          <li>
             <Link to="/admin/calendario" className="navbar__link" id="nav-info">Calendario</Link>
           </li>
           {role === 'ADMINISTRADOR' && (

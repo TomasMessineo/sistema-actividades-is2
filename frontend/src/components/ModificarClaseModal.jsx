@@ -47,6 +47,7 @@ function ModificarClaseModal({
   const [accionEnProceso, setAccionEnProceso] = useState(false)
   const [mostrarConfirmacionCancelacion, setMostrarConfirmacionCancelacion] = useState(false)
   const [mostrarOpcionesModificar, setMostrarOpcionesModificar] = useState(false)
+  const [mostrarModalCancelarClase, setMostrarModalCancelarClase] = useState(false)
 
   useEffect(() => {
     if (abierto && claseSeleccionada) {
@@ -254,7 +255,7 @@ function ModificarClaseModal({
       return
     }
 
-    setMostrarConfirmacionCancelacion(true)
+    setMostrarModalCancelarClase(true)
   }
 
   const cerrarConfirmacionCancelacion = () => {
@@ -314,7 +315,6 @@ function ModificarClaseModal({
               </div>
             )}
 
-        <div className="modificar-clase-modal__content">
           <form className="modificar-clase-modal__form" onSubmit={(e) => e.preventDefault()}>
             <label className="modificar-clase-modal__field modificar-clase-modal__field--full">
               <span>Profesor</span>

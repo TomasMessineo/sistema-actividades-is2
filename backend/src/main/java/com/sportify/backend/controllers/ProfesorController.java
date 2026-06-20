@@ -33,6 +33,7 @@ public class ProfesorController {
 
     @Autowired
     private ClaseService claseService;
+
     @PostMapping("/registrar")
     public ResponseEntity<?> registrarProfesor(@RequestBody RegistroProfesorDTO dto) {
         try {
@@ -107,6 +108,8 @@ public class ProfesorController {
         }
 
         return ResponseEntity.ok(clase);
+    }
+
     @PatchMapping("/{id}/desactivar")
     public ResponseEntity<?> desactivarProfesor(@PathVariable Integer id) {
         try {

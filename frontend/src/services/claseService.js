@@ -52,6 +52,7 @@ export const obtenerClaseActualDelProfesor = async (profesorId) => {
 // Alumnos anotados en una clase puntual.
 export const listarAlumnosDeClase = (idClase) => {
   return apiFetch(`/clases/${idClase}/alumnos`);
+};
 // Cancela todas las instancias de una serie dentro de un rango de fechas
 // (el backend materializa las que falten antes de cancelarlas).
 export const cancelarRangoSerie = (idPlantilla, desde, hasta) => {
