@@ -1,8 +1,12 @@
 package com.sportify.backend.controllers;
 
 import com.sportify.backend.dtos.AbonoPreviewDTO;
+import com.sportify.backend.dtos.AlumnoResumenDTO;
 import com.sportify.backend.dtos.CambiarProfesorRequest;
+import com.sportify.backend.dtos.CancelarDesdeRequest;
+import com.sportify.backend.dtos.CancelarRangoRequest;
 import com.sportify.backend.dtos.ClaseCalendarioDTO;
+import com.sportify.backend.dtos.ClaseCancelacionResponse;
 import com.sportify.backend.dtos.ClasePlantillaRequest;
 import com.sportify.backend.dtos.ClaseSerieResponse;
 import com.sportify.backend.entities.Clase;
@@ -125,8 +129,44 @@ public class ClaseController {
     @PatchMapping("/{id}/cancelar")
     public ResponseEntity<?> cancelarClase(@PathVariable Integer id) {
         try {
-            Clase claseCancelada = claseService.cancelarClase(id);
-            return ResponseEntity.ok(claseCancelada);
+            ClaseCancelacionResponse respuesta = claseService.cancelarClaseConDetalle(id);
+            return ResponseEntity.ok(respuesta);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // Cancela todas las instancias de una serie dentro de un rango de fechas
+    // (materializa las que falten antes de cancelarlas).
+    @PatchMapping("/plantilla/{idPlantilla}/cancelar-rango")
+    public ResponseEntity<?> cancelarRangoSerie(@PathVariable Integer idPlantilla, @RequestBody CancelarRangoRequest request) {
+        try {
+            ClaseCancelacionResponse respuesta = claseService.cancelarRangoSerie(idPlantilla, request);
+            return ResponseEntity.ok(respuesta);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // Corta la vigencia de una serie a partir de una fecha y cancela las
+    // instancias ya materializadas en o después de esa fecha.
+    @PatchMapping("/plantilla/{idPlantilla}/cancelar-desde")
+    public ResponseEntity<?> cancelarDesdeSerie(@PathVariable Integer idPlantilla, @RequestBody CancelarDesdeRequest request) {
+        try {
+            ClaseCancelacionResponse respuesta = claseService.cancelarDesdeSerie(idPlantilla, request);
+            return ResponseEntity.ok(respuesta);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // Alumnos anotados en una clase puntual.
+    @GetMapping("/{id}/alumnos")
+    @Transactional(readOnly = true)
+    public ResponseEntity<?> listarAlumnosDeClase(@PathVariable Integer id) {
+        try {
+            List<AlumnoResumenDTO> alumnos = claseService.listarAlumnosDeClase(id);
+            return ResponseEntity.ok(alumnos);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

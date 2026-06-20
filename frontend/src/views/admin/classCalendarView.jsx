@@ -4,6 +4,7 @@ import AvailableClassesCalendar from '../../components/AvailableClassesCalendar.
 import CrearClaseModal from '../../components/CrearClaseModal.jsx'
 import ModificarClaseModal from '../../components/ModificarClaseModal.jsx'
 import { listarClases } from '../../services/claseService'
+import { getDayKey, buildWeekDays } from '../../utils/weekDays'
 import '../../styles/AvailableClasses.css'
 
 const monthFormatter = new Intl.DateTimeFormat('es-AR', { month: 'long' })
@@ -34,17 +35,6 @@ const formatWeekLabel = (date) => {
   }
 
   return `${startDay} ${startMonthLabel} - ${endDay} ${endMonthLabel}`
-}
-
-const getDayKeyFromDate = (date) => {
-  const day = date.getDay()
-
-  if (day === 1) return 'monday'
-  if (day === 2) return 'tuesday'
-  if (day === 3) return 'wednesday'
-  if (day === 4) return 'thursday'
-  if (day === 5) return 'friday'
-  return null
 }
 
 // Formatea una fecha local como YYYY-MM-DD (sin desfase de zona horaria).
@@ -100,6 +90,8 @@ function ClassCalendarView() {
     return end
   }, [weekStart])
 
+  const days = useMemo(() => buildWeekDays(weekStart), [weekStart])
+
   useEffect(() => {
     cargarClases()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -122,9 +114,8 @@ function ClassCalendarView() {
         if (!item?.fecha || typeof item.hora !== 'number') return null
 
         const classDate = new Date(`${item.fecha}T00:00:00`)
-        const day = getDayKeyFromDate(classDate)
+        const day = getDayKey(classDate)
 
-        if (!day) return null
         if (classDate < weekStart || classDate > weekEnd) return null
 
         return {
@@ -147,7 +138,7 @@ function ClassCalendarView() {
         {loading && <p className="calendar-status">Cargando clases...</p>}
         {!loading && error && <p className="calendar-status calendar-status--error">{error}</p>}
         <AvailableClassesCalendar
-          headerAction={(
+          headerLeft={(
             <button
               type="button"
               className="calendar-create-button"
@@ -156,10 +147,28 @@ function ClassCalendarView() {
               Crear clase nueva
             </button>
           )}
-          weekLabel={weekLabel}
+          headerCenter={(
+            <div className="calendar-week-controls" aria-label="Navegación de semana">
+              <button type="button" className="calendar-week-button" onClick={() => setWeekOffset((current) => current - 1)} aria-label="Semana anterior">
+                &lt;
+              </button>
+              <span className="calendar-week-label">{weekLabel}</span>
+              <button type="button" className="calendar-week-button" onClick={() => setWeekOffset((current) => current + 1)} aria-label="Semana siguiente">
+                &gt;
+              </button>
+            </div>
+          )}
+          headerRight={(
+            <button
+              type="button"
+              className="calendar-create-button"
+              onClick={() => {}}
+            >
+              Crear disciplina
+            </button>
+          )}
           weekStart={weekStart}
-          onPreviousWeek={() => setWeekOffset((current) => current - 1)}
-          onNextWeek={() => setWeekOffset((current) => current + 1)}
+          days={days}
           classes={calendarClasses}
           showCapacity
           showCancelledState

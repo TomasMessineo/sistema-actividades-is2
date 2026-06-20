@@ -11,11 +11,13 @@
   flex-direction: column;
 }
 
+
 .alumnos-main {
   flex: 1;
+  width: 100%;
   min-height: 0;
   padding: 8.25rem 1.5rem 1.5rem;
-  max-width: 960px;
+  max-width: 1280px;
   margin: 0 auto;
   box-sizing: border-box;
   overflow: auto;
@@ -189,13 +191,120 @@
 
 .alumno-badge-eliminado {
   border-radius: 999px;
-  border: 1px solid rgba(239, 68, 68, 0.28);
-  background: rgba(239, 68, 68, 0.08);
-  color: #ef4444;
+  border: 1px solid rgb(59 158 26 / 0.28);
+  background: rgb(40 120 27 / 0.08);
+  color: #26b12d;
   font-size: 12px;
   font-weight: 600;
   padding: 6px 10px;
   white-space: nowrap;
+}
+
+.btn-restaurar {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.btn-restaurar:hover {
+  background: rgba(34, 197, 94, 0.2);
+}
+
+.btn-restaurar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.restauracion-exito-box {
+  position: relative;
+  z-index: 10;
+  width: min(440px, 100%);
+  background: rgba(17, 17, 19, 0.6);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 24px;
+  padding: 48px 40px;
+  text-align: center;
+  box-shadow: 0 32px 64px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+  animation: restauracionSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes restauracionSlideUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.restauracion-exito-icono {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  margin: 0 auto 32px;
+  background: rgba(34, 197, 94, 0.1);
+  color: #4ade80;
+  border: 2px solid rgba(34, 197, 94, 0.3);
+  box-shadow: 0 0 40px rgba(34, 197, 94, 0.2);
+  animation: restauracionScaleIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes restauracionScaleIn {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+.restauracion-exito-header {
+  margin-bottom: 32px;
+}
+
+.restauracion-exito-header h2 {
+  font-family: var(--font-heading);
+  font-size: 32px;
+  font-weight: 800;
+  margin: 0 0 12px;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.restauracion-exito-header p {
+  color: var(--text-muted);
+  font-size: 15px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.restauracion-exito-btn {
+  width: 100%;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark, #2dcc6e) 100%);
+  color: var(--bg-primary, #061006);
+  border: none;
+  padding: 18px;
+  border-radius: var(--radius-full, 999px);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.restauracion-exito-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(62, 207, 42, 0.25);
 }
 
 /* Acciones */
@@ -257,6 +366,23 @@
 
 .btn-cancelar:hover {
   border-color: var(--border-hover);
+}
+
+.btn-historial {
+  background: var(--primary-subtle);
+  color: var(--primary);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-sm);
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--transition-fast);
+}
+
+.btn-historial:hover {
+  background: rgba(62, 207, 42, 0.2);
 }
 
 .alumnos-modal-overlay {
@@ -328,4 +454,114 @@
   .alumnos-modal__actions .btn-cancelar {
     width: 100%;
   }
+}
+
+
+/* === Profesores: header con acción y badges === */
+.alumnos-header--con-accion {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.btn-registrar {
+  background: var(--primary);
+  color: var(--bg-primary, #0a0a0b);
+  border: none;
+  border-radius: var(--radius-full, 999px);
+  padding: 0.65rem 1.4rem;
+  font-weight: 700;
+  font-family: inherit;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.btn-registrar:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.profesor-actividad-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 2px 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-full, 999px);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+}
+
+/* === Modal de error con clases pendientes === */
+.alumnos-modal--error {
+  border-color: rgba(239, 68, 68, 0.4);
+  text-align: center;
+}
+
+.alumnos-modal__icono {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 2px solid rgba(239, 68, 68, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin: 0 auto 1rem;
+}
+
+.alumnos-modal__label--error {
+  color: #ef4444;
+}
+
+.alumnos-modal__clases {
+  margin: 1.25rem 0 0;
+  padding: 0.85rem 1rem;
+  list-style: none;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  text-align: left;
+  max-height: 240px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.alumnos-modal__clases li {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--text-primary);
+  font-size: 0.88rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.alumnos-modal__clase-fecha {
+  font-weight: 600;
+}
+
+.alumnos-modal__clase-sep {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.alumnos-modal__clase-actividad {
+  color: var(--primary);
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.alumnos-modal__actions--centrado {
+  justify-content: center;
 }

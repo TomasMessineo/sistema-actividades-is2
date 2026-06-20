@@ -56,6 +56,11 @@ public class AlumnoService {
         return alumnoRepository.findByActivoFalse();
     }
 
+    // 1.2 LISTAR (alumnos activos anotados en clases de un profesor)
+    public List<Alumno> listarPorProfesor(Integer profesorId) {
+        return alumnoRepository.findActivosPorProfesor(profesorId);
+    }
+
     // 2. AGREGAR / GUARDAR
     public Alumno guardar(Alumno alumno) {
 
@@ -90,6 +95,13 @@ public class AlumnoService {
 
     public void eliminarAlumno(Integer id) {
         desactivar(id);
+    }
+
+    public void restaurar(Integer id) {
+        Alumno alumno = alumnoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Alumno no encontrado"));
+        alumno.setActivo(true);
+        alumnoRepository.save(alumno);
     }
 
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import '../styles/ModificarClaseModal.css'
+import CancelarClaseModal from './CancelarClaseModal.jsx'
 import {
   cancelarClase as cancelarClaseApi,
   cambiarProfesorClase
@@ -8,6 +9,25 @@ import {
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8080/api').replace(/\/$/, '')
 
 const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+
+// El backend devuelve la actividad como string ("YOGA", "PILATES", "FUNCIONAL")
+// en el DTO del calendario. Este mapeo sirve para volver al id que necesita el endpoint
+// /profesores/actividad/{id}.
+const ACTIVIDAD_TIPO_A_ID = {
+  YOGA: 1,
+  PILATES: 2,
+  FUNCIONAL: 3
+}
+
+const obtenerIdActividadDeClase = (clase) => {
+  if (!clase) return null
+  const idObjeto = clase.actividad?.idActividad ?? clase.actividad?.id ?? clase.actividadId
+  if (idObjeto) return idObjeto
+  if (typeof clase.actividad === 'string') {
+    return ACTIVIDAD_TIPO_A_ID[clase.actividad.toUpperCase()] ?? null
+  }
+  return null
+}
 
 function ModificarClaseModal({
   abierto,
@@ -253,7 +273,20 @@ function ModificarClaseModal({
     }
   }
 
+  const manejarClaseCancelada = (resultado) => {
+    setMostrarModalCancelarClase(false)
+
+    if (onClaseModificada) {
+      onClaseModificada(resultado)
+    }
+
+    if (onCerrar) {
+      onCerrar()
+    }
+  }
+
   return (
+    <>
     <div className="modificar-clase-modal__overlay" onClick={onCerrar}>
       <section className="modificar-clase-modal" onClick={(e) => e.stopPropagation()}>
         <button
@@ -265,19 +298,21 @@ function ModificarClaseModal({
           ×
         </button>
 
-        <div className="modificar-clase-modal__header">
-          <p className="modificar-clase-modal__label">Panel administrativo</p>
-          <h2>Modificar clase</h2>
-          <p>
-            Cambiá el profesor de esta clase o de toda la serie.
-          </p>
-        </div>
+        <div className="modificar-clase-modal__content">
+          <div className="modificar-clase-modal__main">
+            <div className="modificar-clase-modal__header">
+              <p className="modificar-clase-modal__label">Panel administrativo</p>
+              <h2>Modificar clase</h2>
+              <p>
+                Cambiá el profesor de esta clase o de toda la serie.
+              </p>
+            </div>
 
-        {error && (
-          <div className="modificar-clase-modal__alert modificar-clase-modal__alert--error">
-            {error}
-          </div>
-        )}
+            {error && (
+              <div className="modificar-clase-modal__alert modificar-clase-modal__alert--error">
+                {error}
+              </div>
+            )}
 
         <div className="modificar-clase-modal__content">
           <form className="modificar-clase-modal__form" onSubmit={(e) => e.preventDefault()}>
@@ -369,7 +404,8 @@ function ModificarClaseModal({
                 </div>
               )}
             </div>
-          </form>
+            </form>
+          </div>
 
           <aside className="modificar-clase-modal__summary">
             <h3>Resumen</h3>
@@ -460,6 +496,14 @@ function ModificarClaseModal({
         )}
       </section>
     </div>
+
+    <CancelarClaseModal
+      abierto={mostrarModalCancelarClase}
+      claseSeleccionada={claseSeleccionada}
+      onCerrar={() => setMostrarModalCancelarClase(false)}
+      onClaseCancelada={manejarClaseCancelada}
+    />
+    </>
   )
 }
 

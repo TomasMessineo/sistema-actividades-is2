@@ -49,10 +49,12 @@ function LoginPage() {
       setTimeout(() => {
         const rolUsuario = (responseData.rol || responseData.role || '').toUpperCase();
 
-        if (rolUsuario === 'ADMIN' || rolUsuario === 'ADMINISTRADOR' || rolUsuario === 'PROFESOR') {
-          navigate('/calendario');
+        if (rolUsuario === 'ADMIN' || rolUsuario === 'ADMINISTRADOR') {
+          navigate('/admin/calendario');
+        } else if (rolUsuario === 'PROFESOR') {
+          navigate('/profesor/misClases');
         } else {
-          navigate('/misClases');
+          navigate('/alumno/misClases');
         }
       }, 500);
       
