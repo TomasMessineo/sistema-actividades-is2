@@ -262,6 +262,7 @@ function AvailableClassesView() {
           classes={calendarClasses}
           showFullBadge
           showDayDates={viewMode !== VIEW_MODE_FIXED}
+          showHoyBadge={viewMode !== VIEW_MODE_FIXED}
           onClassClick={abrirPopup}
         />
         <PopupInscripcionClase

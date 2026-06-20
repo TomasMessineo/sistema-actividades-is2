@@ -37,3 +37,21 @@ export const cambiarProfesorClase = (idClase, profesorId, alcance) => {
     body: JSON.stringify({ profesorId, alcance }),
   });
 };
+
+// Cancela todas las instancias de una serie dentro de un rango de fechas
+// (el backend materializa las que falten antes de cancelarlas).
+export const cancelarRangoSerie = (idPlantilla, desde, hasta) => {
+  return apiFetch(`/clases/plantilla/${idPlantilla}/cancelar-rango`, {
+    method: 'PATCH',
+    body: JSON.stringify({ desde, hasta }),
+  });
+};
+
+// Corta la vigencia de una serie a partir de una fecha y cancela las
+// instancias ya materializadas en o después de esa fecha.
+export const cancelarDesdeSerie = (idPlantilla, desde) => {
+  return apiFetch(`/clases/plantilla/${idPlantilla}/cancelar-desde`, {
+    method: 'PATCH',
+    body: JSON.stringify({ desde }),
+  });
+};

@@ -2,7 +2,10 @@ package com.sportify.backend.services;
 
 import com.sportify.backend.dtos.AbonoPreviewDTO;
 import com.sportify.backend.dtos.CambiarProfesorRequest;
+import com.sportify.backend.dtos.CancelarDesdeRequest;
+import com.sportify.backend.dtos.CancelarRangoRequest;
 import com.sportify.backend.dtos.ClaseCalendarioDTO;
+import com.sportify.backend.dtos.ClaseCancelacionResponse;
 import com.sportify.backend.dtos.ClasePlantillaRequest;
 import com.sportify.backend.dtos.ClaseSerieResponse;
 import com.sportify.backend.entities.Actividad;
@@ -357,6 +360,101 @@ public class ClaseService {
         return claseRepository.save(claseExistente);
     }
 
+    // Cancela una clase individual y reporta a cuántos alumnos se les
+    // acreditó un crédito (para mostrarlo en el panel administrativo).
+    @Transactional
+    public ClaseCancelacionResponse cancelarClaseConDetalle(Integer id) {
+        Clase clase = claseRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Clase no encontrada"));
+
+        if (Boolean.TRUE.equals(clase.getCancelada())) {
+            throw new RuntimeException("La clase ya se encuentra cancelada");
+        }
+
+        int alumnosAcreditados = contarAlumnosInscriptos(clase);
+        cancelarClase(id);
+
+        return new ClaseCancelacionResponse(1, 1, alumnosAcreditados);
+    }
+
+    // HELPER — cuántos alumnos tiene anotados una clase (se consulta antes de
+    // cancelarla para poder reportar a cuántos se les acreditó un crédito).
+    private int contarAlumnosInscriptos(Clase clase) {
+        ListaAsistencia listaAsistencia = clase.getListaAsistencia();
+        return listaAsistencia != null && listaAsistencia.getAlumnos() != null
+                ? listaAsistencia.getAlumnos().size()
+                : 0;
+    }
+
+    // HELPER — cancela (idempotente sobre las ya canceladas) una lista de
+    // instancias reusando cancelarClase, que ya maneja el reembolso de créditos.
+    private ClaseCancelacionResponse cancelarInstancias(List<Clase> instancias) {
+        int canceladas = 0;
+        int alumnosAcreditados = 0;
+
+        for (Clase clase : instancias) {
+            if (Boolean.TRUE.equals(clase.getCancelada())) {
+                continue;
+            }
+            alumnosAcreditados += contarAlumnosInscriptos(clase);
+            cancelarClase(clase.getIdClase());
+            canceladas++;
+        }
+
+        return new ClaseCancelacionResponse(canceladas, 0, alumnosAcreditados);
+    }
+
+    // Cancela todas las instancias de una serie dentro de un rango de fechas,
+    // materializando primero las que falten para que el rango quede completo.
+    @Transactional
+    public ClaseCancelacionResponse cancelarRangoSerie(Integer idPlantilla, CancelarRangoRequest request) {
+        LocalDate desde = request.getDesde();
+        LocalDate hasta = request.getHasta();
+
+        if (desde == null || hasta == null || hasta.isBefore(desde)) {
+            throw new RuntimeException("Debe indicar un rango de fechas válido.");
+        }
+
+        clasePlantillaRepository.findById(idPlantilla)
+                .orElseThrow(() -> new RuntimeException("La serie seleccionada no existe."));
+
+        materializarRango(desde, hasta);
+
+        List<Clase> instancias = claseRepository.findByPlantilla_IdPlantilla(idPlantilla).stream()
+                .filter(c -> c.getFecha() != null && !c.getFecha().isBefore(desde) && !c.getFecha().isAfter(hasta))
+                .toList();
+
+        ClaseCancelacionResponse resultado = cancelarInstancias(instancias);
+        resultado.setTotalEnRango(instancias.size());
+        return resultado;
+    }
+
+    // Corta la vigencia de una serie a partir de una fecha (no se generan más
+    // instancias desde ahí) y cancela las instancias ya materializadas en o
+    // después de esa fecha.
+    @Transactional
+    public ClaseCancelacionResponse cancelarDesdeSerie(Integer idPlantilla, CancelarDesdeRequest request) {
+        LocalDate desde = request.getDesde();
+
+        if (desde == null) {
+            throw new RuntimeException("Debe indicar una fecha válida.");
+        }
+
+        ClasePlantilla plantilla = clasePlantillaRepository.findById(idPlantilla)
+                .orElseThrow(() -> new RuntimeException("La serie seleccionada no existe."));
+
+        plantilla.setVigenciaHasta(desde.minusDays(1));
+        clasePlantillaRepository.save(plantilla);
+
+        List<Clase> instanciasFuturas = claseRepository.findByPlantilla_IdPlantilla(idPlantilla).stream()
+                .filter(c -> c.getFecha() != null && !c.getFecha().isBefore(desde))
+                .toList();
+
+        ClaseCancelacionResponse resultado = cancelarInstancias(instanciasFuturas);
+        resultado.setTotalEnRango(instanciasFuturas.size());
+        return resultado;
+    }
+
     // ============================================================
     // SERIES PERPETUAS (ClasePlantilla) + INSTANCIAS (Clase)
     // ============================================================
@@ -387,6 +485,64 @@ public class ClaseService {
             fechas.add(f);
         }
         return fechas;
+    }
+
+    // HELPER — true si dos rangos de vigencia [desde, hasta] se superponen.
+    // hasta == null significa "sin fecha de fin" (vigencia perpetua).
+    private boolean seSuperponenVigencias(LocalDate desdeA, LocalDate hastaA, LocalDate desdeB, LocalDate hastaB) {
+        boolean aEmpiezaAntesDeQueTermineB = hastaB == null || !desdeA.isAfter(hastaB);
+        boolean bEmpiezaAntesDeQueTermineA = hastaA == null || !desdeB.isAfter(hastaA);
+        return aEmpiezaAntesDeQueTermineB && bEmpiezaAntesDeQueTermineA;
+    }
+
+    // HELPER — plantillas activas en el mismo día y hora cuya vigencia se superpone
+    // con la de la plantilla que se quiere crear.
+    private List<ClasePlantilla> plantillasSuperpuestasEnElTurno(
+            DayOfWeek dia,
+            int hora,
+            LocalDate vigenciaDesdeNueva,
+            LocalDate vigenciaHastaNueva
+    ) {
+        return clasePlantillaRepository.findByDiaSemanaAndHoraAndActivaTrue(dia, hora)
+                .stream()
+                .filter(p -> seSuperponenVigencias(
+                        p.getVigenciaDesde(), p.getVigenciaHasta(),
+                        vigenciaDesdeNueva, vigenciaHastaNueva))
+                .toList();
+    }
+
+    // HELPER — análogo a mismaDisciplinaEnElTurno, pero evaluado contra plantillas.
+    private boolean mismaDisciplinaEnElTurnoPlantilla(List<ClasePlantilla> plantillasSuperpuestas, Actividad actividad) {
+        if (actividad == null || actividad.getIdActividad() == null) {
+            return false;
+        }
+
+        Integer idActividadNueva = actividad.getIdActividad();
+
+        return plantillasSuperpuestas.stream()
+                .filter(p -> p.getActividad() != null)
+                .filter(p -> p.getActividad().getIdActividad() != null)
+                .anyMatch(p -> p.getActividad().getIdActividad().equals(idActividadNueva));
+    }
+
+    // HELPER — análogo a horaDisponible, pero evaluado contra plantillas.
+    private boolean turnoDisponiblePlantilla(List<ClasePlantilla> plantillasSuperpuestas) {
+        return plantillasSuperpuestas.size() < 3;
+    }
+
+    // HELPER — análogo a profesorOcupado, pero evaluado contra plantillas.
+    private boolean profesorOcupadoPlantilla(List<ClasePlantilla> plantillasSuperpuestas, Integer profesorId) {
+        if (profesorId == null) return false;
+        return plantillasSuperpuestas.stream()
+                .anyMatch(p -> p.getProfesor() != null && profesorId.equals(p.getProfesor().getId()));
+    }
+
+    // HELPER — análogo a cupoDisponibleEnTurno, pero evaluado contra plantillas.
+    private boolean cupoDisponibleEnTurnoPlantilla(List<ClasePlantilla> plantillasSuperpuestas, int cupoNuevo) {
+        int cupoExistente = plantillasSuperpuestas.stream()
+                .mapToInt(p -> p.getCupo() == null ? 0 : p.getCupo())
+                .sum();
+        return cupoExistente + cupoNuevo <= 30;
     }
 
     /**
@@ -483,6 +639,28 @@ public class ClaseService {
             throw new RuntimeException("No hay fechas disponibles en los próximos dos meses para ese día.");
         }
 
+        LocalDate vigenciaDesde = fechas.get(0);
+        List<ClasePlantilla> plantillasSuperpuestas =
+                plantillasSuperpuestasEnElTurno(dia, hora, vigenciaDesde, null);
+
+        // Mismo orden que las validaciones de turno para una Clase concreta:
+        // disciplina repetida primero, luego cupo de turno, profesor y cupo total.
+        if (mismaDisciplinaEnElTurnoPlantilla(plantillasSuperpuestas, actividad)) {
+            throw new RuntimeException("Ya existe una serie de la misma disciplina en ese día y horario.");
+        }
+
+        if (!turnoDisponiblePlantilla(plantillasSuperpuestas)) {
+            throw new RuntimeException("Ese día y horario ya tiene 3 series asignadas. Por favor, pruebe con un horario distinto.");
+        }
+
+        if (profesorOcupadoPlantilla(plantillasSuperpuestas, profesor.getId())) {
+            throw new RuntimeException("El profesor seleccionado ya tiene una serie asignada en ese día y horario.");
+        }
+
+        if (!cupoDisponibleEnTurnoPlantilla(plantillasSuperpuestas, request.getCupo())) {
+            throw new RuntimeException("El cupo total de las series en ese turno superaría el máximo de 30 personas.");
+        }
+
         ClasePlantilla plantilla = new ClasePlantilla();
         plantilla.setActividad(actividad);
         plantilla.setProfesor(profesor);
@@ -491,7 +669,7 @@ public class ClaseService {
         plantilla.setCupo(request.getCupo());
         plantilla.setPrecio(precio);
         plantilla.setActiva(true);
-        plantilla.setVigenciaDesde(fechas.get(0));
+        plantilla.setVigenciaDesde(vigenciaDesde);
         plantilla.setVigenciaHasta(null);
         ClasePlantilla plantillaGuardada = clasePlantillaRepository.save(plantilla);
 

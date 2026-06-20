@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import '../styles/ModificarClaseModal.css'
+import CancelarClaseModal from './CancelarClaseModal.jsx'
 import {
   cancelarClase as cancelarClaseApi,
   cambiarProfesorClase
@@ -46,6 +47,7 @@ function ModificarClaseModal({
   const [claseModificada, setClaseModificada] = useState(null)
   const [accionEnProceso, setAccionEnProceso] = useState(false)
   const [mostrarConfirmacionCancelacion, setMostrarConfirmacionCancelacion] = useState(false)
+  const [mostrarModalCancelarClase, setMostrarModalCancelarClase] = useState(false)
 
   useEffect(() => {
     if (abierto && claseSeleccionada) {
@@ -62,13 +64,7 @@ function ModificarClaseModal({
       setAccionEnProceso(false)
       setMostrarConfirmacionCancelacion(false)
 
-      const idActividad = obtenerIdActividadDeClase(claseSeleccionada)
-
-      if (idActividad) {
-        cargarProfesoresPorActividad(idActividad)
-      } else {
-        setProfesores([])
-      }
+      cargarProfesores()
     }
   }, [abierto, claseSeleccionada])
 
@@ -116,7 +112,7 @@ function ModificarClaseModal({
     return JSON.stringify(data)
   }
 
-  const cargarProfesoresPorActividad = async (idActividad) => {
+  const cargarProfesores = async () => {
     setCargandoProfesores(true)
 
     try {
@@ -262,7 +258,20 @@ function ModificarClaseModal({
     }
   }
 
+  const manejarClaseCancelada = (resultado) => {
+    setMostrarModalCancelarClase(false)
+
+    if (onClaseModificada) {
+      onClaseModificada(resultado)
+    }
+
+    if (onCerrar) {
+      onCerrar()
+    }
+  }
+
   return (
+    <>
     <div className="modificar-clase-modal__overlay" onClick={onCerrar}>
       <section className="modificar-clase-modal" onClick={(e) => e.stopPropagation()}>
         <button
@@ -274,22 +283,23 @@ function ModificarClaseModal({
           ×
         </button>
 
-        <div className="modificar-clase-modal__header">
-          <p className="modificar-clase-modal__label">Panel administrativo</p>
-          <h2>Modificar clase</h2>
-          <p>
-            Cambiá el profesor de esta clase o de toda la serie.
-          </p>
-        </div>
-
-        {error && (
-          <div className="modificar-clase-modal__alert modificar-clase-modal__alert--error">
-            {error}
-          </div>
-        )}
-
         <div className="modificar-clase-modal__content">
-          <form className="modificar-clase-modal__form" onSubmit={guardarCambioProfesor}>
+          <div className="modificar-clase-modal__main">
+            <div className="modificar-clase-modal__header">
+              <p className="modificar-clase-modal__label">Panel administrativo</p>
+              <h2>Modificar clase</h2>
+              <p>
+                Cambiá el profesor de esta clase o de toda la serie.
+              </p>
+            </div>
+
+            {error && (
+              <div className="modificar-clase-modal__alert modificar-clase-modal__alert--error">
+                {error}
+              </div>
+            )}
+
+            <form className="modificar-clase-modal__form" onSubmit={guardarCambioProfesor}>
             <label className="modificar-clase-modal__field modificar-clase-modal__field--full">
               <span>Profesor</span>
               <select
@@ -355,7 +365,7 @@ function ModificarClaseModal({
               <button
                 type="button"
                 className="modificar-clase-modal__button modificar-clase-modal__button--danger"
-                onClick={abrirConfirmacionCancelacion}
+                onClick={() => setMostrarModalCancelarClase(true)}
                 disabled={cargando || cargandoProfesores || accionEnProceso || Boolean(claseSeleccionada.cancelada)}
               >
                 {claseSeleccionada.cancelada ? 'Clase cancelada' : accionEnProceso ? 'Cancelando...' : 'Cancelar clase'}
@@ -369,7 +379,8 @@ function ModificarClaseModal({
                 {cargando ? 'Guardando...' : 'Guardar'}
               </button>
             </div>
-          </form>
+            </form>
+          </div>
 
           <aside className="modificar-clase-modal__summary">
             <h3>Resumen</h3>
@@ -404,10 +415,7 @@ function ModificarClaseModal({
               <strong>{alcance === 'SERIE' ? 'Toda la serie' : 'Solo esta clase'}</strong>
             </div>
 
-            <p className="modificar-clase-modal__note">
-              "Toda la serie" cambia el profesor de esta clase y de todas las
-              siguientes de la misma serie. Cancelar marca la clase como cancelada.
-            </p>
+            
           </aside>
         </div>
 
@@ -470,6 +478,14 @@ function ModificarClaseModal({
         )}
       </section>
     </div>
+
+    <CancelarClaseModal
+      abierto={mostrarModalCancelarClase}
+      claseSeleccionada={claseSeleccionada}
+      onCerrar={() => setMostrarModalCancelarClase(false)}
+      onClaseCancelada={manejarClaseCancelada}
+    />
+    </>
   )
 }
 
