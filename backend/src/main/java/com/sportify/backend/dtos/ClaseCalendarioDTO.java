@@ -36,11 +36,12 @@ public class ClaseCalendarioDTO {
     private double precio;
     private boolean cancelada;
     private ProfesorDTO profesor;
+    private Integer idPlantilla;
 
     public ClaseCalendarioDTO() {
     }
 
-    public ClaseCalendarioDTO(int idClase, LocalDate fecha, Integer hora, String actividad, int inscritos, int cupo, double precio, boolean cancelada, ProfesorDTO profesor) {
+    public ClaseCalendarioDTO(int idClase, LocalDate fecha, Integer hora, String actividad, int inscritos, int cupo, double precio, boolean cancelada, ProfesorDTO profesor, Integer idPlantilla) {
         this.idClase = idClase;
         this.fecha = fecha;
         this.hora = hora;
@@ -50,6 +51,7 @@ public class ClaseCalendarioDTO {
         this.precio = precio;
         this.cancelada = cancelada;
         this.profesor = profesor;
+        this.idPlantilla = idPlantilla;
     }
 
     public static ClaseCalendarioDTO fromEntity(Clase clase) {
@@ -77,7 +79,8 @@ public class ClaseCalendarioDTO {
                 clase.getCupo(),
                 clase.getPrecio(),
                 clase.getCancelada(),
-                profesorDTO
+                profesorDTO,
+                clase.getPlantilla() != null ? clase.getPlantilla().getIdPlantilla() : null
         );
     }
 
@@ -151,5 +154,13 @@ public class ClaseCalendarioDTO {
 
     public void setProfesor(ProfesorDTO profesor) {
         this.profesor = profesor;
+    }
+
+    public Integer getIdPlantilla() {
+        return idPlantilla;
+    }
+
+    public void setIdPlantilla(Integer idPlantilla) {
+        this.idPlantilla = idPlantilla;
     }
 }
