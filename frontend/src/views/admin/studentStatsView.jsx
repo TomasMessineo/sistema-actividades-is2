@@ -10,6 +10,8 @@ function StudentStatsView() {
   const [error, setError] = useState(null)
   const [eliminando, setEliminando] = useState(null)
   const [confirmarEliminacionId, setConfirmarEliminacionId] = useState(null)
+  const [restaurando, setRestaurando] = useState(null)
+  const [mostrarExitoRestauracion, setMostrarExitoRestauracion] = useState(false)
 
   useEffect(() => {
     cargarAlumnos()
@@ -44,6 +46,20 @@ function StudentStatsView() {
     } finally {
       setEliminando(null)
       setConfirmarEliminacionId(null)
+    }
+  }
+
+  const restaurarAlumno = async (id) => {
+    try {
+      setRestaurando(id)
+      await api.patch(`/alumnos/${id}/restaurar`)
+      await cargarAlumnos()
+      setMostrarExitoRestauracion(true)
+    } catch (error) {
+      const mensaje = error.response?.data || 'No se pudo restaurar el alumno.'
+      setError(mensaje)
+    } finally {
+      setRestaurando(null)
     }
   }
 
@@ -122,7 +138,14 @@ function StudentStatsView() {
                         </div>
                       </div>
 
-                      <span className="alumno-badge-eliminado">Eliminado</span>
+                      <button
+                        type="button"
+                        className="btn-restaurar"
+                        onClick={() => restaurarAlumno(alumno.id)}
+                        disabled={restaurando === alumno.id}
+                      >
+                        {restaurando === alumno.id ? 'Restaurando...' : 'Restaurar'}
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -157,6 +180,25 @@ function StudentStatsView() {
                   {eliminando === confirmarEliminacionId ? 'Eliminando...' : 'Sí, eliminar'}
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {mostrarExitoRestauracion && (
+          <div className="alumnos-modal-overlay">
+            <div className="restauracion-exito-box">
+              <div className="restauracion-exito-icono">✓</div>
+              <div className="restauracion-exito-header">
+                <h2>¡Alumno restaurado!</h2>
+                <p>El alumno volvió a la lista de activos correctamente.</p>
+              </div>
+              <button
+                type="button"
+                className="restauracion-exito-btn"
+                onClick={() => setMostrarExitoRestauracion(false)}
+              >
+                Aceptar
+              </button>
             </div>
           </div>
         )}
