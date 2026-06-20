@@ -7,7 +7,7 @@ import '../../styles/Navbar.css';
 function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const nombre = user?.nombre || '';
 
   useEffect(() => {
@@ -48,6 +48,11 @@ function Navbar() {
           <li>
             <Link to="/admin/calendario" className="navbar__link" id="nav-info">Calendario</Link>
           </li>
+          {role === 'ADMINISTRADOR' && (
+            <li>
+              <Link to="/ingresos" className="navbar__link" id="nav-ingresos">Estadísticas de ingresos</Link>
+            </li>
+          )}
         </ul>
 
         <div className="navbar__actions" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>

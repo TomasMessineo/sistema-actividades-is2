@@ -29,6 +29,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -795,6 +796,33 @@ public class ClaseService {
         return ClaseCalendarioDTO.fromEntity(claseRepository.save(clase));
     }
 
+    // HELPER — true si la clase ya alcanzó su cupo.
+    private boolean claseLlena(Clase clase) {
+        int inscritos = (clase.getListaAsistencia() != null && clase.getListaAsistencia().getAlumnos() != null)
+                ? clase.getListaAsistencia().getAlumnos().size()
+                : 0;
+        int cupo = clase.getCupo() != null ? clase.getCupo() : 0;
+        return inscritos >= cupo;
+    }
+
+    // HELPER — true si el alumno ya está inscripto en OTRA clase en la misma fecha y hora.
+    private boolean alumnoTieneOtraClaseEnHorario(Integer alumnoId, Clase clase) {
+        if (alumnoId == null) {
+            return false;
+        }
+        return listForAlumno(alumnoId).stream()
+                .anyMatch(c -> c.getIdClase() != clase.getIdClase()
+                        && java.util.Objects.equals(c.getFecha(), clase.getFecha())
+                        && java.util.Objects.equals(c.getHora(), clase.getHora()));
+    }
+
+    /**
+     * Preview del abono mensual: lista las clases que le quedan al alumno en el mes
+     * de la clase elegida, dentro de su misma serie (cobro proporcional). Cada ítem
+     * indica si está disponible y, si no, el motivo. Lo consume el front (preview) y
+     * PagoService al confirmar un abono.
+     */
+    @Transactional
     // ============================================================
     // PREVIEW DEL ABONO MENSUAL
     // ============================================================
@@ -804,80 +832,61 @@ public class ClaseService {
         Clase claseElegida = claseRepository.findById(idClase)
                 .orElseThrow(() -> new RuntimeException("Clase no encontrada"));
 
-        LocalDate fechaBase = claseElegida.getFecha();
-        int hora = claseElegida.getHora();
-        DayOfWeek diaSemana = fechaBase.getDayOfWeek();
-        Integer idActividad = claseElegida.getActividad() != null
-                ? claseElegida.getActividad().getIdActividad()
-                : null;
-        String nombreActividad = claseElegida.getActividad() != null && claseElegida.getActividad().getTipo() != null
-                ? claseElegida.getActividad().getTipo().name()
-                : "CLASE";
+        LocalDate fechaInicio = claseElegida.getFecha();
+        if (fechaInicio == null) {
+            return List.of();
+        }
 
-        LocalDate primerDiaMes = fechaBase.withDayOfMonth(1);
-        LocalDate ultimoDiaMes = fechaBase.withDayOfMonth(fechaBase.lengthOfMonth());
+        LocalDate finDeMes = fechaInicio.withDayOfMonth(fechaInicio.lengthOfMonth());
+        materializarRango(fechaInicio, finDeMes);
 
-        List<Clase> clasesDelAbono = claseRepository.findAll().stream()
-                .filter(c -> c.getActividad() != null
-                        && idActividad != null
-                        && idActividad.equals(c.getActividad().getIdActividad()))
-                .filter(c -> c.getHora() != null && c.getHora() == hora)
-                .filter(c -> c.getFecha() != null
-                        && !c.getFecha().isBefore(primerDiaMes)
-                        && !c.getFecha().isAfter(ultimoDiaMes))
-                .filter(c -> c.getFecha().getDayOfWeek() == diaSemana)
-                .sorted((a, b) -> a.getFecha().compareTo(b.getFecha()))
-                .toList();
+        List<Clase> instancias;
+        ClasePlantilla plantilla = claseElegida.getPlantilla();
+        if (plantilla != null) {
+            instancias = claseRepository.findByPlantilla_IdPlantilla(plantilla.getIdPlantilla()).stream()
+                    .filter(c -> c.getFecha() != null
+                            && !c.getFecha().isBefore(fechaInicio)
+                            && !c.getFecha().isAfter(finDeMes))
+                    .sorted(Comparator.comparing(Clase::getFecha))
+                    .collect(Collectors.toList());
+        } else {
+            instancias = List.of(claseElegida);
+        }
 
-        List<AbonoPreviewDTO> resultado = new ArrayList<>();
-        for (Clase c : clasesDelAbono) {
-            AbonoPreviewDTO.Motivo motivo = evaluarDisponibilidad(c, idAlumno);
-            resultado.add(new AbonoPreviewDTO(
-                    c.getIdClase(),
-                    c.getFecha(),
-                    c.getHora(),
-                    nombreActividad,
-                    motivo == null,
+        List<AbonoPreviewDTO> preview = new ArrayList<>();
+        for (Clase clase : instancias) {
+            boolean disponible = true;
+            AbonoPreviewDTO.Motivo motivo = null;
+
+            if (Boolean.TRUE.equals(clase.getCancelada())) {
+                disponible = false;
+                motivo = AbonoPreviewDTO.Motivo.CANCELADA;
+            } else if (isAlumnoEnrolled(clase, idAlumno)) {
+                disponible = false;
+                motivo = AbonoPreviewDTO.Motivo.YA_INSCRIPTO;
+            } else if (alumnoTieneOtraClaseEnHorario(idAlumno, clase)) {
+                disponible = false;
+                motivo = AbonoPreviewDTO.Motivo.CONFLICTO_HORARIO;
+            } else if (claseLlena(clase)) {
+                disponible = false;
+                motivo = AbonoPreviewDTO.Motivo.LLENA;
+            }
+
+            String actividad = (clase.getActividad() != null && clase.getActividad().getTipo() != null)
+                    ? clase.getActividad().getTipo().name()
+                    : "CLASE";
+
+            preview.add(new AbonoPreviewDTO(
+                    clase.getIdClase(),
+                    clase.getFecha(),
+                    clase.getHora() != null ? clase.getHora() : 0,
+                    actividad,
+                    disponible,
                     motivo
             ));
         }
-        return resultado;
-    }
 
-    private AbonoPreviewDTO.Motivo evaluarDisponibilidad(Clase clase, Integer idAlumno) {
-        if (Boolean.TRUE.equals(clase.getCancelada())) {
-            return AbonoPreviewDTO.Motivo.CANCELADA;
-        }
-
-        int inscriptos = clase.getListaAsistencia() != null && clase.getListaAsistencia().getAlumnos() != null
-                ? clase.getListaAsistencia().getAlumnos().size()
-                : 0;
-        int cupo = clase.getCupo() == null ? 0 : clase.getCupo();
-
-        if (idAlumno != null && clase.getListaAsistencia() != null && clase.getListaAsistencia().getAlumnos() != null
-                && clase.getListaAsistencia().getAlumnos().stream()
-                .anyMatch(a -> java.util.Objects.equals(a.getId(), idAlumno))) {
-            return AbonoPreviewDTO.Motivo.YA_INSCRIPTO;
-        }
-
-        if (inscriptos >= cupo) {
-            return AbonoPreviewDTO.Motivo.LLENA;
-        }
-
-        if (idAlumno != null && tieneConflictoHorario(idAlumno, clase)) {
-            return AbonoPreviewDTO.Motivo.CONFLICTO_HORARIO;
-        }
-
-        return null; // disponible
-    }
-
-    private boolean tieneConflictoHorario(Integer idAlumno, Clase clase) {
-        return claseRepository.findByFechaAndHoraAndCanceladaFalse(clase.getFecha(), clase.getHora()).stream()
-                .filter(c -> c.getIdClase() != clase.getIdClase())
-                .anyMatch(c -> c.getListaAsistencia() != null
-                        && c.getListaAsistencia().getAlumnos() != null
-                        && c.getListaAsistencia().getAlumnos().stream()
-                        .anyMatch(a -> java.util.Objects.equals(a.getId(), idAlumno)));
+        return preview;
     }
 
 }
