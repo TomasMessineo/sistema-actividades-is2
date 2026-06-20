@@ -14,11 +14,13 @@ import com.sportify.backend.entities.Actividad;
 import com.sportify.backend.entities.Alumno;
 import com.sportify.backend.entities.Clase;
 import com.sportify.backend.entities.ClasePlantilla;
+import com.sportify.backend.entities.LicenciaProfesor;
 import com.sportify.backend.entities.ListaAsistencia;
 import com.sportify.backend.entities.Profesor;
 import com.sportify.backend.repositories.AlumnoRepository;
 import com.sportify.backend.repositories.ClasePlantillaRepository;
 import com.sportify.backend.repositories.ClaseRepository;
+import com.sportify.backend.repositories.LicenciaProfesorRepository;
 import com.sportify.backend.repositories.ProfesorRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -51,6 +53,9 @@ public class ClaseService {
 
     @Autowired
     private ProfesorRepository profesorRepository;
+
+    @Autowired
+    private LicenciaProfesorRepository licenciaProfesorRepository;
 
     // 1. LISTAR
     public List<Clase> listarClases() {
@@ -107,6 +112,99 @@ public class ClaseService {
         return clase.getListaEspera().getAlumnos().stream()
                 .map(Alumno::getId)
                 .anyMatch(id -> java.util.Objects.equals(id, alumnoId));
+    }
+
+    // HELPER — true si la clase ya alcanzó su cupo.
+    private boolean claseLlena(Clase clase) {
+        int inscritos = (clase.getListaAsistencia() != null && clase.getListaAsistencia().getAlumnos() != null)
+                ? clase.getListaAsistencia().getAlumnos().size()
+                : 0;
+        int cupo = clase.getCupo() != null ? clase.getCupo() : 0;
+        return inscritos >= cupo;
+    }
+
+    // HELPER — true si el alumno ya está inscripto en OTRA clase en la misma fecha y hora.
+    private boolean alumnoTieneOtraClaseEnHorario(Integer alumnoId, Clase clase) {
+        if (alumnoId == null) {
+            return false;
+        }
+        return listForAlumno(alumnoId).stream()
+                .anyMatch(c -> c.getIdClase() != clase.getIdClase()
+                        && java.util.Objects.equals(c.getFecha(), clase.getFecha())
+                        && java.util.Objects.equals(c.getHora(), clase.getHora()));
+    }
+
+    /**
+     * Preview del abono mensual: lista las clases que le quedan al alumno en el mes
+     * de la clase elegida, dentro de su misma serie (cobro proporcional). Cada ítem
+     * indica si está disponible y, si no, el motivo (cancelada, llena, conflicto de
+     * horario, o ya inscripto). Lo consume tanto el front (preview) como
+     * PagoService al confirmar un abono.
+     */
+    @Transactional
+    public List<AbonoPreviewDTO> previewAbono(Integer idClase, Integer idAlumno) {
+        Clase claseElegida = claseRepository.findById(idClase)
+                .orElseThrow(() -> new RuntimeException("Clase no encontrada"));
+
+        LocalDate fechaInicio = claseElegida.getFecha();
+        if (fechaInicio == null) {
+            return List.of();
+        }
+
+        // Ventana del abono: desde la clase elegida hasta fin de ese mes.
+        LocalDate finDeMes = fechaInicio.withDayOfMonth(fechaInicio.lengthOfMonth());
+
+        // Aseguramos que existan todas las instancias del mes (materialización lazy).
+        materializarRango(fechaInicio, finDeMes);
+
+        List<Clase> instancias;
+        ClasePlantilla plantilla = claseElegida.getPlantilla();
+        if (plantilla != null) {
+            instancias = claseRepository.findByPlantilla_IdPlantilla(plantilla.getIdPlantilla()).stream()
+                    .filter(c -> c.getFecha() != null
+                            && !c.getFecha().isBefore(fechaInicio)
+                            && !c.getFecha().isAfter(finDeMes))
+                    .sorted(Comparator.comparing(Clase::getFecha))
+                    .collect(Collectors.toList());
+        } else {
+            // Clase suelta (sin serie): el abono cubre solo esa clase.
+            instancias = List.of(claseElegida);
+        }
+
+        List<AbonoPreviewDTO> preview = new ArrayList<>();
+        for (Clase clase : instancias) {
+            boolean disponible = true;
+            AbonoPreviewDTO.Motivo motivo = null;
+
+            if (Boolean.TRUE.equals(clase.getCancelada())) {
+                disponible = false;
+                motivo = AbonoPreviewDTO.Motivo.CANCELADA;
+            } else if (isAlumnoEnrolled(clase, idAlumno)) {
+                disponible = false;
+                motivo = AbonoPreviewDTO.Motivo.YA_INSCRIPTO;
+            } else if (alumnoTieneOtraClaseEnHorario(idAlumno, clase)) {
+                disponible = false;
+                motivo = AbonoPreviewDTO.Motivo.CONFLICTO_HORARIO;
+            } else if (claseLlena(clase)) {
+                disponible = false;
+                motivo = AbonoPreviewDTO.Motivo.LLENA;
+            }
+
+            String actividad = (clase.getActividad() != null && clase.getActividad().getTipo() != null)
+                    ? clase.getActividad().getTipo().name()
+                    : "CLASE";
+
+            preview.add(new AbonoPreviewDTO(
+                    clase.getIdClase(),
+                    clase.getFecha(),
+                    clase.getHora() != null ? clase.getHora() : 0,
+                    actividad,
+                    disponible,
+                    motivo
+            ));
+        }
+
+        return preview;
     }
 
     public List<Clase> listarClasesDeUnaFechaYHora(LocalDate fecha, int hora) {
@@ -751,6 +849,35 @@ public class ClaseService {
         );
     }
 
+    // HELPER — true si el profesor está de licencia (no disponible) en esa fecha.
+    private boolean profesorEnLicencia(Integer profesorId, LocalDate fecha) {
+        if (profesorId == null || fecha == null) {
+            return false;
+        }
+        return licenciaProfesorRepository.findByProfesor_Id(profesorId).stream()
+                .anyMatch(l -> l.getDesde() != null && l.getHasta() != null
+                        && !fecha.isBefore(l.getDesde())
+                        && !fecha.isAfter(l.getHasta()));
+    }
+
+    // HELPER — true si el profesor está disponible para dar clase en esa fecha/hora:
+    // ni de licencia, ni ya dictando otra clase en ese mismo turno.
+    private boolean profesorDisponible(Integer profesorId, LocalDate fecha, int hora, int idClaseExcluir) {
+        if (profesorEnLicencia(profesorId, fecha)) {
+            return false;
+        }
+        return !profesorOcupadoExcluyendo(fecha, hora, profesorId, idClaseExcluir);
+    }
+
+    // HELPER — true si la clase todavía no se impartió (fecha y hora futuras).
+    private boolean claseAunNoImpartida(Clase clase) {
+        if (clase.getFecha() == null) {
+            return false;
+        }
+        int hora = clase.getHora() != null ? clase.getHora() : 0;
+        return clase.getFecha().atTime(hora, 0).isAfter(LocalDateTime.now());
+    }
+
     @Transactional
     public ClaseCalendarioDTO cambiarProfesor(Integer idClase, CambiarProfesorRequest request) {
         if (request.getProfesorId() == null || request.getProfesorId() <= 0) {
@@ -763,6 +890,9 @@ public class ClaseService {
         Profesor profesor = profesorRepository.findById(request.getProfesorId())
                 .orElseThrow(() -> new RuntimeException("El profesor seleccionado no existe."));
 
+        // El profesor debe dictar la disciplina de la clase.
+        validarActividadDelProfesor(clase.getActividad(), profesor.getId());
+
         String alcance = request.getAlcance() == null ? "INDIVIDUAL" : request.getAlcance().toUpperCase();
 
         if ("SERIE".equals(alcance)) {
@@ -771,25 +901,34 @@ public class ClaseService {
                 throw new RuntimeException("Esta clase no pertenece a una serie, no se puede cambiar el profesor de toda la serie.");
             }
 
+            // Materializamos los próximos 2 meses para tener el período concreto de clases futuras.
+            LocalDate hoy = LocalDate.now();
+            materializarRango(hoy, hoy.plusMonths(2));
+
+            // Todas las clases de la serie aún no impartidas (futuras, no canceladas).
+            List<Clase> futuras = claseRepository.findByPlantilla_IdPlantilla(plantilla.getIdPlantilla()).stream()
+                    .filter(c -> !Boolean.TRUE.equals(c.getCancelada()))
+                    .filter(this::claseAunNoImpartida)
+                    .collect(Collectors.toList());
+
+            // El profesor debe estar disponible en TODO el período; si falla en alguna, no se cambia nada.
+            boolean noDisponibleEnAlguna = futuras.stream()
+                    .anyMatch(c -> !profesorDisponible(profesor.getId(), c.getFecha(), c.getHora(), c.getIdClase()));
+            if (noDisponibleEnAlguna) {
+                throw new RuntimeException("El cambio de profesor no pudo realizarse debido a que el profesor seleccionado no se encuentra disponible para todo o una parte del período seleccionado.");
+            }
+
             plantilla.setProfesor(profesor);
             clasePlantillaRepository.save(plantilla);
 
-            // Cambia para todas las clases de la serie de aquí en adelante (no canceladas).
-            List<Clase> instancias = claseRepository.findByPlantilla_IdPlantilla(plantilla.getIdPlantilla());
-            LocalDate desde = clase.getFecha();
-            List<Clase> afectadas = instancias.stream()
-                    .filter(c -> !Boolean.TRUE.equals(c.getCancelada()))
-                    .filter(c -> c.getFecha() != null && !c.getFecha().isBefore(desde))
-                    .peek(c -> c.setProfesor(profesor))
-                    .collect(Collectors.toList());
-
-            claseRepository.saveAll(afectadas);
+            futuras.forEach(c -> c.setProfesor(profesor));
+            claseRepository.saveAll(futuras);
             return ClaseCalendarioDTO.fromEntity(clase);
         }
 
-        // INDIVIDUAL — solo esta clase. Validamos que el profesor no esté ocupado ese turno.
-        if (profesorOcupadoExcluyendo(clase.getFecha(), clase.getHora(), profesor.getId(), clase.getIdClase())) {
-            throw new RuntimeException("El profesor seleccionado ya tiene una clase asignada en ese horario.");
+        // INDIVIDUAL — solo esta clase.
+        if (!profesorDisponible(profesor.getId(), clase.getFecha(), clase.getHora(), clase.getIdClase())) {
+            throw new RuntimeException("El cambio de profesor no pudo realizarse debido a que el profesor seleccionado no se encuentra disponible para dar clases en el día y horario seleccionados.");
         }
 
         clase.setProfesor(profesor);

@@ -150,9 +150,27 @@
 .modificar-clase-modal__actions {
   grid-column: 1 / -1;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   gap: 14px;
   margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.modificar-clase-modal__actions-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-left: auto;
+}
+
+@keyframes optionsReveal {
+  from { opacity: 0; transform: translateX(12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.modificar-clase-modal__options {
+  animation: optionsReveal 0.26s ease both;
 }
 
 .modificar-clase-modal__button {
@@ -185,6 +203,22 @@
   color: var(--text-primary);
   background: transparent;
   border: 1px solid var(--border);
+}
+
+/* Cierre sutil del modal: link de baja jerarquía, no compite con las acciones. */
+.modificar-clase-modal__button--link {
+  min-width: auto;
+  padding: 8px 4px;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  font-weight: 700;
+}
+
+.modificar-clase-modal__button--link:hover:not(:disabled) {
+  color: var(--text-primary);
+  text-decoration: underline;
+  transform: none;
 }
 
 .modificar-clase-modal__button--danger {
@@ -447,11 +481,21 @@
     flex-direction: column-reverse;
   }
 
+  .modificar-clase-modal__actions-group {
+    flex-direction: column-reverse;
+    width: 100%;
+    margin-left: 0;
+  }
+
   .modificar-clase-modal__confirmation-actions {
     flex-direction: column-reverse;
   }
 
   .modificar-clase-modal__button {
+    width: 100%;
+  }
+
+  .modificar-clase-modal__button--link {
     width: 100%;
   }
 
