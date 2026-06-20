@@ -1,7 +1,9 @@
 package com.sportify.backend.services;
 
 import com.sportify.backend.dtos.AbonoPreviewDTO;
+import com.sportify.backend.dtos.AlumnoResumenDTO;
 import com.sportify.backend.dtos.CambiarProfesorRequest;
+import com.sportify.backend.dtos.ClaseActualProfesorDTO;
 import com.sportify.backend.dtos.CancelarDesdeRequest;
 import com.sportify.backend.dtos.CancelarRangoRequest;
 import com.sportify.backend.dtos.ClaseCalendarioDTO;
@@ -28,6 +30,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -115,6 +118,24 @@ public class ClaseService {
 
     public List<Clase> listarPorIdActividad(Integer actividadId) {
         return claseRepository.findByActividad_IdActividad(actividadId);
+    }
+
+    public List<Clase> listarPorProfesorId(Integer profesorId) {
+        return claseRepository.findByProfesorId(profesorId);
+    }
+
+    // Clase que el profesor está dando en este momento (fecha y hora actuales),
+    // o null si no tiene ninguna clase asignada ahora.
+    public ClaseActualProfesorDTO buscarClaseActualDeProfesor(Integer profesorId) {
+        LocalDate hoy = LocalDate.now();
+        int horaActual = LocalTime.now().getHour();
+
+        return claseRepository.findByFechaAndHoraAndProfesor_Id(hoy, horaActual, profesorId)
+                .stream()
+                .filter(c -> !Boolean.TRUE.equals(c.getCancelada()))
+                .findFirst()
+                .map(ClaseActualProfesorDTO::fromEntity)
+                .orElse(null);
     }
 
     // HELPER
@@ -259,6 +280,25 @@ public class ClaseService {
     // 3. BUSCAR POR ID
     public Clase buscarPorId(Integer id) {
         return claseRepository.findById(id).orElseThrow(() -> new RuntimeException("Clase no encontrada"));
+    }
+
+    // Alumnos anotados en una clase puntual.
+    public List<AlumnoResumenDTO> listarAlumnosDeClase(Integer idClase) {
+        Clase clase = claseRepository.findById(idClase)
+                .orElseThrow(() -> new RuntimeException("Clase no encontrada"));
+
+        if (clase.getListaAsistencia() == null || clase.getListaAsistencia().getAlumnos() == null) {
+            return List.of();
+        }
+
+        // El join (lista_asistencia_alumnos) puede tener filas duplicadas para un
+        // mismo alumno; se deduplica por id antes de mapear a DTO.
+        return clase.getListaAsistencia().getAlumnos().stream()
+                .collect(Collectors.toMap(Alumno::getId, a -> a, (existente, duplicado) -> existente, LinkedHashMap::new))
+                .values()
+                .stream()
+                .map(AlumnoResumenDTO::fromEntity)
+                .toList();
     }
 
     // 4. ELIMINAR

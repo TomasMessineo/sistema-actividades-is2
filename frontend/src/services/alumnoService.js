@@ -30,3 +30,8 @@ export const actualizarAptoMedicoAlumno = (id, file) => {
     body: formData,
   });
 };
+
+// Alumnos activos anotados en alguna clase asignada a este profesor.
+export const listarAlumnosDelProfesor = (profesorId) => {
+  return apiFetch(`/profesores/${profesorId}/alumnos`);
+};

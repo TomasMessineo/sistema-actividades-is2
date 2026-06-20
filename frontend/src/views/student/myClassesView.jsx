@@ -211,7 +211,7 @@ function MyClassesView() {
                 <p className="my-classes-kicker">Nueva clase</p>
                 <h2 className="my-classes-title">Encontrá una clase nueva para sumarte</h2>
               </div>
-              <Link to="/clasesDisponibles" className="my-classes-button">Buscas clases nuevas</Link>
+              <Link to="/alumno/clasesDisponibles" className="my-classes-button">Buscas clases nuevas</Link>
             </aside>
           </section>
         )}

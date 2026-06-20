@@ -2,72 +2,79 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import logoSvg from '../../assets/logo.svg';
-
 import '../../styles/Navbar.css';
-function Navbar() {
+
+function NavbarProfesor() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const { user } = useAuth();
   const nombre = user?.nombre || '';
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 50);
-    };
+    const handleScroll = () => setScrolled(window.scrollY > 50);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  const scrollTo = (id) => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
-      setMenuOpen(false);
-    }
-  };
 
   return (
     <nav className={`navbar navbar--alumno ${scrolled ? 'navbar--scrolled' : ''}`} id="navbar">
       <div className="navbar__container">
         <div className="navbar__brand">
-          <Link to="/" className="navbar__logo" id="navbar-logo" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+          <Link
+            to="/"
+            className="navbar__logo"
+            id="navbar-logo"
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          >
             <img src={logoSvg} alt="Sportify" className="navbar__logo-img" />
           </Link>
 
           {user && (
             <span className="navbar__welcome">
-              Bienvenido, administrador {nombre}
+              Bienvenido, profesor {nombre}
             </span>
           )}
         </div>
 
         <ul className={`navbar__links ${menuOpen ? 'navbar__links--open' : ''}`} id="navbar-links">
           <li>
-            <Link to="/admin/verAlumnos" className="navbar__link" id="nav-inicio">Ver alumnos</Link>
+            <Link to="/profesor/misClases" className="navbar__link" id="nav-mis-clases">
+              Mis Clases
+            </Link>
           </li>
           <li>
-            <Link to="/admin/calendario" className="navbar__link" id="nav-info">Calendario</Link>
+            <Link to="/profesor/verAlumnos" className="navbar__link" id="nav-ver-alumnos">
+              Ver Alumnos
+            </Link>
           </li>
         </ul>
 
-        <div className="navbar__actions" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <button 
-            onClick={() => {
-              localStorage.removeItem('sportify_user'); window.location.href = '/';
-            }} 
-            className="navbar__link navbar__link-logout" 
-            style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit' }}
+        <div className="navbar__actions">
+          <button
+            onClick={() => { localStorage.removeItem('sportify_user'); window.location.href = '/'; }}
+            className="navbar__link navbar__link-logout"
           >
             Cerrar Sesión
           </button>
-          <Link to="/perfil" className="navbar__link" id="nav-login">
+
+          <Link to="/perfil" className="navbar__link" id="nav-perfil">
             Mi Perfil
           </Link>
         </div>
+
+        <button
+          className={`navbar__hamburger ${menuOpen ? 'navbar__hamburger--open' : ''}`}
+          onClick={() => setMenuOpen(!menuOpen)}
+          aria-label="Abrir menú"
+        >
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
 
       </div>
     </nav>
   );
 }
 
-export default Navbar;
+export default NavbarProfesor;

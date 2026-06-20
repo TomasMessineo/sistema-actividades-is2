@@ -1,6 +1,7 @@
 package com.sportify.backend.controllers;
 
 import com.sportify.backend.dtos.AbonoPreviewDTO;
+import com.sportify.backend.dtos.AlumnoResumenDTO;
 import com.sportify.backend.dtos.CambiarProfesorRequest;
 import com.sportify.backend.dtos.CancelarDesdeRequest;
 import com.sportify.backend.dtos.CancelarRangoRequest;
@@ -154,6 +155,18 @@ public class ClaseController {
         try {
             ClaseCancelacionResponse respuesta = claseService.cancelarDesdeSerie(idPlantilla, request);
             return ResponseEntity.ok(respuesta);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // Alumnos anotados en una clase puntual.
+    @GetMapping("/{id}/alumnos")
+    @Transactional(readOnly = true)
+    public ResponseEntity<?> listarAlumnosDeClase(@PathVariable Integer id) {
+        try {
+            List<AlumnoResumenDTO> alumnos = claseService.listarAlumnosDeClase(id);
+            return ResponseEntity.ok(alumnos);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
