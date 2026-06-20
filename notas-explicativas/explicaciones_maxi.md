@@ -3,7 +3,7 @@
 ## Pago.java
 
 Se agrego:
-
+m
 ```java
 private LocalDateTime fechaCreacion;     // Para saber cuándo se creó el pago
 private LocalDateTime fechaActualizacion; // Para saber cuándo cambió de estado

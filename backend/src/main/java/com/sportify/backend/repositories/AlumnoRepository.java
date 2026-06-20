@@ -23,5 +23,10 @@ public interface AlumnoRepository extends JpaRepository<Alumno, Integer> {
 
     Optional<Alumno> findByEmail(String email);
 
+    // Alumnos activos que están anotados en alguna clase (cancelada o no)
+    // asignada al profesor indicado.
+    @Query("SELECT DISTINCT a FROM Alumno a JOIN a.asistencias la JOIN la.clase c "
+            + "WHERE c.profesor.id = :profesorId AND a.activo = true")
+    List<Alumno> findActivosPorProfesor(Integer profesorId);
 
 }

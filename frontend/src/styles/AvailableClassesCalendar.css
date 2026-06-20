@@ -11,11 +11,23 @@
 }
 
 .calendar-intro {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
   gap: 18px;
   margin-bottom: 18px;
+}
+
+.calendar-intro-left {
+  justify-self: start;
+}
+
+.calendar-intro-center {
+  justify-self: center;
+}
+
+.calendar-intro-right {
+  justify-self: end;
 }
 
 .calendar-create-button {
@@ -104,10 +116,10 @@
 
 .calendar-grid {
   display: grid;
-  grid-template-columns: 76px repeat(5, minmax(170px, 1fr));
+  grid-template-columns: 76px repeat(7, minmax(162px, 1fr));
   column-gap: 10px;
   row-gap: 0;
-  min-width: 980px;
+  min-width: 1280px;
 }
 
 .calendar-corner,
@@ -148,6 +160,26 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+.calendar-day-header--hoy {
+  background: var(--primary-subtle, rgba(62, 207, 42, 0.14));
+  border-color: var(--primary);
+}
+
+.calendar-day-header--hoy .calendar-day-name {
+  color: var(--primary);
+}
+
+.calendar-day-today-badge {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #06150a;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .calendar-hour-label {
   font-size: 13px;
   color: var(--text-secondary);
@@ -170,6 +202,28 @@
   display: block;
   width: 100%;
   height: 100%;
+}
+
+.calendar-closed-slot {
+  padding: 8px;
+  border-top: none;
+}
+
+.calendar-closed-card {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
 .calendar-class-card {
@@ -319,8 +373,15 @@
 
 @media (max-width: 960px) {
   .calendar-intro {
-    flex-direction: column;
-    align-items: flex-start;
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+
+  .calendar-intro-left,
+  .calendar-intro-center,
+  .calendar-intro-right {
+    justify-self: start;
+    width: 100%;
   }
 
   .calendar-week-controls {
