@@ -85,6 +85,16 @@ public class AlumnoController {
         }
     }
 
+    @PatchMapping("/{id}/restaurar")
+    public ResponseEntity<?> restaurarAlumno(@PathVariable Integer id) {
+        try {
+            alumnoService.restaurar(id);
+            return ResponseEntity.ok("Alumno restaurado correctamente");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @PutMapping("/{id}/perfil")
     public ResponseEntity<?> actualizarPerfil(@PathVariable Integer id, @RequestBody ActualizarPerfilAlumnoDTO datos) {
         try {

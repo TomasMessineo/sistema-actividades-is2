@@ -92,6 +92,13 @@ public class AlumnoService {
         desactivar(id);
     }
 
+    public void restaurar(Integer id) {
+        Alumno alumno = alumnoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Alumno no encontrado"));
+        alumno.setActivo(true);
+        alumnoRepository.save(alumno);
+    }
+
 
     // 5. INICIAR SESIÓN
     public Alumno iniciarSesion(String email, String password) {

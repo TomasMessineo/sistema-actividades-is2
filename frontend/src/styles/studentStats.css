@@ -11,6 +11,7 @@
   flex-direction: column;
 }
 
+
 .alumnos-main {
   flex: 1;
   min-height: 0;
@@ -189,13 +190,120 @@
 
 .alumno-badge-eliminado {
   border-radius: 999px;
-  border: 1px solid rgba(239, 68, 68, 0.28);
-  background: rgba(239, 68, 68, 0.08);
-  color: #ef4444;
+  border: 1px solid rgb(59 158 26 / 0.28);
+  background: rgb(40 120 27 / 0.08);
+  color: #26b12d;
   font-size: 12px;
   font-weight: 600;
   padding: 6px 10px;
   white-space: nowrap;
+}
+
+.btn-restaurar {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.btn-restaurar:hover {
+  background: rgba(34, 197, 94, 0.2);
+}
+
+.btn-restaurar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.restauracion-exito-box {
+  position: relative;
+  z-index: 10;
+  width: min(440px, 100%);
+  background: rgba(17, 17, 19, 0.6);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 24px;
+  padding: 48px 40px;
+  text-align: center;
+  box-shadow: 0 32px 64px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+  animation: restauracionSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes restauracionSlideUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.restauracion-exito-icono {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  margin: 0 auto 32px;
+  background: rgba(34, 197, 94, 0.1);
+  color: #4ade80;
+  border: 2px solid rgba(34, 197, 94, 0.3);
+  box-shadow: 0 0 40px rgba(34, 197, 94, 0.2);
+  animation: restauracionScaleIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes restauracionScaleIn {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+.restauracion-exito-header {
+  margin-bottom: 32px;
+}
+
+.restauracion-exito-header h2 {
+  font-family: var(--font-heading);
+  font-size: 32px;
+  font-weight: 800;
+  margin: 0 0 12px;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.restauracion-exito-header p {
+  color: var(--text-muted);
+  font-size: 15px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.restauracion-exito-btn {
+  width: 100%;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark, #2dcc6e) 100%);
+  color: var(--bg-primary, #061006);
+  border: none;
+  padding: 18px;
+  border-radius: var(--radius-full, 999px);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.restauracion-exito-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(62, 207, 42, 0.25);
 }
 
 /* Acciones */
