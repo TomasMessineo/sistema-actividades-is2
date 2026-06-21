@@ -2,6 +2,7 @@ package com.sportify.backend.services;
 
 import com.sportify.backend.dtos.AptoMedicoDTO;
 import com.sportify.backend.dtos.ActualizarPerfilAlumnoDTO;
+import com.sportify.backend.dtos.RegistroAsistenciaDTO;
 import com.sportify.backend.entities.AptoMedico;
 import com.sportify.backend.entities.FotoDePerfil;
 import com.sportify.backend.entities.Alumno;
@@ -9,6 +10,7 @@ import com.sportify.backend.entities.Pago;
 import com.sportify.backend.repositories.AlumnoRepository;
 import com.sportify.backend.repositories.AptoMedicoRepository;
 import com.sportify.backend.repositories.PagoRepository;
+import com.sportify.backend.repositories.RegistroAsistenciaRepository;
 import com.sportify.backend.validations.AlumnoValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -42,6 +44,9 @@ public class AlumnoService {
 
     @Autowired
     private PagoRepository pagoRepository;
+
+    @Autowired
+    private RegistroAsistenciaRepository registroAsistenciaRepository;
 
     @Autowired
     private AlumnoValidator alumnoValidator;
@@ -232,6 +237,16 @@ public class AlumnoService {
 
         return aptoMedicoRepository.findByAlumno_IdOrderByFechaDeVencimientoDesc(id).stream()
                 .map(AptoMedicoDTO::fromEntity)
+                .toList();
+    }
+
+    // Historial de asistencias del alumno: una fila por clase en la que se le
+    // pasó asistencia (no incluye clases sin asistencia tomada todavía).
+    public List<RegistroAsistenciaDTO> listarHistorialAsistencias(Integer id) {
+        buscarPorId(id);
+
+        return registroAsistenciaRepository.findByAlumno_IdOrderByClase_FechaDesc(id).stream()
+                .map(RegistroAsistenciaDTO::fromEntity)
                 .toList();
     }
 

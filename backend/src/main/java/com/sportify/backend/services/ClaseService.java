@@ -1,6 +1,7 @@
 package com.sportify.backend.services;
 
 import com.sportify.backend.dtos.AbonoPreviewDTO;
+import com.sportify.backend.dtos.AlumnoAsistenciaDTO;
 import com.sportify.backend.dtos.AlumnoResumenDTO;
 import com.sportify.backend.dtos.CambiarProfesorRequest;
 import com.sportify.backend.dtos.ClaseActualProfesorDTO;
@@ -17,11 +18,13 @@ import com.sportify.backend.entities.ClasePlantilla;
 import com.sportify.backend.entities.LicenciaProfesor;
 import com.sportify.backend.entities.ListaAsistencia;
 import com.sportify.backend.entities.Profesor;
+import com.sportify.backend.entities.RegistroAsistencia;
 import com.sportify.backend.repositories.AlumnoRepository;
 import com.sportify.backend.repositories.ClasePlantillaRepository;
 import com.sportify.backend.repositories.ClaseRepository;
 import com.sportify.backend.repositories.LicenciaProfesorRepository;
 import com.sportify.backend.repositories.ProfesorRepository;
+import com.sportify.backend.repositories.RegistroAsistenciaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +38,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -47,6 +51,9 @@ public class ClaseService {
 
     @Autowired
     private AlumnoRepository alumnoRepository;
+
+    @Autowired
+    private RegistroAsistenciaRepository registroAsistenciaRepository;
 
     @Autowired
     private ClasePlantillaRepository clasePlantillaRepository;
@@ -381,8 +388,9 @@ public class ClaseService {
         return claseRepository.findById(id).orElseThrow(() -> new RuntimeException("Clase no encontrada"));
     }
 
-    // Alumnos anotados en una clase puntual.
-    public List<AlumnoResumenDTO> listarAlumnosDeClase(Integer idClase) {
+    // Alumnos anotados en una clase puntual, con si faltaron o no a esa clase
+    // puntual (null si todavía no se le pasó asistencia).
+    public List<AlumnoAsistenciaDTO> listarAlumnosDeClase(Integer idClase) {
         Clase clase = claseRepository.findById(idClase)
                 .orElseThrow(() -> new RuntimeException("Clase no encontrada"));
 
@@ -390,14 +398,55 @@ public class ClaseService {
             return List.of();
         }
 
+        Map<Integer, Boolean> faltoPorAlumno = registroAsistenciaRepository.findByClase_IdClase(idClase).stream()
+                .collect(Collectors.toMap(r -> r.getAlumno().getId(), RegistroAsistencia::getFalto, (existente, duplicado) -> existente));
+
         // El join (lista_asistencia_alumnos) puede tener filas duplicadas para un
         // mismo alumno; se deduplica por id antes de mapear a DTO.
         return clase.getListaAsistencia().getAlumnos().stream()
                 .collect(Collectors.toMap(Alumno::getId, a -> a, (existente, duplicado) -> existente, LinkedHashMap::new))
                 .values()
                 .stream()
-                .map(AlumnoResumenDTO::fromEntity)
+                .map(alumno -> AlumnoAsistenciaDTO.fromEntity(alumno, faltoPorAlumno.get(alumno.getId())))
                 .toList();
+    }
+
+    // Marca a un alumno como presente en una clase a partir de su QR escaneado.
+    // Valida que exista, esté activo y esté anotado en esa clase puntual.
+    @Transactional
+    public AlumnoResumenDTO registrarAsistenciaPorEscaneo(Integer idClase, Integer idAlumno) {
+        Clase clase = claseRepository.findById(idClase)
+                .orElseThrow(() -> new RuntimeException("Clase no encontrada"));
+
+        Alumno alumno = alumnoRepository.findById(idAlumno)
+                .orElseThrow(() -> new RuntimeException("El código no corresponde a ningún alumno."));
+
+        if (!alumno.isActivo()) {
+            throw new RuntimeException("El alumno no se encuentra activo.");
+        }
+
+        boolean inscripto = clase.getListaAsistencia() != null
+                && clase.getListaAsistencia().getAlumnos() != null
+                && clase.getListaAsistencia().getAlumnos().stream()
+                        .anyMatch(a -> a.getId().equals(idAlumno));
+
+        if (!inscripto) {
+            throw new RuntimeException("Este alumno no está anotado en esta clase.");
+        }
+
+        RegistroAsistencia registro = registroAsistenciaRepository
+                .findByAlumno_IdAndClase_IdClase(idAlumno, idClase)
+                .orElseGet(() -> {
+                    RegistroAsistencia nuevo = new RegistroAsistencia();
+                    nuevo.setAlumno(alumno);
+                    nuevo.setClase(clase);
+                    return nuevo;
+                });
+
+        registro.setFalto(false);
+        registroAsistenciaRepository.save(registro);
+
+        return AlumnoResumenDTO.fromEntity(alumno);
     }
 
     // 4. ELIMINAR

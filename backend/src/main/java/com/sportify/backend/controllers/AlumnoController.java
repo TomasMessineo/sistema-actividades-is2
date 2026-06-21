@@ -2,6 +2,7 @@ package com.sportify.backend.controllers;
 
 import com.sportify.backend.dtos.ClaseCalendarioDTO;
 import com.sportify.backend.dtos.AptoMedicoDTO;
+import com.sportify.backend.dtos.RegistroAsistenciaDTO;
 import com.sportify.backend.services.ClaseService;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,6 +54,13 @@ public class AlumnoController {
     @GetMapping("/{id}/aptos-medicos")
     public List<AptoMedicoDTO> listarAptosMedicosDelAlumno(@PathVariable Integer id) {
         return alumnoService.listarAptosMedicos(id);
+    }
+
+    // Historial de asistencias del alumno (clases con asistencia ya tomada).
+    @GetMapping("/{id}/asistencias")
+    @Transactional(readOnly = true)
+    public List<RegistroAsistenciaDTO> listarHistorialAsistencias(@PathVariable Integer id) {
+        return alumnoService.listarHistorialAsistencias(id);
     }
 
     @GetMapping

@@ -35,3 +35,8 @@ export const actualizarAptoMedicoAlumno = (id, file) => {
 export const listarAlumnosDelProfesor = (profesorId) => {
   return apiFetch(`/profesores/${profesorId}/alumnos`);
 };
+
+// Historial de asistencias del alumno (clases con asistencia ya tomada).
+export const listarHistorialAsistencias = (idAlumno) => {
+  return apiFetch(`/alumnos/${idAlumno}/asistencias`);
+};

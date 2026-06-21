@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { listarAlumnosDeClase } from '../services/claseService'
+import PasarAsistenciaModal from './PasarAsistenciaModal.jsx'
 import '../styles/AlumnosDeClaseModal.css'
 
 const weekdayFormatter = new Intl.DateTimeFormat('es-AR', { weekday: 'long' })
@@ -29,10 +30,22 @@ const formatClassDate = (fecha, hora) => {
   return `${weekday.charAt(0).toUpperCase() + weekday.slice(1)} ${dateLabel} · ${hourLabel}`
 }
 
+const claseYaPaso = (clase) => {
+  if (!clase?.fecha || typeof clase.hora !== 'number') {
+    return false
+  }
+
+  const horaClase = String(clase.hora).padStart(2, '0')
+  const fechaHoraClase = new Date(`${clase.fecha}T${horaClase}:00:00`)
+
+  return !Number.isNaN(fechaHoraClase.getTime()) && fechaHoraClase.getTime() <= Date.now()
+}
+
 function AlumnosDeClaseModal({ abierto, onCerrar, clase }) {
   const [alumnos, setAlumnos] = useState([])
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState('')
+  const [mostrarEscaneo, setMostrarEscaneo] = useState(false)
 
   useEffect(() => {
     if (!abierto || !clase?.idClase) {
@@ -67,11 +80,32 @@ function AlumnosDeClaseModal({ abierto, onCerrar, clase }) {
     }
   }, [abierto, clase?.idClase])
 
+  const recargarAlumnos = async () => {
+    if (!clase?.idClase) {
+      return
+    }
+
+    try {
+      const respuesta = await listarAlumnosDeClase(clase.idClase)
+      setAlumnos(Array.isArray(respuesta) ? respuesta : [])
+    } catch (err) {
+      setError(err.message || 'No se pudieron cargar los alumnos.')
+    }
+  }
+
+  const cerrarEscaneo = () => {
+    setMostrarEscaneo(false)
+    recargarAlumnos()
+  }
+
   if (!abierto) {
     return null
   }
 
+  const mostrarAsistencia = claseYaPaso(clase)
+
   return (
+    <>
     <div className="alumnos-clase-modal__overlay" onClick={onCerrar}>
       <section className="alumnos-clase-modal" onClick={(e) => e.stopPropagation()}>
         <button
@@ -102,7 +136,9 @@ function AlumnosDeClaseModal({ abierto, onCerrar, clase }) {
             <div className="alumnos-clase-modal__spinner" />
           </div>
         ) : alumnos.length === 0 ? (
-          <p className="alumnos-clase-modal__vacio">No hay alumnos anotados en esta clase.</p>
+          <p className="alumnos-clase-modal__vacio">
+            {mostrarAsistencia ? 'No hubo alumnos en la clase.' : 'No hay alumnos anotados en esta clase.'}
+          </p>
         ) : (
           <div className="alumnos-clase-modal__lista">
             {alumnos.map((alumno) => (
@@ -110,16 +146,47 @@ function AlumnosDeClaseModal({ abierto, onCerrar, clase }) {
                 <span className="alumnos-clase-modal__avatar">
                   {alumno.nombre?.[0]?.toUpperCase()}{alumno.apellido?.[0]?.toUpperCase()}
                 </span>
-                <div>
+                <div className="alumnos-clase-modal__info">
                   <p className="alumnos-clase-modal__nombre">{alumno.nombre} {alumno.apellido}</p>
                   <p className="alumnos-clase-modal__detalle">{alumno.email} · DNI {alumno.dni}</p>
                 </div>
+
+                {mostrarAsistencia && (
+                  <span
+                    className={`alumnos-clase-modal__badge ${
+                      alumno.falto === true
+                        ? 'alumnos-clase-modal__badge--falto'
+                        : alumno.falto === false
+                          ? 'alumnos-clase-modal__badge--asistio'
+                          : 'alumnos-clase-modal__badge--pendiente'
+                    }`}
+                  >
+                    {alumno.falto === true ? 'Faltó' : alumno.falto === false ? 'Asistió' : 'Sin registrar'}
+                  </span>
+                )}
               </div>
             ))}
           </div>
         )}
+
+        {!cargando && (
+          <button
+            type="button"
+            className="alumnos-clase-modal__button-asistencia"
+            onClick={() => setMostrarEscaneo(true)}
+          >
+            Pasar Asistencia
+          </button>
+        )}
       </section>
     </div>
+
+    <PasarAsistenciaModal
+      abierto={mostrarEscaneo}
+      clase={clase}
+      onCerrar={cerrarEscaneo}
+    />
+    </>
   )
 }
 

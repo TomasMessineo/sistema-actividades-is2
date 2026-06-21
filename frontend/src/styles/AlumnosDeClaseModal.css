@@ -138,6 +138,37 @@
   flex-shrink: 0;
 }
 
+.alumnos-clase-modal__info {
+  flex: 1;
+}
+
+.alumnos-clase-modal__badge {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.alumnos-clase-modal__badge--asistio {
+  color: #86efac;
+  background: rgba(74, 222, 128, 0.14);
+  border: 1px solid rgba(74, 222, 128, 0.35);
+}
+
+.alumnos-clase-modal__badge--falto {
+  color: #ffd7d7;
+  background: rgba(255, 80, 80, 0.14);
+  border: 1px solid rgba(255, 80, 80, 0.35);
+}
+
+.alumnos-clase-modal__badge--pendiente {
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border);
+}
+
 .alumnos-clase-modal__nombre {
   margin: 0;
   font-weight: 600;
@@ -149,4 +180,22 @@
   margin: 2px 0 0;
   color: var(--text-muted);
   font-size: 13px;
+}
+
+.alumnos-clase-modal__button-asistencia {
+  width: 100%;
+  margin-top: 20px;
+  padding: 14px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--primary);
+  color: #061006;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform var(--transition-fast);
+}
+
+.alumnos-clase-modal__button-asistencia:hover {
+  transform: translateY(-2px);
 }
