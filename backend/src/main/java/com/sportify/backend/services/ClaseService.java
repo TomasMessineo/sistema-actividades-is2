@@ -26,6 +26,7 @@ import com.sportify.backend.repositories.LicenciaProfesorRepository;
 import com.sportify.backend.repositories.ProfesorRepository;
 import com.sportify.backend.repositories.RegistroAsistenciaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -447,6 +448,60 @@ public class ClaseService {
         registroAsistenciaRepository.save(registro);
 
         return AlumnoResumenDTO.fromEntity(alumno);
+    }
+
+    // Corre periódicamente: para cada clase ya terminada (cancelada=false)
+    // que todavía no tiene su asistencia finalizada, marca falto=true a los
+    // alumnos anotados que nadie escaneó y les suma una falta.
+    @Scheduled(fixedRate = 60000)
+    @Transactional
+    public void finalizarAsistenciasDeClasesTerminadas() {
+        LocalDateTime ahora = LocalDateTime.now();
+
+        for (Clase clase : claseRepository.findPendientesDeFinalizarAsistencia()) {
+            if (clase.getFecha() == null || clase.getHora() == null) {
+                continue;
+            }
+
+            LocalDateTime finDeClase = clase.getFecha().atTime(clase.getHora() + 1, 0);
+            if (finDeClase.isAfter(ahora)) {
+                continue;
+            }
+
+            marcarAusentesSinEscanear(clase);
+            clase.setAsistenciaFinalizada(true);
+            claseRepository.save(clase);
+        }
+    }
+
+    // HELPER — a cada alumno anotado en la clase que todavía no tiene un
+    // registro de asistencia, se le crea uno con falto=true y se le suma
+    // una falta.
+    private void marcarAusentesSinEscanear(Clase clase) {
+        if (clase.getListaAsistencia() == null || clase.getListaAsistencia().getAlumnos() == null) {
+            return;
+        }
+
+        Set<Integer> yaRegistrados = registroAsistenciaRepository.findByClase_IdClase(clase.getIdClase()).stream()
+                .map(r -> r.getAlumno().getId())
+                .collect(Collectors.toSet());
+
+        clase.getListaAsistencia().getAlumnos().stream()
+                .collect(Collectors.toMap(Alumno::getId, a -> a, (existente, duplicado) -> existente, LinkedHashMap::new))
+                .values()
+                .stream()
+                .filter(alumno -> !yaRegistrados.contains(alumno.getId()))
+                .forEach(alumno -> {
+                    RegistroAsistencia registroAusente = new RegistroAsistencia();
+                    registroAusente.setAlumno(alumno);
+                    registroAusente.setClase(clase);
+                    registroAusente.setFalto(true);
+                    registroAsistenciaRepository.save(registroAusente);
+
+                    int faltadasActuales = alumno.getClasesFaltadas() == null ? 0 : alumno.getClasesFaltadas();
+                    alumno.setClasesFaltadas(faltadasActuales + 1);
+                    alumnoRepository.save(alumno);
+                });
     }
 
     // 4. ELIMINAR

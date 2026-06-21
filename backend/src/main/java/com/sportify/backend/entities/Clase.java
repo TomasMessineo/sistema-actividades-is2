@@ -69,6 +69,13 @@ public class Clase {
     @Column(nullable = false)
     private Boolean cancelada = false;
 
+    // True una vez que se barrieron los alumnos sin escanear y se les marcó
+    // falto=true al terminar la clase. Evita reprocesar la misma clase en
+    // cada corrida del scheduler. Sin nullable=false a nivel de columna: las
+    // clases ya existentes en la base no tienen valor, y el repositorio las
+    // trata como "no finalizada" (ver ClaseRepository).
+    private Boolean asistenciaFinalizada = false;
+
     @PrePersist
     public void prePersist() {
         if (this.precio == null) {
@@ -77,6 +84,10 @@ public class Clase {
 
         if (this.cancelada == null) {
             this.cancelada = false;
+        }
+
+        if (this.asistenciaFinalizada == null) {
+            this.asistenciaFinalizada = false;
         }
     }
 }
