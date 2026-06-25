@@ -138,7 +138,9 @@ const PopupInscripcionClase = ({
                             <div className="btn-tile-icon">📆</div>
                             <div className="btn-content-wrapper">
                                 <span className="btn-title">Inscripción Mensual</span>
-                                <span className="btn-price">${precioMensual.toLocaleString('es-AR')}</span>
+                                <span className="btn-price">
+                                    {cargandoPreview ? '...' : `$${(precioDiario * clasesDisponibles.length).toLocaleString('es-AR')}`}
+                                </span>
                             </div>
                         </button>
 

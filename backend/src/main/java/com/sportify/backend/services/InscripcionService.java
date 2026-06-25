@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import com.sportify.backend.dtos.AbonoPreviewDTO;
 
 @Service
 public class InscripcionService {
@@ -23,13 +24,15 @@ public class InscripcionService {
     private final PagoRepository pagoRepository;
     private final InscripcionValidator inscripcionValidator;
     private final PagoService pagoService;
+    private final ClaseService claseService;
 
-    public InscripcionService(AlumnoRepository alumnoRepository, ClaseRepository claseRepository, PagoRepository pagoRepository, InscripcionValidator inscripcionValidator, PagoService pagoService) {
+    public InscripcionService(AlumnoRepository alumnoRepository, ClaseRepository claseRepository, PagoRepository pagoRepository, InscripcionValidator inscripcionValidator, PagoService pagoService, ClaseService claseService) {
         this.alumnoRepository = alumnoRepository;
         this.claseRepository = claseRepository;
         this.pagoRepository = pagoRepository;
         this.inscripcionValidator = inscripcionValidator;
         this.pagoService = pagoService;
+        this.claseService = claseService;
     }
 
     @Transactional
@@ -65,7 +68,16 @@ public class InscripcionService {
                         alumno.getCreditos());
             }
 
-            pago.setValor(clase.getPrecio());
+            double precio = clase.getPrecio() != null ? clase.getPrecio() : 0.0;
+            if (pago.getTipo() == Pago.TipoClase.ABONADO) {
+                long cantidadClases = 1;
+                if (clase.getPlantilla() != null) {
+                    java.util.List<AbonoPreviewDTO> preview = claseService.previewAbono(clase.getIdClase(), alumno.getId());
+                    cantidadClases = preview.stream().filter(AbonoPreviewDTO::isDisponible).count();
+                }
+                precio = precio * cantidadClases;
+            }
+            pago.setValor(precio);
             pago.setEstado(Pago.EstadoPago.PENDIENTE);
             Pago pagoGuardado = pagoRepository.save(pago);
 

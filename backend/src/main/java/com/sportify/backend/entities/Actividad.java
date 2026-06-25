@@ -24,6 +24,8 @@ public class Actividad {
     @Enumerated(EnumType.STRING)
     private TipoActividad tipo;
 
+    private Double precio;
+
     public enum TipoActividad {
         YOGA,
         PILATES,

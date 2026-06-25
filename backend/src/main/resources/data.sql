@@ -8,20 +8,20 @@ ALTER TABLE pago DROP CONSTRAINT IF EXISTS pago_tipo_pago_check;
 -- ACTIVIDADES
 -- =========================
 
-INSERT INTO actividad (id_actividad, tipo)
-VALUES (1, 'YOGA')
+INSERT INTO actividad (id_actividad, tipo, precio)
+VALUES (1, 'YOGA', 3000.0)
     ON CONFLICT (id_actividad) DO UPDATE
-                                      SET tipo = EXCLUDED.tipo;
+                                      SET tipo = EXCLUDED.tipo, precio = EXCLUDED.precio;
 
-INSERT INTO actividad (id_actividad, tipo)
-VALUES (2, 'PILATES')
+INSERT INTO actividad (id_actividad, tipo, precio)
+VALUES (2, 'PILATES', 14000.0)
     ON CONFLICT (id_actividad) DO UPDATE
-                                      SET tipo = EXCLUDED.tipo;
+                                      SET tipo = EXCLUDED.tipo, precio = EXCLUDED.precio;
 
-INSERT INTO actividad (id_actividad, tipo)
-VALUES (3, 'FUNCIONAL')
+INSERT INTO actividad (id_actividad, tipo, precio)
+VALUES (3, 'FUNCIONAL', 14000.0)
     ON CONFLICT (id_actividad) DO UPDATE
-                                      SET tipo = EXCLUDED.tipo;
+                                      SET tipo = EXCLUDED.tipo, precio = EXCLUDED.precio;
 
 
 -- =========================

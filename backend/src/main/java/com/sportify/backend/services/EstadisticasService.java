@@ -59,8 +59,8 @@ public class EstadisticasService {
 
         String disciplina = (disciplinaParam == null || disciplinaParam.isBlank()
                 || "TODAS".equalsIgnoreCase(disciplinaParam))
-                ? null
-                : disciplinaParam.toUpperCase();
+                        ? null
+                        : disciplinaParam.toUpperCase();
 
         // Todos los pagos del año (sin filtrar por disciplina).
         List<Pago> delAnio = completados.stream()
@@ -70,7 +70,8 @@ public class EstadisticasService {
         EstadisticasIngresosDTO dto = new EstadisticasIngresosDTO();
         dto.setAnio(anio);
         dto.setDisciplina(disciplina);
-        // "Sin datos" es a nivel año (escenario 2 de la HU), independiente del filtro de disciplina.
+        // "Sin datos" es a nivel año (escenario 2 de la HU), independiente del filtro
+        // de disciplina.
         dto.setHayDatos(!delAnio.isEmpty());
 
         // El selector ofrece los años con pagos + el año actual + el seleccionado.

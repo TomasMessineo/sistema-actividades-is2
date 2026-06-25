@@ -11,7 +11,8 @@ public class ClaseCalendarioDTO {
         private String nombre;
         private String apellido;
 
-        public ProfesorDTO() {}
+        public ProfesorDTO() {
+        }
 
         public ProfesorDTO(Integer id, String nombre, String apellido) {
             this.id = id;
@@ -19,12 +20,29 @@ public class ClaseCalendarioDTO {
             this.apellido = apellido;
         }
 
-        public Integer getId() { return id; }
-        public void setId(Integer id) { this.id = id; }
-        public String getNombre() { return nombre; }
-        public void setNombre(String nombre) { this.nombre = nombre; }
-        public String getApellido() { return apellido; }
-        public void setApellido(String apellido) { this.apellido = apellido; }
+        public Integer getId() {
+            return id;
+        }
+
+        public void setId(Integer id) {
+            this.id = id;
+        }
+
+        public String getNombre() {
+            return nombre;
+        }
+
+        public void setNombre(String nombre) {
+            this.nombre = nombre;
+        }
+
+        public String getApellido() {
+            return apellido;
+        }
+
+        public void setApellido(String apellido) {
+            this.apellido = apellido;
+        }
     }
 
     private int idClase;
@@ -41,7 +59,8 @@ public class ClaseCalendarioDTO {
     public ClaseCalendarioDTO() {
     }
 
-    public ClaseCalendarioDTO(int idClase, LocalDate fecha, Integer hora, String actividad, int inscritos, int cupo, double precio, boolean cancelada, ProfesorDTO profesor, Integer idPlantilla) {
+    public ClaseCalendarioDTO(int idClase, LocalDate fecha, Integer hora, String actividad, int inscritos, int cupo,
+            double precio, boolean cancelada, ProfesorDTO profesor, Integer idPlantilla) {
         this.idClase = idClase;
         this.fecha = fecha;
         this.hora = hora;
@@ -64,8 +83,7 @@ public class ClaseCalendarioDTO {
             profesorDTO = new ProfesorDTO(
                     clase.getProfesor().getId(),
                     clase.getProfesor().getNombre(),
-                    clase.getProfesor().getApellido()
-            );
+                    clase.getProfesor().getApellido());
         }
 
         return new ClaseCalendarioDTO(
@@ -80,8 +98,7 @@ public class ClaseCalendarioDTO {
                 clase.getPrecio(),
                 clase.getCancelada(),
                 profesorDTO,
-                clase.getPlantilla() != null ? clase.getPlantilla().getIdPlantilla() : null
-        );
+                clase.getPlantilla() != null ? clase.getPlantilla().getIdPlantilla() : null);
     }
 
     public int getIdClase() {

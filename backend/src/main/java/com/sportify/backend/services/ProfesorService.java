@@ -90,8 +90,7 @@ public class ProfesorService {
         if (!clasesPendientes.isEmpty()) {
             throw new ProfesorConClasesActivasException(
                     "No se pudo eliminar el profesor porque posee clases activas pendientes. Antes debe modificar las clases asignando un reemplazo.",
-                    clasesPendientes
-            );
+                    clasesPendientes);
         }
 
         profesor.setActivo(false);
@@ -116,7 +115,6 @@ public class ProfesorService {
                 clase.getIdClase(),
                 clase.getFecha(),
                 clase.getHora() == null ? 0 : clase.getHora(),
-                actividad
-        );
+                actividad);
     }
 }
