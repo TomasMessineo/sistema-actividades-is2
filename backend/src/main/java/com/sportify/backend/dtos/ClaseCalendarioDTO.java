@@ -75,7 +75,7 @@ public class ClaseCalendarioDTO {
 
     public static ClaseCalendarioDTO fromEntity(Clase clase) {
         String actividadNombre = clase.getActividad() != null && clase.getActividad().getTipo() != null
-                ? clase.getActividad().getTipo().name()
+                ? clase.getActividad().getTipo()
                 : "CLASE";
 
         ProfesorDTO profesorDTO = null;

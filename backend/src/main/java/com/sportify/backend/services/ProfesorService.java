@@ -109,7 +109,7 @@ public class ProfesorService {
 
     private ClasePendienteDTO convertirAClasePendienteDTO(Clase clase) {
         String actividad = clase.getActividad() != null && clase.getActividad().getTipo() != null
-                ? clase.getActividad().getTipo().name()
+                ? clase.getActividad().getTipo()
                 : "CLASE";
         return new ClasePendienteDTO(
                 clase.getIdClase(),

@@ -28,7 +28,7 @@ public class ClaseActualProfesorDTO {
 
     public static ClaseActualProfesorDTO fromEntity(Clase clase) {
         String actividadNombre = clase.getActividad() != null && clase.getActividad().getTipo() != null
-                ? clase.getActividad().getTipo().name()
+                ? clase.getActividad().getTipo()
                 : "CLASE";
 
         List<AlumnoResumenDTO> alumnos = clase.getListaAsistencia() != null

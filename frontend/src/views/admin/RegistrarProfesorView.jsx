@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
@@ -6,12 +7,6 @@ import * as yup from 'yup'
 import NavbarAdmin from '../../components/Navbar/NavbarAdmin.jsx'
 import { apiFetch } from '../../services/apiClient'
 import '../../styles/Auth.css'
-
-const ACTIVIDADES = [
-  { id: 1, nombre: 'Yoga' },
-  { id: 2, nombre: 'Pilates' },
-  { id: 3, nombre: 'Funcional' }
-]
 
 const schema = yup.object({
   nombre: yup.string().trim().required('El nombre es obligatorio'),
@@ -27,13 +22,27 @@ const schema = yup.object({
     .required('La contraseña es obligatoria'),
   actividadId: yup.number()
     .typeError('Debe seleccionar la disciplina')
-    .oneOf([1, 2, 3], 'La disciplina seleccionada no es válida')
     .required('Debe seleccionar la disciplina')
 }).required()
 
 function RegistrarProfesorView() {
   const [status, setStatus] = useState({ type: '', message: '' })
+  const [actividades, setActividades] = useState([])
   const navigate = useNavigate()
+
+  useEffect(() => {
+    const cargarActividades = async () => {
+      try {
+        const data = await apiFetch('/actividades')
+        if (Array.isArray(data)) {
+          setActividades(data)
+        }
+      } catch (err) {
+        console.error('Error cargando actividades:', err)
+      }
+    }
+    cargarActividades()
+  }, [])
 
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm({
     resolver: yupResolver(schema),
@@ -130,8 +139,8 @@ function RegistrarProfesorView() {
                   defaultValue=""
                 >
                   <option value="" disabled>Seleccioná una disciplina</option>
-                  {ACTIVIDADES.map((a) => (
-                    <option key={a.id} value={a.id}>{a.nombre}</option>
+                  {actividades.map((a) => (
+                    <option key={a.idActividad} value={a.idActividad}>{a.tipo}</option>
                   ))}
                 </select>
                 {errors.actividadId && <span className="field-error-text">{errors.actividadId.message}</span>}

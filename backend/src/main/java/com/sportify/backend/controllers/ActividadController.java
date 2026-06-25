@@ -70,4 +70,45 @@ public class ActividadController {
 
         return ResponseEntity.ok(actividad);
     }
+
+    @PostMapping
+    public ResponseEntity<?> crearActividad(@RequestBody Map<String, Object> payload) {
+        String tipoRaw = (String) payload.get("tipo");
+        if (tipoRaw == null || tipoRaw.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("El nombre de la disciplina es obligatorio");
+        }
+
+        String tipo = tipoRaw.trim();
+        boolean existe = actividadRepository.findAll().stream()
+                .anyMatch(a -> tipo.equalsIgnoreCase(a.getTipo()));
+
+        if (existe) {
+            return ResponseEntity.badRequest().body("La Disciplina no ha sido añadida debido a que la misma ya se encuentra en el sistema");
+        }
+
+        Object precioObj = payload.get("precio");
+        Double precio = 0.0;
+        if (precioObj instanceof Number) {
+            precio = ((Number) precioObj).doubleValue();
+        } else if (precioObj instanceof String) {
+            try {
+                precio = Double.parseDouble((String) precioObj);
+            } catch (NumberFormatException e) {
+                return ResponseEntity.badRequest().body("Tarifa inválida");
+            }
+        }
+        if (precio < 0) {
+            return ResponseEntity.badRequest().body("La tarifa no puede ser negativa");
+        }
+
+        Actividad nueva = new Actividad();
+        nueva.setTipo(tipo.toUpperCase());
+        nueva.setPrecio(precio);
+        actividadRepository.save(nueva);
+
+        return ResponseEntity.ok(Map.of(
+                "message", "La disciplina ha sido añadida correctamente",
+                "actividad", nueva
+        ));
+    }
 }

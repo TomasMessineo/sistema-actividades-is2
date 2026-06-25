@@ -191,7 +191,7 @@ public class ClaseService {
             }
 
             String actividad = (clase.getActividad() != null && clase.getActividad().getTipo() != null)
-                    ? clase.getActividad().getTipo().name()
+                    ? clase.getActividad().getTipo()
                     : "CLASE";
 
             preview.add(new AbonoPreviewDTO(
