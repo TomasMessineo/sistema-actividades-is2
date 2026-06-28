@@ -13,6 +13,8 @@ public interface PagoRepository extends JpaRepository<Pago, Integer> {
 
     List<Pago> findByAlumnoId(int idAlumno);
 
+    List<Pago> findByAlumno_IdAndClase_IdClase(int idAlumno, int idClase);
+
     List<Pago> findByEstado(Pago.EstadoPago estado);
 
     Pago findByIdTransaccion(String idTransaccion);

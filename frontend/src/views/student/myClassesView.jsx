@@ -9,6 +9,7 @@ import {
   cancelarAsistenciaAlumno,
 } from '../../services/claseService'
 import { apiFetch } from '../../services/apiClient'
+import { obtenerInasistenciasAlumno } from '../../services/alumnoService'
 import '../../styles/AvailableClasses.css'
 import '../../styles/MyClasses.css'
 
@@ -105,6 +106,8 @@ function MyClassesView() {
   const [error, setError] = useState('')
   const [isMonthModalOpen, setIsMonthModalOpen] = useState(false)
   const [isEsperaModalOpen, setIsEsperaModalOpen] = useState(false)
+  const [isInasistenciasModalOpen, setIsInasistenciasModalOpen] = useState(false)
+  const [inasistencias, setInasistencias] = useState(null) // { inasistencias, limite }
   const [activeMonth, setActiveMonth] = useState(() => new Date())
   const [feedback, setFeedback] = useState(null) // { tipo: 'ok'|'error', texto }
   const [accionEnCurso, setAccionEnCurso] = useState(null)
@@ -207,14 +210,24 @@ function MyClassesView() {
     }
   }
 
+  const abrirInasistencias = async () => {
+    setIsInasistenciasModalOpen(true)
+    try {
+      const data = await obtenerInasistenciasAlumno(user.id)
+      setInasistencias(data)
+    } catch {
+      setInasistencias({ inasistencias: 0, limite: 3 })
+    }
+  }
+
   const cancelarAsistencia = async (idClase) => {
     setFeedback(null)
     try {
       setAccionEnCurso(`cancelar-${idClase}`)
       const resp = await cancelarAsistenciaAlumno(user.id, idClase)
-      // El backend puede haber devuelto un crédito → reflejarlo localmente
+      // El backend puede haber acreditado un crédito → reflejarlo localmente
       const mensaje = resp?.mensaje || 'Cancelación exitosa.'
-      if (/devolvió 1 crédito/i.test(mensaje)) {
+      if (/acredit[oó] 1 crédito/i.test(mensaje)) {
         updateUser({ creditos: (user.creditos ?? 0) + 1 })
       }
       setFeedback({ tipo: 'ok', texto: mensaje })
@@ -328,6 +341,13 @@ function MyClassesView() {
               >
                 Lista de espera
               </button>
+              <button
+                type="button"
+                className="my-classes-button my-classes-button--secondary"
+                onClick={abrirInasistencias}
+              >
+                Inasistencias
+              </button>
             </aside>
           </section>
         )}
@@ -377,6 +397,46 @@ function MyClassesView() {
             </div>
           </div>
         )}
+
+        {isInasistenciasModalOpen && (() => {
+          const cant = inasistencias?.inasistencias ?? 0
+          const limite = inasistencias?.limite ?? 3
+          let estado = 'ok'
+          let texto = ''
+          if (cant === 0) {
+            estado = 'ok'
+            texto = 'Usted no tiene inasistencias este mes, y goza de un 20% de descuento el mes que viene.'
+          } else if (cant < limite) {
+            estado = 'warning'
+            texto = `${cant} de ${limite} inasistencias para ser penalizado.`
+          } else {
+            estado = 'error'
+            texto = 'Usted ha faltado 3 veces sin avisar, y tendrá un recargo de 20% el mes que viene.'
+          }
+          return (
+            <div className="my-classes-modal" role="dialog" aria-modal="true" aria-label="Inasistencias restantes" onClick={() => setIsInasistenciasModalOpen(false)}>
+              <div className="my-classes-modal__panel" onClick={(event) => event.stopPropagation()}>
+                <div className="my-classes-modal__header">
+                  <div>
+                    <p className="my-classes-modal__kicker">Inasistencias restantes</p>
+                    <h2>Tu estado del mes</h2>
+                  </div>
+                  <button type="button" className="my-classes-modal__close" onClick={() => setIsInasistenciasModalOpen(false)} aria-label="Cerrar">
+                    ×
+                  </button>
+                </div>
+
+                {inasistencias === null ? (
+                  <p className="my-classes-empty">Cargando...</p>
+                ) : (
+                  <div className={`inasistencias-banner inasistencias-banner--${estado}`}>
+                    {texto}
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        })()}
 
         {isMonthModalOpen && (
           <div className="my-classes-modal" role="dialog" aria-modal="true" aria-label="Calendario mensual de mis clases" onClick={closeMonthModal}>

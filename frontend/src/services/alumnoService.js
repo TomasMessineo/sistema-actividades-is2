@@ -35,3 +35,8 @@ export const actualizarAptoMedicoAlumno = (id, file) => {
 export const listarAlumnosDelProfesor = (profesorId) => {
   return apiFetch(`/profesores/${profesorId}/alumnos`);
 };
+
+// Inasistencias del mes actual del alumno → { inasistencias, limite }
+export const obtenerInasistenciasAlumno = (id) => {
+  return apiFetch(`/alumnos/${id}/inasistencias`);
+};

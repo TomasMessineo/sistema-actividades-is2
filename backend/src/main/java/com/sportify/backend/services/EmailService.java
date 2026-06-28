@@ -22,4 +22,13 @@ public class EmailService {
                 nombreAlumno, descripcionClase);
         log.info("===============================================================");
     }
+
+    public void notificarReembolsoIndividual(String emailDestino, String nombreAlumno, String descripcionClase) {
+        log.info("========================= [MOCK EMAIL] =========================");
+        log.info("Para: {}", emailDestino);
+        log.info("Asunto: Devolución de tu pago");
+        log.info("Hola {}, diste de baja tu inscripción a \"{}\". Para la devolución de tu pago, "
+                + "contactate con la administración del gimnasio.", nombreAlumno, descripcionClase);
+        log.info("===============================================================");
+    }
 }

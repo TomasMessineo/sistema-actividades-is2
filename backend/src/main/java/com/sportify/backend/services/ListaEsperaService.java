@@ -16,6 +16,7 @@ import com.sportify.backend.repositories.ClaseRepository;
 import com.sportify.backend.repositories.EsperaAlumnoRepository;
 import com.sportify.backend.repositories.ListaAsistenciaRepository;
 import com.sportify.backend.repositories.ListaEsperaRepository;
+import com.sportify.backend.repositories.PagoRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,12 +31,15 @@ import java.util.stream.Collectors;
 @Service
 public class ListaEsperaService {
 
+    private static final int STRIKES_LIMITE = 3;
+
     private final AlumnoRepository alumnoRepository;
     private final ClaseRepository claseRepository;
     private final ListaEsperaRepository listaEsperaRepository;
     private final ListaAsistenciaRepository listaAsistenciaRepository;
     private final EsperaAlumnoRepository esperaAlumnoRepository;
     private final AptoMedicoRepository aptoMedicoRepository;
+    private final PagoRepository pagoRepository;
     private final InscripcionService inscripcionService;
     private final EmailService emailService;
 
@@ -46,6 +50,7 @@ public class ListaEsperaService {
             ListaAsistenciaRepository listaAsistenciaRepository,
             EsperaAlumnoRepository esperaAlumnoRepository,
             AptoMedicoRepository aptoMedicoRepository,
+            PagoRepository pagoRepository,
             InscripcionService inscripcionService,
             EmailService emailService) {
         this.alumnoRepository = alumnoRepository;
@@ -54,6 +59,7 @@ public class ListaEsperaService {
         this.listaAsistenciaRepository = listaAsistenciaRepository;
         this.esperaAlumnoRepository = esperaAlumnoRepository;
         this.aptoMedicoRepository = aptoMedicoRepository;
+        this.pagoRepository = pagoRepository;
         this.inscripcionService = inscripcionService;
         this.emailService = emailService;
     }
@@ -205,28 +211,81 @@ public class ListaEsperaService {
         }
         listaAsistenciaRepository.save(listaAsistencia);
 
-        // Regla de las 24hs: si cancela con al menos 24hs de anticipación, recupera 1 crédito
-        LocalDateTime inicioClase = clase.getFecha().atTime(clase.getHora() == null ? 0 : clase.getHora(), 0);
-        boolean conAnticipacion = LocalDateTime.now().plusHours(24).isBefore(inicioClase)
-                || LocalDateTime.now().plusHours(24).isEqual(inicioClase);
+        boolean esAbono = esInscripcionPorAbono(idAlumno, idClase);
 
-        String mensajeCredito;
-        if (conAnticipacion) {
-            int creditos = alumno.getCreditos() == null ? 0 : alumno.getCreditos();
-            alumno.setCreditos(creditos + 1);
-            alumnoRepository.save(alumno);
-            mensajeCredito = " Se te devolvió 1 crédito.";
+        // Umbral de anticipación para no recibir strike: 48hs abono mensual / 24hs individual
+        int umbralHoras = esAbono ? 48 : 24;
+        LocalDateTime inicioClase = clase.getFecha().atTime(clase.getHora() == null ? 0 : clase.getHora(), 0);
+        boolean aTiempo = !LocalDateTime.now().plusHours(umbralHoras).isAfter(inicioClase);
+
+        String mensaje;
+        if (aTiempo) {
+            if (esAbono) {
+                // Abono a tiempo → se acredita 1 crédito
+                int creditos = alumno.getCreditos() == null ? 0 : alumno.getCreditos();
+                alumno.setCreditos(creditos + 1);
+                alumnoRepository.save(alumno);
+                mensaje = "Te diste de baja con éxito. Se te acreditó 1 crédito.";
+            } else {
+                // Individual a tiempo → email para gestionar la devolución del dinero
+                alumnoRepository.save(alumno);
+                emailService.notificarReembolsoIndividual(
+                        alumno.getEmail(), alumno.getNombre(), descripcionClase(clase));
+                mensaje = "Te diste de baja con éxito. Te enviamos un correo para gestionar la devolución de tu pago con la administración del gimnasio.";
+            }
         } else {
-            mensajeCredito = " Al cancelar con menos de 24hs no se devuelve el crédito.";
+            // Canceló tarde → strike
+            int strikes = (alumno.getStrikes() == null ? 0 : alumno.getStrikes()) + 1;
+            alumno.setStrikes(strikes);
+            alumnoRepository.save(alumno);
+
+            if (strikes >= STRIKES_LIMITE) {
+                mensaje = "Te diste de baja con éxito. Acumulaste " + strikes + " strikes este mes, "
+                        + "por lo que perdés el 20% de descuento del mes que viene.";
+            } else {
+                mensaje = "Te diste de baja con éxito. Tenés " + strikes + " de " + STRIKES_LIMITE
+                        + " strikes este mes; al llegar a " + STRIKES_LIMITE + " perdés el 20% de descuento del mes que viene.";
+            }
         }
 
         // Se liberó un cupo → habilitar al primero de la cola de espera (si hay)
         boolean huboNotificado = habilitarPrimeroDeLaCola(idClase);
 
         if (huboNotificado) {
-            return "Cancelación exitosa." + mensajeCredito + " Se notificó al primer alumno de la lista de espera.";
+            return mensaje + " Se notificó al primer alumno de la lista de espera.";
         }
-        return "Cancelación exitosa." + mensajeCredito;
+        return mensaje;
+    }
+
+    // Determina si la inscripción del alumno a esa clase fue por abono mensual o individual.
+    // Busca el pago de esa clase puntual; si no hay (caso típico de las clases del abono que no
+    // son la "elegida"), se considera abono si el alumno tiene algún pago ABONADO completado.
+    private boolean esInscripcionPorAbono(int idAlumno, int idClase) {
+        boolean tienePagoIndividualDeLaClase = pagoRepository
+                .findByAlumno_IdAndClase_IdClase(idAlumno, idClase).stream()
+                .anyMatch(p -> p.getEstado() == Pago.EstadoPago.COMPLETADO
+                        && p.getTipo() == Pago.TipoClase.INDIVIDUAL);
+        if (tienePagoIndividualDeLaClase) {
+            return false;
+        }
+
+        boolean tienePagoAbonoDeLaClase = pagoRepository
+                .findByAlumno_IdAndClase_IdClase(idAlumno, idClase).stream()
+                .anyMatch(p -> p.getEstado() == Pago.EstadoPago.COMPLETADO
+                        && p.getTipo() == Pago.TipoClase.ABONADO);
+        if (tienePagoAbonoDeLaClase) {
+            return true;
+        }
+
+        // No hay pago directo de esta clase → si tiene un abono completado, es por abono
+        return pagoRepository.findByAlumnoId(idAlumno).stream()
+                .anyMatch(p -> p.getEstado() == Pago.EstadoPago.COMPLETADO
+                        && p.getTipo() == Pago.TipoClase.ABONADO);
+    }
+
+    private String descripcionClase(Clase clase) {
+        return nombreActividad(clase) + " " + clase.getFecha()
+                + " " + (clase.getHora() == null ? "" : clase.getHora() + ":00");
     }
 
     // Habilita el cupo al primer alumno sin acceso de la cola, reordena y envía email mock.

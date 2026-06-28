@@ -25,6 +25,14 @@ public class Alumno extends com.sportify.backend.entities.Usuario {
     @Column(name = "creditos")
     private Integer creditos = 0;
 
+    // Strikes del mes por cancelar tarde. A los 3 pierde el 20% de descuento del mes siguiente.
+    @Column(name = "strikes")
+    private Integer strikes = 0;
+
+    // Inasistencias del mes (faltar sin avisar). A las 3 recibe penalización del 20%.
+    @Column(name = "inasistencias")
+    private Integer inasistencias = 0;
+
     @JsonIgnore
     @ManyToMany(mappedBy = "alumnos")
     private List<ListaAsistencia> asistencias;
@@ -47,6 +55,12 @@ public class Alumno extends com.sportify.backend.entities.Usuario {
     public void normalizarCreditos() {
         if (creditos == null) {
             creditos = 0;
+        }
+        if (strikes == null) {
+            strikes = 0;
+        }
+        if (inasistencias == null) {
+            inasistencias = 0;
         }
     }
 

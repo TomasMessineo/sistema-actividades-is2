@@ -11,7 +11,7 @@ FRENTE - Historia de Usuario
 * Si el alumno se da de baja con la anticipación suficiente (48hs para abono mensual, 24hs para individual), no recibe strike.
 * Al acumular 3 strikes en el mes, el alumno es penalizado.
 * Si el alumno se da de baja a tiempo de una clase de **abono mensual**, se le acredita 1 crédito.
-* Si el alumno se da de baja a tiempo de una clase **individual**, se le envía un correo indicándole que debe pedir la devolución de su pago en efectivo al staff.
+* Si el alumno se da de baja a tiempo de una clase **individual**, se le envía un correo indicándole que se contacte con la administración del gimnasio para la devolución de su pago.
 * El alumno notificado de la lista de espera tiene 1 día (24hs) para confirmar su asistencia. Si no confirma dentro de ese plazo, pierde el turno y el sistema notifica al siguiente alumno de la cola.
 
 * * *
@@ -37,13 +37,13 @@ REVERSO - Criterios de Aceptación
 
 * **Dado** un alumno "Rodrigo Rodriguez" que está anotado a la clase "Funcional 8:00 Viernes", la cual pagó individualmente, y que ocurrirá en más de 1 día
 * **Cuando** el alumno "Rodrigo Rodriguez" presione el botón de darse de baja de la clase y el botón de confirmación
-* **Entonces** el sistema le notificará que se dió de baja con éxito y le enviará un correo notificandolo que debe pedir la devolución de su pago en efectivo al staff.
+* **Entonces** el sistema le notificará que se dió de baja con éxito y le enviará un correo notificandolo que debe contactarse con la administración del gimnasio para la devolución de su pago.
 
 #### Escenario 4: Éxito individual sin strike y con Lista de espera
 
 * **Dado** un alumno "Rodrigo Rodriguez" que está anotado a la clase "Funcional 8:00 Viernes", la cual pagó individualmente, que ocurrirá en más de 1 día y que tiene alumnos anotados en la lista de espera
 * **Cuando** el alumno "Rodrigo Rodriguez" presione el botón de darse de baja de la clase y el botón de confirmación
-* **Entonces** el sistema le notificará que se dió de baja con éxito y le enviará un correo notificandolo que debe pedir la devolución de su pago en efectivo al staff. Luego enviará un correo al primer usuario en la lista de espera para que confirme su asistencia y decrementará la posición en la lista de espera de todos los demas.
+* **Entonces** el sistema le notificará que se dió de baja con éxito y le enviará un correo notificandolo que debe contactarse con la administración del gimnasio para la devolución de su pago. Luego enviará un correo al primer usuario en la lista de espera para que confirme su asistencia y decrementará la posición en la lista de espera de todos los demas.
 
 #### Escenario 5: Éxito abonado con strike
 
