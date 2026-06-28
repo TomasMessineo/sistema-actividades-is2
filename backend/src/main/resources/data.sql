@@ -451,6 +451,10 @@ DROP SEQUENCE IF EXISTS lista_espera_seq;
 CREATE SEQUENCE lista_espera_seq INCREMENT BY 1 START WITH 1;
 SELECT setval('lista_espera_seq', COALESCE((SELECT MAX(id_lista_espera) FROM lista_espera), 0) + 1, false);
 
+DROP SEQUENCE IF EXISTS espera_alumno_seq;
+CREATE SEQUENCE espera_alumno_seq INCREMENT BY 1 START WITH 1;
+SELECT setval('espera_alumno_seq', COALESCE((SELECT MAX(id) FROM espera_alumno), 0) + 1, false);
+
 DROP SEQUENCE IF EXISTS foto_de_perfil_seq;
 CREATE SEQUENCE foto_de_perfil_seq INCREMENT BY 1 START WITH 1;
 SELECT setval('foto_de_perfil_seq', COALESCE((SELECT MAX(id_foto_de_perfil) FROM foto_de_perfil), 0) + 1, false);

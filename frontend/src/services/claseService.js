@@ -70,3 +70,27 @@ export const cancelarDesdeSerie = (idPlantilla, desde) => {
     body: JSON.stringify({ desde }),
   });
 };
+
+// ===================== LISTA DE ESPERA =====================
+
+// Clases en las que el alumno está en lista de espera (con posición y acceso).
+export const listarClasesEnEspera = (idAlumno) => {
+  return apiFetch(`/lista-espera/alumno/${idAlumno}`);
+};
+
+// Confirma la asistencia desde la lista de espera (solo si tiene acceso).
+// metodoPago: 'CREDITOS' para pagar con crédito; null/otro para ir al pago.
+export const confirmarAsistenciaEspera = (idAlumno, idClase, metodoPago) => {
+  return apiFetch('/lista-espera/confirmar', {
+    method: 'POST',
+    body: JSON.stringify({ idAlumno, idClase, metodoPago }),
+  });
+};
+
+// Cancela la asistencia de un alumno ya inscripto a una clase.
+export const cancelarAsistenciaAlumno = (idAlumno, idClase) => {
+  return apiFetch('/lista-espera/cancelar-asistencia', {
+    method: 'POST',
+    body: JSON.stringify({ idAlumno, idClase }),
+  });
+};

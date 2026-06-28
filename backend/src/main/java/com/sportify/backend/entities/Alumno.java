@@ -28,11 +28,7 @@ public class Alumno extends com.sportify.backend.entities.Usuario {
     @JsonIgnore
     @ManyToMany(mappedBy = "alumnos")
     private List<ListaAsistencia> asistencias;
-    
-    @JsonIgnore
-    @ManyToMany(mappedBy = "alumnos")
-    private List<ListaEspera> esperas;
-    
+
     @JsonIgnore
     @OneToMany(mappedBy = "alumno")
     private List<Pago> pagos;

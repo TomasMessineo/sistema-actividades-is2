@@ -1,10 +1,22 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '../../components/Navbar/NavbarAlumno.jsx'
 import { useAuth } from '../../context/AuthContext'
-import { listarClasesDelAlumno } from '../../services/claseService'
+import {
+  listarClasesDelAlumno,
+  listarClasesEnEspera,
+  confirmarAsistenciaEspera,
+  cancelarAsistenciaAlumno,
+} from '../../services/claseService'
+import { apiFetch } from '../../services/apiClient'
 import '../../styles/AvailableClasses.css'
 import '../../styles/MyClasses.css'
+
+const PRECIOS_ACTIVIDAD = {
+  YOGA: { diario: 3000 },
+  PILATES: { diario: 3500 },
+  FUNCIONAL: { diario: 2500 },
+}
 
 const monthFormatter = new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'long' })
 const monthTitleFormatter = new Intl.DateTimeFormat('es-AR', { month: 'long', year: 'numeric' })
@@ -88,11 +100,16 @@ const buildMonthGrid = (date, classes) => {
 function MyClassesView() {
   const [classes, setClasses] = useState([])
   const [allClasses, setAllClasses] = useState([])
+  const [clasesEnEspera, setClasesEnEspera] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [isMonthModalOpen, setIsMonthModalOpen] = useState(false)
+  const [isEsperaModalOpen, setIsEsperaModalOpen] = useState(false)
   const [activeMonth, setActiveMonth] = useState(() => new Date())
-  const { user, loading: authLoading } = useAuth()
+  const [feedback, setFeedback] = useState(null) // { tipo: 'ok'|'error', texto }
+  const [accionEnCurso, setAccionEnCurso] = useState(null)
+  const { user, loading: authLoading, updateUser } = useAuth()
+  const navigate = useNavigate()
 
   useEffect(() => {
     if (authLoading) {
@@ -106,30 +123,108 @@ function MyClassesView() {
       return
     }
 
-    const loadClasses = async () => {
-      setLoading(true)
-      setError('')
-
-      try {
-        const response = await listarClasesDelAlumno(user?.id)
-        const enrolledClasses = Array.isArray(response) ? response : []
-        setAllClasses(enrolledClasses)
-
-        const upcomingClasses = enrolledClasses
-          .filter((item) => item?.fecha && typeof item.hora === 'number')
-          .sort((left, right) => getClassDateTime(left) - getClassDateTime(right))
-          .slice(0, 3)
-
-        setClasses(upcomingClasses)
-      } catch (loadError) {
-        setError(loadError.message || 'No se pudieron cargar tus clases.')
-      } finally {
-        setLoading(false)
-      }
-    }
-
     loadClasses()
   }, [authLoading, user?.id])
+
+  const loadClasses = async () => {
+    setLoading(true)
+    setError('')
+
+    try {
+      const [response, espera] = await Promise.all([
+        listarClasesDelAlumno(user?.id),
+        listarClasesEnEspera(user?.id),
+      ])
+
+      const enrolledClasses = Array.isArray(response) ? response : []
+      setAllClasses(enrolledClasses)
+
+      const upcomingClasses = enrolledClasses
+        .filter((item) => item?.fecha && typeof item.hora === 'number')
+        .sort((left, right) => getClassDateTime(left) - getClassDateTime(right))
+        .slice(0, 3)
+
+      setClasses(upcomingClasses)
+      setClasesEnEspera(Array.isArray(espera) ? espera : [])
+    } catch (loadError) {
+      setError(loadError.message || 'No se pudieron cargar tus clases.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const confirmarAsistencia = async (claseEspera) => {
+    setFeedback(null)
+    const tieneCreditos = (user?.creditos ?? 0) > 0
+
+    if (tieneCreditos) {
+      try {
+        setAccionEnCurso(`confirmar-${claseEspera.idClase}`)
+        const resp = await confirmarAsistenciaEspera(user.id, claseEspera.idClase, 'CREDITOS')
+        if (resp?.creditosRestantes != null) {
+          updateUser({ creditos: resp.creditosRestantes })
+        } else {
+          updateUser({ creditos: (user.creditos ?? 1) - 1 })
+        }
+        setFeedback({ tipo: 'ok', texto: 'Inscripción confirmada con crédito.' })
+        await loadClasses()
+      } catch (err) {
+        setFeedback({ tipo: 'error', texto: err.message || 'No se pudo confirmar la asistencia.' })
+      } finally {
+        setAccionEnCurso(null)
+      }
+      return
+    }
+
+    // Sin créditos → flujo de pago individual
+    try {
+      setAccionEnCurso(`confirmar-${claseEspera.idClase}`)
+      const actividadKey = (claseEspera.actividad || '').toString().toUpperCase()
+      const precio = PRECIOS_ACTIVIDAD[actividadKey]?.diario ?? 0
+
+      const inscripcion = await apiFetch('/inscripciones/iniciar', {
+        method: 'POST',
+        body: JSON.stringify({
+          idAlumno: user.id,
+          idClase: claseEspera.idClase,
+          tipoClase: 'INDIVIDUAL',
+          metodoPago: null,
+        }),
+      })
+
+      navigate('/pago', {
+        state: {
+          idPago: inscripcion?.idPago,
+          idAlumno: user.id,
+          idClase: claseEspera.idClase,
+          monto: inscripcion?.monto ?? precio,
+          tipoPago: 'INDIVIDUAL',
+        },
+      })
+    } catch (err) {
+      setFeedback({ tipo: 'error', texto: err.message || 'No se pudo iniciar el pago.' })
+      setAccionEnCurso(null)
+    }
+  }
+
+  const cancelarAsistencia = async (idClase) => {
+    setFeedback(null)
+    try {
+      setAccionEnCurso(`cancelar-${idClase}`)
+      const resp = await cancelarAsistenciaAlumno(user.id, idClase)
+      // El backend puede haber devuelto un crédito → reflejarlo localmente
+      const mensaje = resp?.mensaje || 'Cancelación exitosa.'
+      if (/devolvió 1 crédito/i.test(mensaje)) {
+        updateUser({ creditos: (user.creditos ?? 0) + 1 })
+      }
+      setFeedback({ tipo: 'ok', texto: mensaje })
+      await loadClasses()
+    } catch (err) {
+      setFeedback({ tipo: 'error', texto: err.message || 'No se pudo cancelar la asistencia.' })
+    } finally {
+      setAccionEnCurso(null)
+    }
+  }
 
   useEffect(() => {
     if (!isMonthModalOpen) {
@@ -180,6 +275,12 @@ function MyClassesView() {
         {loading && <p className="calendar-status">Cargando tus clases...</p>}
         {!loading && error && <p className="calendar-status calendar-status--error">{error}</p>}
 
+        {!loading && !error && feedback && (
+          <div className={`my-classes-feedback my-classes-feedback--${feedback.tipo}`}>
+            {feedback.texto}
+          </div>
+        )}
+
         {!loading && !error && (
           <section className="my-classes-layout">
             <div className="my-classes-panel">
@@ -194,6 +295,14 @@ function MyClassesView() {
                         <strong>{classItem.title}</strong>
                         <p>{classItem.detail}</p>
                       </div>
+                      <button
+                        type="button"
+                        className="my-class-cancel-btn"
+                        onClick={() => cancelarAsistencia(classItem.id)}
+                        disabled={accionEnCurso === `cancelar-${classItem.id}`}
+                      >
+                        {accionEnCurso === `cancelar-${classItem.id}` ? 'Cancelando...' : 'Cancelar asistencia'}
+                      </button>
                     </li>
                   ))}
                 </ul>
@@ -212,8 +321,61 @@ function MyClassesView() {
                 <h2 className="my-classes-title">Encontrá una clase nueva para sumarte</h2>
               </div>
               <Link to="/alumno/clasesDisponibles" className="my-classes-button">Buscas clases nuevas</Link>
+              <button
+                type="button"
+                className="my-classes-button my-classes-button--secondary"
+                onClick={() => setIsEsperaModalOpen(true)}
+              >
+                Lista de espera
+              </button>
             </aside>
           </section>
+        )}
+
+        {isEsperaModalOpen && (
+          <div className="my-classes-modal" role="dialog" aria-modal="true" aria-label="Clases en lista de espera" onClick={() => setIsEsperaModalOpen(false)}>
+            <div className="my-classes-modal__panel" onClick={(event) => event.stopPropagation()}>
+              <div className="my-classes-modal__header">
+                <div>
+                  <p className="my-classes-modal__kicker">Lista de espera</p>
+                  <h2>Clases en las que estás esperando</h2>
+                </div>
+                <button type="button" className="my-classes-modal__close" onClick={() => setIsEsperaModalOpen(false)} aria-label="Cerrar">
+                  ×
+                </button>
+              </div>
+
+              {clasesEnEspera.length === 0 ? (
+                <p className="my-classes-empty">No tenés clases en lista de espera.</p>
+              ) : (
+                <ul className="my-classes-list">
+                  {clasesEnEspera.map((clase) => (
+                    <li key={clase.idClase} className="my-class-item my-class-item--espera">
+                      <div>
+                        <strong>{clase.actividad}</strong>
+                        <p>{formatClassDate(clase.fecha, clase.hora)}</p>
+                        <span className={`my-class-espera-badge ${clase.tieneAcceso ? 'my-class-espera-badge--listo' : ''}`}>
+                          {clase.tieneAcceso
+                            ? '¡Se liberó un cupo! Confirmá tu asistencia'
+                            : `En espera · posición ${clase.posicion}`}
+                        </span>
+                      </div>
+                      {clase.tieneAcceso && (
+                        <button
+                          type="button"
+                          className="my-class-confirm-btn"
+                          onClick={() => confirmarAsistencia(clase)}
+                          disabled={accionEnCurso === `confirmar-${clase.idClase}`}
+                        >
+                          {accionEnCurso === `confirmar-${clase.idClase}` ? 'Procesando...' : 'Confirmar asistencia'}
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
         )}
 
         {isMonthModalOpen && (
