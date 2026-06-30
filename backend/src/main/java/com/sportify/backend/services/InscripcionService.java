@@ -75,7 +75,29 @@ public class InscripcionService {
                     java.util.List<AbonoPreviewDTO> preview = claseService.previewAbono(clase.getIdClase(), alumno.getId());
                     cantidadClases = preview.stream().filter(AbonoPreviewDTO::isDisponible).count();
                 }
-                precio = precio * cantidadClases;
+                double totalSinDescuento = precio * cantidadClases;
+
+                double factor = 1.0;
+                int inasistencias = alumno.getInasistencias() == null ? 0 : alumno.getInasistencias();
+                int strikes = alumno.getStrikes() == null ? 0 : alumno.getStrikes();
+
+                if (inasistencias >= 3) {
+                    factor = 1.2;
+                } else if (strikes < 3) {
+                    if (cantidadClases >= 4) {
+                        factor = 0.8;
+                    } else if (cantidadClases == 3) {
+                        factor = 0.85;
+                    } else if (cantidadClases == 2) {
+                        factor = 0.9;
+                    } else {
+                        factor = 1.0;
+                    }
+                } else {
+                    factor = 1.0;
+                }
+
+                precio = totalSinDescuento * factor;
             }
             pago.setValor(precio);
             pago.setEstado(Pago.EstadoPago.PENDIENTE);

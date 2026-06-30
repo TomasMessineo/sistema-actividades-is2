@@ -30,7 +30,7 @@ public class RegistroAsistenciaDTO {
         String actividadNombre = registro.getClase() != null
                 && registro.getClase().getActividad() != null
                 && registro.getClase().getActividad().getTipo() != null
-                ? registro.getClase().getActividad().getTipo().name()
+                ? registro.getClase().getActividad().getTipo()
                 : "CLASE";
 
         return new RegistroAsistenciaDTO(

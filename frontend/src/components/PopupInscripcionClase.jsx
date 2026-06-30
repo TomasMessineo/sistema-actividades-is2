@@ -42,10 +42,12 @@ const PopupInscripcionClase = ({
 }) => {
     const [previewAbono, setPreviewAbono] = useState([])
     const [cargandoPreview, setCargandoPreview] = useState(false)
+    const [alumnoDetalle, setAlumnoDetalle] = useState({ strikes: 0, inasistencias: 0 })
 
     useEffect(() => {
         if (!isOpen || !idClase) {
             setPreviewAbono([])
+            setAlumnoDetalle({ strikes: 0, inasistencias: 0 })
             return
         }
 
@@ -54,12 +56,22 @@ const PopupInscripcionClase = ({
             try {
                 const url = `${API_BASE_URL}/clases/abono/preview?idClase=${idClase}${idAlumno ? `&idAlumno=${idAlumno}` : ''}`
                 const respuesta = await fetch(url)
-                if (!respuesta.ok) {
-                    setPreviewAbono([])
-                    return
+                let data = []
+                if (respuesta.ok) {
+                    data = await respuesta.json()
                 }
-                const data = await respuesta.json()
                 setPreviewAbono(Array.isArray(data) ? data : [])
+
+                if (idAlumno) {
+                    const respAlumno = await fetch(`${API_BASE_URL}/alumnos/${idAlumno}`)
+                    if (respAlumno.ok) {
+                        const datAlumno = await respAlumno.json()
+                        setAlumnoDetalle({
+                            strikes: datAlumno.strikes ?? 0,
+                            inasistencias: datAlumno.inasistencias ?? 0
+                        })
+                    }
+                }
             } catch {
                 setPreviewAbono([])
             } finally {
@@ -79,6 +91,41 @@ const PopupInscripcionClase = ({
     const diariaUsaCredito = creditos > 0
     const clasesDisponibles = previewAbono.filter((c) => c.disponible)
     const mensualHabilitado = !cargandoPreview && clasesDisponibles.length > 0
+
+    const baseMensual = precioDiario * clasesDisponibles.length
+    let factor = 1.0
+    let discountLabel = ''
+    let discountColor = ''
+
+    if (alumnoDetalle.inasistencias >= 3) {
+        factor = 1.2
+        discountLabel = 'Recargo de 20% por inasistencias'
+        discountColor = '#e55353'
+    } else if (alumnoDetalle.strikes < 3) {
+        if (clasesDisponibles.length >= 4) {
+            factor = 0.8;
+            discountLabel = '20% desc. aplicado (Abono completo)'
+            discountColor = '#2eb85c'
+        } else if (clasesDisponibles.length === 3) {
+            factor = 0.85;
+            discountLabel = '15% desc. aplicado (3 clases)'
+            discountColor = '#2eb85c'
+        } else if (clasesDisponibles.length === 2) {
+            factor = 0.9;
+            discountLabel = '10% desc. aplicado (2 clases)'
+            discountColor = '#2eb85c'
+        } else {
+            factor = 1.0;
+            discountLabel = '0% desc. para 1 sola clase'
+            discountColor = '#8a93a2'
+        }
+    } else {
+        factor = 1.0
+        discountLabel = 'Sin descuento por penalización de strikes'
+        discountColor = '#e55353'
+    }
+
+    const precioMensualCalculado = baseMensual * factor
 
     return (
         <div className="popup-overlay-chic" onClick={onClose}>
@@ -139,8 +186,13 @@ const PopupInscripcionClase = ({
                             <div className="btn-content-wrapper">
                                 <span className="btn-title">Inscripción Mensual</span>
                                 <span className="btn-price">
-                                    {cargandoPreview ? '...' : `$${(precioDiario * clasesDisponibles.length).toLocaleString('es-AR')}`}
+                                    {cargandoPreview ? '...' : `$${precioMensualCalculado.toLocaleString('es-AR')}`}
                                 </span>
+                                {!cargandoPreview && clasesDisponibles.length > 0 && discountLabel && (
+                                    <span className="btn-discount-badge" style={{ color: discountColor, fontSize: '11px', fontWeight: '500', marginTop: '4px', display: 'block' }}>
+                                        {discountLabel}
+                                    </span>
+                                )}
                             </div>
                         </button>
 

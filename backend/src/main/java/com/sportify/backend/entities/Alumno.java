@@ -60,6 +60,7 @@ public class Alumno extends com.sportify.backend.entities.Usuario {
         }
         if (clasesFaltadas == null) {
             clasesFaltadas = 0;
+        }
         if (strikes == null) {
             strikes = 0;
         }

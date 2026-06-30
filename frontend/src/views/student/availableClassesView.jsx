@@ -180,7 +180,7 @@ function AvailableClassesView() {
       navigate('/pago', {
         state: {
           idPago: response.data.idPago,
-          monto: tipoInscripcion === 'mensual' ? precioMensualActual : precioDiarioActual,
+          monto: response.data.monto,
           tipoPago: tipoInscripcion === 'mensual' ? 'ABONADO' : 'INDIVIDUAL'
         }
       })

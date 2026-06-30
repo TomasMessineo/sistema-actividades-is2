@@ -19,6 +19,7 @@ import com.sportify.backend.entities.LicenciaProfesor;
 import com.sportify.backend.entities.ListaAsistencia;
 import com.sportify.backend.entities.Profesor;
 import com.sportify.backend.entities.RegistroAsistencia;
+import com.sportify.backend.repositories.ActividadRepository;
 import com.sportify.backend.repositories.AlumnoRepository;
 import com.sportify.backend.repositories.ClasePlantillaRepository;
 import com.sportify.backend.repositories.ClaseRepository;
@@ -63,6 +64,9 @@ public class ClaseService {
 
     @Autowired
     private LicenciaProfesorRepository licenciaProfesorRepository;
+
+    @Autowired
+    private ActividadRepository actividadRepository;
 
     // 1. LISTAR
     public List<Clase> listarClases() {
@@ -352,8 +356,17 @@ public class ClaseService {
             clase.setCancelada(false);
         }
 
-        if (clase.getPrecio() == null) {
-            clase.setPrecio(0.0);
+        if (clase.getPrecio() == null || clase.getPrecio() == 0.0) {
+            if (clase.getActividad() != null && clase.getActividad().getIdActividad() != null) {
+                Actividad act = actividadRepository.findById(clase.getActividad().getIdActividad()).orElse(null);
+                if (act != null && act.getPrecio() != null) {
+                    clase.setPrecio(act.getPrecio());
+                } else {
+                    clase.setPrecio(0.0);
+                }
+            } else {
+                clase.setPrecio(0.0);
+            }
         }
 
         List<Clase> clasesFechaYHoraSolicitadas = this.listarClasesDeUnaFechaYHora(clase.getFecha(), clase.getHora());
@@ -879,13 +892,14 @@ public class ClaseService {
 
         DayOfWeek dia = DIAS.get(request.getDia());
         int hora = request.getHora();
-        double precio = request.getPrecio() != null ? request.getPrecio() : 0.0;
 
         Profesor profesor = profesorRepository.findById(request.getProfesorId())
                 .orElseThrow(() -> new RuntimeException("El profesor seleccionado no existe."));
 
-        Actividad actividad = new Actividad();
-        actividad.setIdActividad(request.getActividadId());
+        Actividad actividad = actividadRepository.findById(request.getActividadId())
+                .orElseThrow(() -> new RuntimeException("La actividad seleccionada no existe."));
+
+        double precio = request.getPrecio() != null ? request.getPrecio() : (actividad.getPrecio() != null ? actividad.getPrecio() : 0.0);
 
         List<LocalDate> fechas = generarFechasSerie(dia, hora);
         if (fechas.isEmpty()) {

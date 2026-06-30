@@ -61,6 +61,7 @@ public class AlumnoController {
     @Transactional(readOnly = true)
     public List<RegistroAsistenciaDTO> listarHistorialAsistencias(@PathVariable Integer id) {
         return alumnoService.listarHistorialAsistencias(id);
+    }
     // Inasistencias del mes actual del alumno (para el menú "inasistencias restantes")
     @GetMapping("/{id}/inasistencias")
     public ResponseEntity<?> obtenerInasistencias(@PathVariable Integer id) {
@@ -71,6 +72,16 @@ public class AlumnoController {
                     "inasistencias", inasistencias,
                     "limite", 3
             ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<?> obtenerAlumno(@PathVariable Integer id) {
+        try {
+            Alumno alumno = alumnoService.buscarPorId(id);
+            return ResponseEntity.ok(alumno);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

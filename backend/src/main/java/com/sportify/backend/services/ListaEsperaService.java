@@ -333,7 +333,7 @@ public class ListaEsperaService {
 
     private String nombreActividad(Clase clase) {
         return clase.getActividad() != null && clase.getActividad().getTipo() != null
-                ? clase.getActividad().getTipo().name()
+                ? clase.getActividad().getTipo()
                 : "CLASE";
     }
 

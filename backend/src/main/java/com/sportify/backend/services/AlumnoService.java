@@ -14,8 +14,10 @@ import com.sportify.backend.repositories.RegistroAsistenciaRepository;
 import com.sportify.backend.validations.AlumnoValidator;
 import com.sportify.backend.entities.ListaAsistencia;
 import com.sportify.backend.entities.ListaEspera;
+import com.sportify.backend.entities.EsperaAlumno;
 import com.sportify.backend.repositories.ListaAsistenciaRepository;
 import com.sportify.backend.repositories.ListaEsperaRepository;
+import com.sportify.backend.repositories.EsperaAlumnoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
@@ -61,6 +63,9 @@ public class AlumnoService {
 
     @Autowired
     private ListaEsperaRepository listaEsperaRepository;
+
+    @Autowired
+    private EsperaAlumnoRepository esperaAlumnoRepository;
 
     // 1. LISTAR (solo activos)
     public List<Alumno> listarTodos() {
@@ -111,14 +116,14 @@ public class AlumnoService {
         }
 
         // Quitar de todas las listas de espera
-        if (alumno.getEsperas() != null) {
-            for (ListaEspera espera : new java.util.ArrayList<>(alumno.getEsperas())) {
-                if (espera.getAlumnos() != null) {
-                    espera.getAlumnos().remove(alumno);
-                    listaEsperaRepository.save(espera);
-                }
+        List<EsperaAlumno> esperas = esperaAlumnoRepository.findByAlumno_Id(id);
+        for (EsperaAlumno espera : esperas) {
+            ListaEspera lista = espera.getListaEspera();
+            if (lista != null && lista.getIntegrantes() != null) {
+                lista.getIntegrantes().remove(espera);
+                listaEsperaRepository.save(lista);
             }
-            alumno.getEsperas().clear();
+            esperaAlumnoRepository.delete(espera);
         }
 
         alumno.setActivo(false);
