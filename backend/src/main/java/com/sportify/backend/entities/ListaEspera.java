@@ -22,13 +22,8 @@ public class ListaEspera {
     @SequenceGenerator(name = "lista_espera_gen", sequenceName = "lista_espera_seq", allocationSize = 1)
     private int idListaEspera;
 
-    @ManyToMany
-    @JoinTable(
-            name = "lista_espera_alumnos",
-            joinColumns = @JoinColumn(name = "lista_espera_id"),
-            inverseJoinColumns = @JoinColumn(name = "alumno_id")
-    )
-    private List<Alumno> alumnos;
+    @OneToMany(mappedBy = "listaEspera", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<EsperaAlumno> integrantes;
 
     @JsonIgnore
     @OneToOne

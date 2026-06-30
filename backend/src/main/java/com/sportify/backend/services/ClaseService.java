@@ -43,7 +43,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-
 @Service
 public class ClaseService {
 
@@ -73,18 +72,18 @@ public class ClaseService {
     private List<Clase> listAll() {
         return listarClases();
     }
-    
+
     public List<Clase> listForAlumno(Integer alumnoId) {
         if (alumnoId == null) {
             return List.of();
         }
-        
+
         return listAll().stream()
                 .filter(clase -> !Boolean.TRUE.equals(clase.getCancelada()))
                 .filter(clase -> clase.getListaAsistencia() != null
                         && clase.getListaAsistencia().getAlumnos() != null
                         && clase.getListaAsistencia().getAlumnos().stream()
-                        .anyMatch(alumno -> java.util.Objects.equals(alumno.getId(), alumnoId)))
+                                .anyMatch(alumno -> java.util.Objects.equals(alumno.getId(), alumnoId)))
                 .collect(Collectors.toList());
     }
 
@@ -113,12 +112,13 @@ public class ClaseService {
     }
 
     private boolean isAlumnoInWaitingList(Clase clase, Integer alumnoId) {
-        if (clase.getListaEspera() == null || clase.getListaEspera().getAlumnos() == null) {
+        if (clase.getListaEspera() == null || clase.getListaEspera().getIntegrantes() == null) {
             return false;
         }
 
-        return clase.getListaEspera().getAlumnos().stream()
-                .map(Alumno::getId)
+        return clase.getListaEspera().getIntegrantes().stream()
+                .filter(ea -> ea.getAlumno() != null)
+                .map(ea -> ea.getAlumno().getId())
                 .anyMatch(id -> java.util.Objects.equals(id, alumnoId));
     }
 
@@ -131,7 +131,8 @@ public class ClaseService {
         return inscritos >= cupo;
     }
 
-    // HELPER — true si el alumno ya está inscripto en OTRA clase en la misma fecha y hora.
+    // HELPER — true si el alumno ya está inscripto en OTRA clase en la misma fecha
+    // y hora.
     private boolean alumnoTieneOtraClaseEnHorario(Integer alumnoId, Clase clase) {
         if (alumnoId == null) {
             return false;
@@ -199,7 +200,7 @@ public class ClaseService {
             }
 
             String actividad = (clase.getActividad() != null && clase.getActividad().getTipo() != null)
-                    ? clase.getActividad().getTipo().name()
+                    ? clase.getActividad().getTipo()
                     : "CLASE";
 
             preview.add(new AbonoPreviewDTO(
@@ -208,8 +209,7 @@ public class ClaseService {
                     clase.getHora() != null ? clase.getHora() : 0,
                     actividad,
                     disponible,
-                    motivo
-            ));
+                    motivo));
         }
 
         return preview;
@@ -247,13 +247,16 @@ public class ClaseService {
 
     // HELPER
     private boolean profesorOcupado(LocalDate fecha, int hora, Integer profesorId) {
-        if (profesorId == null) return false;
+        if (profesorId == null)
+            return false;
         return !claseRepository.findByFechaAndHoraAndProfesor_Id(fecha, hora, profesorId).isEmpty();
     }
 
-    // HELPER — igual que profesorOcupado pero ignora la clase que se está modificando
+    // HELPER — igual que profesorOcupado pero ignora la clase que se está
+    // modificando
     private boolean profesorOcupadoExcluyendo(LocalDate fecha, int hora, Integer profesorId, int idClaseActual) {
-        if (profesorId == null) return false;
+        if (profesorId == null)
+            return false;
         return claseRepository.findByFechaAndHoraAndProfesor_Id(fecha, hora, profesorId)
                 .stream()
                 .anyMatch(c -> c.getIdClase() != idClaseActual);
@@ -281,7 +284,8 @@ public class ClaseService {
     private void validarDiaHabil(LocalDate fecha) {
         DayOfWeek dia = fecha.getDayOfWeek();
         if (dia == DayOfWeek.SATURDAY || dia == DayOfWeek.SUNDAY) {
-            throw new RuntimeException("El gimnasio no opera los fines de semana. Las clases solo pueden programarse de lunes a viernes.");
+            throw new RuntimeException(
+                    "El gimnasio no opera los fines de semana. Las clases solo pueden programarse de lunes a viernes.");
         }
     }
 
@@ -293,12 +297,12 @@ public class ClaseService {
         }
     }
 
-    //HELPER
+    // HELPER
     private boolean horaDisponible(LocalDate fecha, int hora) {
         return this.listarClasesDeUnaFechaYHora(fecha, hora).size() < 3;
     }
 
-    //HELPER
+    // HELPER
     private boolean tieneAlumnosInscriptos(Clase clase) {
         ListaAsistencia listaAsistencia = clase.getListaAsistencia();
 
@@ -306,7 +310,6 @@ public class ClaseService {
                 && listaAsistencia.getAlumnos() != null
                 && !listaAsistencia.getAlumnos().isEmpty();
     }
-
 
     // HELPER
     private boolean cupoDisponibleEnTurno(List<Clase> listaClases, int cupoClase) {
@@ -319,8 +322,7 @@ public class ClaseService {
     private List<Clase> listarClasesDelTurnoExcluyendoClaseActual(
             LocalDate fecha,
             int hora,
-            int idClaseActual
-    ) {
+            int idClaseActual) {
         return claseRepository.findByFechaAndHoraAndCanceladaFalse(fecha, hora)
                 .stream()
                 .filter(clase -> clase.getIdClase() != idClaseActual)
@@ -338,11 +340,8 @@ public class ClaseService {
         return listaClases.stream()
                 .filter(clase -> clase.getActividad() != null)
                 .filter(clase -> clase.getActividad().getIdActividad() != null)
-                .anyMatch(clase ->
-                        clase.getActividad().getIdActividad().equals(idActividadNueva)
-                );
+                .anyMatch(clase -> clase.getActividad().getIdActividad().equals(idActividadNueva));
     }
-
 
     // 2. AGREGAR / GUARDAR
     public Clase crearClase(Clase clase) {
@@ -357,20 +356,23 @@ public class ClaseService {
             clase.setPrecio(0.0);
         }
 
-        List<Clase> clasesFechaYHoraSolicitadas =
-                this.listarClasesDeUnaFechaYHora(clase.getFecha(), clase.getHora());
+        List<Clase> clasesFechaYHoraSolicitadas = this.listarClasesDeUnaFechaYHora(clase.getFecha(), clase.getHora());
 
         Integer profesorId = clase.getProfesor() != null ? clase.getProfesor().getId() : null;
         validarActividadDelProfesor(clase.getActividad(), profesorId);
 
-        // El conflicto de disciplina se evalúa primero: cubre los casos de "3 clases en el turno"
-        // y "profesor ocupado", ya que esos siempre desembocan en una clase de la misma actividad.
+        // El conflicto de disciplina se evalúa primero: cubre los casos de "3 clases en
+        // el turno"
+        // y "profesor ocupado", ya que esos siempre desembocan en una clase de la misma
+        // actividad.
         if (this.mismaDisciplinaEnElTurno(clasesFechaYHoraSolicitadas, clase.getActividad())) {
-            throw new RuntimeException("Lo sentimos, no ha sido posible registrar la clase, ya que en ese turno se encuentra registrada la misma disciplina");
+            throw new RuntimeException(
+                    "Lo sentimos, no ha sido posible registrar la clase, ya que en ese turno se encuentra registrada la misma disciplina");
         }
 
         if (!this.horaDisponible(clase.getFecha(), clase.getHora())) {
-            throw new RuntimeException("Lo sentimos, el horario ingresado ya tiene 3 clases asignadas. Por favor, pruebe con un horario distinto");
+            throw new RuntimeException(
+                    "Lo sentimos, el horario ingresado ya tiene 3 clases asignadas. Por favor, pruebe con un horario distinto");
         }
 
         if (this.profesorOcupado(clase.getFecha(), clase.getHora(), profesorId)) {
@@ -378,7 +380,8 @@ public class ClaseService {
         }
 
         if (!this.cupoDisponibleEnTurno(clasesFechaYHoraSolicitadas, clase.getCupo())) {
-            throw new RuntimeException("Lo sentimos, no ha sido posible registrar la clase ya que el cupo máximo de 30 personas ha sido superado, por favor inténtelo de nuevo.");
+            throw new RuntimeException(
+                    "Lo sentimos, no ha sido posible registrar la clase ya que el cupo máximo de 30 personas ha sido superado, por favor inténtelo de nuevo.");
         }
 
         return claseRepository.save(clase);
@@ -405,7 +408,8 @@ public class ClaseService {
         // El join (lista_asistencia_alumnos) puede tener filas duplicadas para un
         // mismo alumno; se deduplica por id antes de mapear a DTO.
         return clase.getListaAsistencia().getAlumnos().stream()
-                .collect(Collectors.toMap(Alumno::getId, a -> a, (existente, duplicado) -> existente, LinkedHashMap::new))
+                .collect(Collectors.toMap(Alumno::getId, a -> a, (existente, duplicado) -> existente,
+                        LinkedHashMap::new))
                 .values()
                 .stream()
                 .map(alumno -> AlumnoAsistenciaDTO.fromEntity(alumno, faltoPorAlumno.get(alumno.getId())))
@@ -521,7 +525,8 @@ public class ClaseService {
         validarDiaHabil(nuevaFechaParaValidar);
 
         if (tieneAlumnosInscriptos(claseExistente)) {
-            throw new RuntimeException("La modificación no se ha podido realizar ya que hay alumnos inscriptos en la clase");
+            throw new RuntimeException(
+                    "La modificación no se ha podido realizar ya que hay alumnos inscriptos en la clase");
         }
 
         LocalDate nuevaFecha = claseActualizada.getFecha() != null
@@ -542,8 +547,7 @@ public class ClaseService {
                 ? claseActualizada.getActividad()
                 : claseExistente.getActividad();
 
-        List<Clase> clasesDelTurnoSinLaActual =
-                listarClasesDelTurnoExcluyendoClaseActual(nuevaFecha, nuevaHora, id);
+        List<Clase> clasesDelTurnoSinLaActual = listarClasesDelTurnoExcluyendoClaseActual(nuevaFecha, nuevaHora, id);
 
         Integer profesorIdNuevo = claseActualizada.getProfesor() != null
                 ? claseActualizada.getProfesor().getId()
@@ -551,10 +555,13 @@ public class ClaseService {
 
         validarActividadDelProfesor(actividadAValidar, profesorIdNuevo);
 
-        // El conflicto de disciplina se evalúa primero: cubre los casos de "3 clases en el turno"
-        // y "profesor ocupado", ya que esos siempre desembocan en una clase de la misma actividad.
+        // El conflicto de disciplina se evalúa primero: cubre los casos de "3 clases en
+        // el turno"
+        // y "profesor ocupado", ya que esos siempre desembocan en una clase de la misma
+        // actividad.
         if (mismaDisciplinaEnElTurno(clasesDelTurnoSinLaActual, actividadAValidar)) {
-            throw new RuntimeException("La modificación no es posible ya que hay una clase de la misma disciplina en el turno seleccionado.");
+            throw new RuntimeException(
+                    "La modificación no es posible ya que hay una clase de la misma disciplina en el turno seleccionado.");
         }
 
         if (clasesDelTurnoSinLaActual.size() >= 3) {
@@ -566,7 +573,8 @@ public class ClaseService {
         }
 
         if (!cupoDisponibleEnTurno(clasesDelTurnoSinLaActual, nuevoCupo)) {
-            throw new RuntimeException("La modificación no es posible ya que el cupo en el mismo turno excede la capacidad del gimnasio");
+            throw new RuntimeException(
+                    "La modificación no es posible ya que el cupo en el mismo turno excede la capacidad del gimnasio");
         }
 
         claseExistente.setFecha(nuevaFecha);
@@ -590,7 +598,8 @@ public class ClaseService {
         }
 
         ListaAsistencia listaAsistencia = claseExistente.getListaAsistencia();
-        if (listaAsistencia != null && listaAsistencia.getAlumnos() != null && !listaAsistencia.getAlumnos().isEmpty()) {
+        if (listaAsistencia != null && listaAsistencia.getAlumnos() != null
+                && !listaAsistencia.getAlumnos().isEmpty()) {
             listaAsistencia.getAlumnos().forEach(alumno -> {
                 Integer creditosActuales = alumno.getCreditos() == null ? 0 : alumno.getCreditos();
                 alumno.setCreditos(creditosActuales + 1);
@@ -707,8 +716,7 @@ public class ClaseService {
             "tuesday", DayOfWeek.TUESDAY,
             "wednesday", DayOfWeek.WEDNESDAY,
             "thursday", DayOfWeek.THURSDAY,
-            "friday", DayOfWeek.FRIDAY
-    );
+            "friday", DayOfWeek.FRIDAY);
 
     // HELPER — genera las fechas semanales desde la próxima ocurrencia del día
     // elegido hasta dentro de 2 meses (misma ventana que usaba el front).
@@ -717,7 +725,8 @@ public class ClaseService {
         int diff = (dia.getValue() - hoy.getDayOfWeek().getValue() + 7) % 7;
         LocalDate inicio = hoy.plusDays(diff);
 
-        // Si la primera ocurrencia es hoy pero la hora ya pasó, arrancamos la próxima semana.
+        // Si la primera ocurrencia es hoy pero la hora ya pasó, arrancamos la próxima
+        // semana.
         if (diff == 0 && hora <= LocalTime.now().getHour()) {
             inicio = inicio.plusWeeks(1);
         }
@@ -744,8 +753,7 @@ public class ClaseService {
             DayOfWeek dia,
             int hora,
             LocalDate vigenciaDesdeNueva,
-            LocalDate vigenciaHastaNueva
-    ) {
+            LocalDate vigenciaHastaNueva) {
         return clasePlantillaRepository.findByDiaSemanaAndHoraAndActivaTrue(dia, hora)
                 .stream()
                 .filter(p -> seSuperponenVigencias(
@@ -755,7 +763,8 @@ public class ClaseService {
     }
 
     // HELPER — análogo a mismaDisciplinaEnElTurno, pero evaluado contra plantillas.
-    private boolean mismaDisciplinaEnElTurnoPlantilla(List<ClasePlantilla> plantillasSuperpuestas, Actividad actividad) {
+    private boolean mismaDisciplinaEnElTurnoPlantilla(List<ClasePlantilla> plantillasSuperpuestas,
+            Actividad actividad) {
         if (actividad == null || actividad.getIdActividad() == null) {
             return false;
         }
@@ -775,7 +784,8 @@ public class ClaseService {
 
     // HELPER — análogo a profesorOcupado, pero evaluado contra plantillas.
     private boolean profesorOcupadoPlantilla(List<ClasePlantilla> plantillasSuperpuestas, Integer profesorId) {
-        if (profesorId == null) return false;
+        if (profesorId == null)
+            return false;
         return plantillasSuperpuestas.stream()
                 .anyMatch(p -> p.getProfesor() != null && profesorId.equals(p.getProfesor().getId()));
     }
@@ -883,8 +893,7 @@ public class ClaseService {
         }
 
         LocalDate vigenciaDesde = fechas.get(0);
-        List<ClasePlantilla> plantillasSuperpuestas =
-                plantillasSuperpuestasEnElTurno(dia, hora, vigenciaDesde, null);
+        List<ClasePlantilla> plantillasSuperpuestas = plantillasSuperpuestasEnElTurno(dia, hora, vigenciaDesde, null);
 
         // Mismo orden que las validaciones de turno para una Clase concreta:
         // disciplina repetida primero, luego cupo de turno, profesor y cupo total.
@@ -893,7 +902,8 @@ public class ClaseService {
         }
 
         if (!turnoDisponiblePlantilla(plantillasSuperpuestas)) {
-            throw new RuntimeException("Ese día y horario ya tiene 3 series asignadas. Por favor, pruebe con un horario distinto.");
+            throw new RuntimeException(
+                    "Ese día y horario ya tiene 3 series asignadas. Por favor, pruebe con un horario distinto.");
         }
 
         if (profesorOcupadoPlantilla(plantillasSuperpuestas, profesor.getId())) {
@@ -949,8 +959,7 @@ public class ClaseService {
                 plantillaGuardada.getIdPlantilla(),
                 creadas,
                 errores.size(),
-                errores
-        );
+                errores);
     }
 
     // HELPER — true si el profesor está de licencia (no disponible) en esa fecha.
@@ -964,7 +973,8 @@ public class ClaseService {
                         && !fecha.isAfter(l.getHasta()));
     }
 
-    // HELPER — true si el profesor está disponible para dar clase en esa fecha/hora:
+    // HELPER — true si el profesor está disponible para dar clase en esa
+    // fecha/hora:
     // ni de licencia, ni ya dictando otra clase en ese mismo turno.
     private boolean profesorDisponible(Integer profesorId, LocalDate fecha, int hora, int idClaseExcluir) {
         if (profesorEnLicencia(profesorId, fecha)) {
@@ -1002,10 +1012,12 @@ public class ClaseService {
         if ("SERIE".equals(alcance)) {
             ClasePlantilla plantilla = clase.getPlantilla();
             if (plantilla == null) {
-                throw new RuntimeException("Esta clase no pertenece a una serie, no se puede cambiar el profesor de toda la serie.");
+                throw new RuntimeException(
+                        "Esta clase no pertenece a una serie, no se puede cambiar el profesor de toda la serie.");
             }
 
-            // Materializamos los próximos 2 meses para tener el período concreto de clases futuras.
+            // Materializamos los próximos 2 meses para tener el período concreto de clases
+            // futuras.
             LocalDate hoy = LocalDate.now();
             materializarRango(hoy, hoy.plusMonths(2));
 
@@ -1015,11 +1027,13 @@ public class ClaseService {
                     .filter(this::claseAunNoImpartida)
                     .collect(Collectors.toList());
 
-            // El profesor debe estar disponible en TODO el período; si falla en alguna, no se cambia nada.
+            // El profesor debe estar disponible en TODO el período; si falla en alguna, no
+            // se cambia nada.
             boolean noDisponibleEnAlguna = futuras.stream()
                     .anyMatch(c -> !profesorDisponible(profesor.getId(), c.getFecha(), c.getHora(), c.getIdClase()));
             if (noDisponibleEnAlguna) {
-                throw new RuntimeException("El cambio de profesor no pudo realizarse debido a que el profesor seleccionado no se encuentra disponible para todo o una parte del período seleccionado.");
+                throw new RuntimeException(
+                        "El cambio de profesor no pudo realizarse debido a que el profesor seleccionado no se encuentra disponible para todo o una parte del período seleccionado.");
             }
 
             plantilla.setProfesor(profesor);
@@ -1032,7 +1046,8 @@ public class ClaseService {
 
         // INDIVIDUAL — solo esta clase.
         if (!profesorDisponible(profesor.getId(), clase.getFecha(), clase.getHora(), clase.getIdClase())) {
-            throw new RuntimeException("El cambio de profesor no pudo realizarse debido a que el profesor seleccionado no se encuentra disponible para dar clases en el día y horario seleccionados.");
+            throw new RuntimeException(
+                    "El cambio de profesor no pudo realizarse debido a que el profesor seleccionado no se encuentra disponible para dar clases en el día y horario seleccionados.");
         }
 
         clase.setProfesor(profesor);

@@ -98,30 +98,13 @@ function AvailableClassesView() {
           activity: item.actividad,
           inscritos: item.inscritos ?? 0,
           cupo: item.cupo ?? 0,
+          precio: item.precio ?? 0,
+          idPlantilla: item.idPlantilla ?? null,
+          fecha: item.fecha ?? '',
         }
       })
       .filter(Boolean)
   }, [classes, weekStart, weekEnd])
-
-
-  /*Precios hardcodeados por actividad :
-
-  ┌───────────┬────────┬─────────┐
-  │ Actividad │ Diario │ Mensual │
-  ├───────────┼────────┼─────────┤
-  │ Yoga      │ $3.000 │ $20.000 │
-  ├───────────┼────────┼─────────┤
-  │ Pilates   │ $3.500 │ $22.000 │
-  ├───────────┼────────┼─────────┤
-  │ Funcional │ $2.500 │ $18.000 │
-  Cuando lo definamos los precios como van solo cambiar abrirPopup para leer los precios de clase.precios en vez de
-  la constante PRECIOS-ACTIVIDAD
-  */
-  const PRECIOS_ACTIVIDAD = {
-    YOGA:      { diario: 3000,  mensual: 20000 },
-    PILATES:   { diario: 3500,  mensual: 22000 },
-    FUNCIONAL: { diario: 2500,  mensual: 18000 },
-  }
 
   const navigate = useNavigate()
 
@@ -140,13 +123,13 @@ function AvailableClassesView() {
 
   const abrirPopup = (clase) => {
     const estaLlena = Number(clase.inscritos) >= Number(clase.cupo)
-    const activityKey = (clase.activity || '').toString().toUpperCase()
-    const precios = PRECIOS_ACTIVIDAD[activityKey] || { diario: 0, mensual: 0 }
+    const precioDiario = clase.precio || 0
+    const precioMensual = precioDiario // Baseline placeholder
 
     setIdClaseSeleccionada(clase.id)
     setClaseInfo({ actividad: clase.activity, hora: clase.hour })
-    setPrecioDiarioActual(precios.diario)
-    setPrecioMensualActual(precios.mensual)
+    setPrecioDiarioActual(precioDiario)
+    setPrecioMensualActual(precioMensual)
     setErrorInscripcion('')
     setErrorEspera('')
 

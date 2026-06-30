@@ -8,20 +8,20 @@ ALTER TABLE pago DROP CONSTRAINT IF EXISTS pago_tipo_pago_check;
 -- ACTIVIDADES
 -- =========================
 
-INSERT INTO actividad (id_actividad, tipo)
-VALUES (1, 'YOGA')
+INSERT INTO actividad (id_actividad, tipo, precio)
+VALUES (1, 'YOGA', 3000.0)
     ON CONFLICT (id_actividad) DO UPDATE
-                                      SET tipo = EXCLUDED.tipo;
+                                      SET tipo = EXCLUDED.tipo, precio = EXCLUDED.precio;
 
-INSERT INTO actividad (id_actividad, tipo)
-VALUES (2, 'PILATES')
+INSERT INTO actividad (id_actividad, tipo, precio)
+VALUES (2, 'PILATES', 14000.0)
     ON CONFLICT (id_actividad) DO UPDATE
-                                      SET tipo = EXCLUDED.tipo;
+                                      SET tipo = EXCLUDED.tipo, precio = EXCLUDED.precio;
 
-INSERT INTO actividad (id_actividad, tipo)
-VALUES (3, 'FUNCIONAL')
+INSERT INTO actividad (id_actividad, tipo, precio)
+VALUES (3, 'FUNCIONAL', 14000.0)
     ON CONFLICT (id_actividad) DO UPDATE
-                                      SET tipo = EXCLUDED.tipo;
+                                      SET tipo = EXCLUDED.tipo, precio = EXCLUDED.precio;
 
 
 -- =========================
@@ -450,6 +450,10 @@ SELECT setval('lista_asistencia_seq', COALESCE((SELECT MAX(id_lista_asistencia) 
 DROP SEQUENCE IF EXISTS lista_espera_seq;
 CREATE SEQUENCE lista_espera_seq INCREMENT BY 1 START WITH 1;
 SELECT setval('lista_espera_seq', COALESCE((SELECT MAX(id_lista_espera) FROM lista_espera), 0) + 1, false);
+
+DROP SEQUENCE IF EXISTS espera_alumno_seq;
+CREATE SEQUENCE espera_alumno_seq INCREMENT BY 1 START WITH 1;
+SELECT setval('espera_alumno_seq', COALESCE((SELECT MAX(id) FROM espera_alumno), 0) + 1, false);
 
 DROP SEQUENCE IF EXISTS foto_de_perfil_seq;
 CREATE SEQUENCE foto_de_perfil_seq INCREMENT BY 1 START WITH 1;
