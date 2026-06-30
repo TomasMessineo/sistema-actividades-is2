@@ -1,6 +1,7 @@
 package com.sportify.backend.controllers;
 
 import com.sportify.backend.dtos.AbonoPreviewDTO;
+import com.sportify.backend.dtos.AlumnoAsistenciaDTO;
 import com.sportify.backend.dtos.AlumnoResumenDTO;
 import com.sportify.backend.dtos.CambiarProfesorRequest;
 import com.sportify.backend.dtos.CancelarDesdeRequest;
@@ -9,6 +10,7 @@ import com.sportify.backend.dtos.ClaseCalendarioDTO;
 import com.sportify.backend.dtos.ClaseCancelacionResponse;
 import com.sportify.backend.dtos.ClasePlantillaRequest;
 import com.sportify.backend.dtos.ClaseSerieResponse;
+import com.sportify.backend.dtos.EscanearAsistenciaRequest;
 import com.sportify.backend.entities.Clase;
 import com.sportify.backend.services.ClaseService;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -165,8 +167,19 @@ public class ClaseController {
     @Transactional(readOnly = true)
     public ResponseEntity<?> listarAlumnosDeClase(@PathVariable Integer id) {
         try {
-            List<AlumnoResumenDTO> alumnos = claseService.listarAlumnosDeClase(id);
+            List<AlumnoAsistenciaDTO> alumnos = claseService.listarAlumnosDeClase(id);
             return ResponseEntity.ok(alumnos);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // Marca a un alumno como presente en la clase a partir de su QR escaneado.
+    @PostMapping("/{id}/asistencia/escanear")
+    public ResponseEntity<?> registrarAsistenciaPorEscaneo(@PathVariable Integer id, @RequestBody EscanearAsistenciaRequest request) {
+        try {
+            AlumnoResumenDTO alumno = claseService.registrarAsistenciaPorEscaneo(id, request.getIdAlumno());
+            return ResponseEntity.ok(alumno);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

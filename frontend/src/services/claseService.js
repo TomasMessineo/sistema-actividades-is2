@@ -53,6 +53,14 @@ export const obtenerClaseActualDelProfesor = async (profesorId) => {
 export const listarAlumnosDeClase = (idClase) => {
   return apiFetch(`/clases/${idClase}/alumnos`);
 };
+
+// Marca a un alumno como presente en una clase a partir de su QR escaneado.
+export const registrarAsistenciaEscaneada = (idClase, idAlumno) => {
+  return apiFetch(`/clases/${idClase}/asistencia/escanear`, {
+    method: 'POST',
+    body: JSON.stringify({ idAlumno }),
+  });
+};
 // Cancela todas las instancias de una serie dentro de un rango de fechas
 // (el backend materializa las que falten antes de cancelarlas).
 export const cancelarRangoSerie = (idPlantilla, desde, hasta) => {

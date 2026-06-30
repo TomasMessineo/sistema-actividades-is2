@@ -36,6 +36,9 @@ export const listarAlumnosDelProfesor = (profesorId) => {
   return apiFetch(`/profesores/${profesorId}/alumnos`);
 };
 
+// Historial de asistencias del alumno (clases con asistencia ya tomada).
+export const listarHistorialAsistencias = (idAlumno) => {
+  return apiFetch(`/alumnos/${idAlumno}/asistencias`);
 // Inasistencias del mes actual del alumno → { inasistencias, limite }
 export const obtenerInasistenciasAlumno = (id) => {
   return apiFetch(`/alumnos/${id}/inasistencias`);
