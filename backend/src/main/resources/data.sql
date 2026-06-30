@@ -216,7 +216,12 @@ INSERT INTO clase_plantilla (id_plantilla, dia_semana, hora, cupo, precio, activ
   (3, 'WEDNESDAY', 13, 15, 3500.0, true, '2026-06-03', NULL, 2, 8),
   (4, 'FRIDAY',    13, 10, 3500.0, true, '2026-06-05', NULL, 2, 9),
   (5, 'TUESDAY',   13, 1,  2500.0, true, '2026-06-02', NULL, 3, 8),
-  (6, 'FRIDAY',    13, 10, 2500.0, true, '2026-06-05', NULL, 3, 8)
+  (6, 'FRIDAY',    13, 10, 2500.0, true, '2026-06-05', NULL, 3, 8),
+  -- Series de prueba con cupo 2 (para probar lista de espera con clases perpetuas)
+  (7,  'THURSDAY', 10, 2, 3000.0, true, '2026-06-04', NULL, 1, 8),   -- Yoga · Juan Luis · Jue 10
+  (8,  'THURSDAY', 16, 2, 2500.0, true, '2026-06-04', NULL, 2, 10),  -- Pilates · Carlos · Jue 16
+  (9,  'FRIDAY',   18, 2, 3500.0, true, '2026-06-05', NULL, 3, 11),  -- Funcional · Lucía · Vie 18
+  (10, 'FRIDAY',   11, 2, 3000.0, true, '2026-06-05', NULL, 1, 8)    -- Yoga · Juan Luis · Vie 11
     ON CONFLICT (id_plantilla) DO UPDATE
         SET dia_semana = EXCLUDED.dia_semana,
             hora = EXCLUDED.hora,
@@ -302,6 +307,26 @@ INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, can
             plantilla_id = EXCLUDED.plantilla_id;
 
 -- =========================
+-- CLASES DE PRUEBA CON CUPO LLENO (para probar lista de espera)
+-- =========================
+-- Instancias de las series perpetuas 7-10 (cupo 2). Cada una se llena con 2 alumnos.
+-- El resto de las semanas de cada serie se materializan vacías al ver el calendario.
+INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, cancelada, hora, plantilla_id) VALUES
+  (31, 2, '2026-06-04', 3000.0, 1, 8,  false, 10, 7),   -- Yoga · Juan Luis · Jue 10:00
+  (32, 2, '2026-06-04', 2500.0, 2, 10, false, 16, 8),   -- Pilates · Carlos · Jue 16:00
+  (33, 2, '2026-06-05', 3500.0, 3, 11, false, 18, 9),   -- Funcional · Lucía · Vie 18:00
+  (34, 2, '2026-06-05', 3000.0, 1, 8,  false, 11, 10)   -- Yoga · Juan Luis · Vie 11:00
+    ON CONFLICT (id_clase) DO UPDATE
+        SET cupo = EXCLUDED.cupo,
+            fecha = EXCLUDED.fecha,
+            precio = EXCLUDED.precio,
+            actividad_id = EXCLUDED.actividad_id,
+            profesor_id = EXCLUDED.profesor_id,
+            cancelada = EXCLUDED.cancelada,
+            hora = EXCLUDED.hora,
+            plantilla_id = EXCLUDED.plantilla_id;
+
+-- =========================
 -- LICENCIAS DE PROFESOR (prueba)
 -- =========================
 -- Marcelo Mendoza (9) de vacaciones: queda NO disponible para cambios de
@@ -343,6 +368,105 @@ VALUES (1, 3)
     ON CONFLICT DO NOTHING;
 
 -- =========================
+-- INSCRIPCIONES DE LAS CLASES DE PRUEBA LLENAS (clases 31-34)
+-- =========================
+INSERT INTO lista_asistencia (id_lista_asistencia, clase_id) VALUES
+  (2, 31),
+  (3, 32),
+  (4, 33),
+  (5, 34)
+    ON CONFLICT (id_lista_asistencia) DO UPDATE
+        SET clase_id = EXCLUDED.clase_id;
+
+INSERT INTO lista_asistencia_alumnos (lista_asistencia_id, alumno_id) VALUES
+  (2, 3), (2, 4),   -- Clase 31 (Yoga Jue 10): Lucas y Sofía
+  (3, 5), (3, 6),   -- Clase 32 (Pilates Jue 16): Martín y Camila
+  (4, 7), (4, 3),   -- Clase 33 (Funcional Vie 18): Valentina y Lucas
+  (5, 4), (5, 5)    -- Clase 34 (Yoga Vie 11): Sofía y Martín
+    ON CONFLICT DO NOTHING;
+
+-- =========================
+-- CLASES LLENAS DE PRUEBA — TODO JULIO Y AGOSTO (series 7-10, cupo 2)
+-- =========================
+-- Todas las instancias de las 4 series de prueba en julio y agosto 2026 quedan llenas (2/2).
+-- Inscriptos fijos por serie:
+--   Serie 7  (Yoga Jue 10):       Lucas (3)     + Sofía (4)
+--   Serie 8  (Pilates Jue 16):    Martín (5)    + Camila (6)
+--   Serie 9  (Funcional Vie 18):  Valentina (7) + Lucas (3)
+--   Serie 10 (Yoga Vie 11):       Sofía (4)     + Martín (5)
+INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, cancelada, hora, plantilla_id) VALUES
+  -- Serie 7: Yoga · Juan Luis · Jueves 10:00
+  (35, 2, '2026-07-02', 3000.0, 1, 8,  false, 10, 7),
+  (36, 2, '2026-07-09', 3000.0, 1, 8,  false, 10, 7),
+  (37, 2, '2026-07-16', 3000.0, 1, 8,  false, 10, 7),
+  (38, 2, '2026-07-23', 3000.0, 1, 8,  false, 10, 7),
+  (39, 2, '2026-07-30', 3000.0, 1, 8,  false, 10, 7),
+  (40, 2, '2026-08-06', 3000.0, 1, 8,  false, 10, 7),
+  (41, 2, '2026-08-13', 3000.0, 1, 8,  false, 10, 7),
+  (42, 2, '2026-08-20', 3000.0, 1, 8,  false, 10, 7),
+  (43, 2, '2026-08-27', 3000.0, 1, 8,  false, 10, 7),
+  -- Serie 8: Pilates · Carlos · Jueves 16:00
+  (44, 2, '2026-07-02', 2500.0, 2, 10, false, 16, 8),
+  (45, 2, '2026-07-09', 2500.0, 2, 10, false, 16, 8),
+  (46, 2, '2026-07-16', 2500.0, 2, 10, false, 16, 8),
+  (47, 2, '2026-07-23', 2500.0, 2, 10, false, 16, 8),
+  (48, 2, '2026-07-30', 2500.0, 2, 10, false, 16, 8),
+  (49, 2, '2026-08-06', 2500.0, 2, 10, false, 16, 8),
+  (50, 2, '2026-08-13', 2500.0, 2, 10, false, 16, 8),
+  (51, 2, '2026-08-20', 2500.0, 2, 10, false, 16, 8),
+  (52, 2, '2026-08-27', 2500.0, 2, 10, false, 16, 8),
+  -- Serie 9: Funcional · Lucía · Viernes 18:00
+  (53, 2, '2026-07-03', 3500.0, 3, 11, false, 18, 9),
+  (54, 2, '2026-07-10', 3500.0, 3, 11, false, 18, 9),
+  (55, 2, '2026-07-17', 3500.0, 3, 11, false, 18, 9),
+  (56, 2, '2026-07-24', 3500.0, 3, 11, false, 18, 9),
+  (57, 2, '2026-07-31', 3500.0, 3, 11, false, 18, 9),
+  (58, 2, '2026-08-07', 3500.0, 3, 11, false, 18, 9),
+  (59, 2, '2026-08-14', 3500.0, 3, 11, false, 18, 9),
+  (60, 2, '2026-08-21', 3500.0, 3, 11, false, 18, 9),
+  (61, 2, '2026-08-28', 3500.0, 3, 11, false, 18, 9),
+  -- Serie 10: Yoga · Juan Luis · Viernes 11:00
+  (62, 2, '2026-07-03', 3000.0, 1, 8,  false, 11, 10),
+  (63, 2, '2026-07-10', 3000.0, 1, 8,  false, 11, 10),
+  (64, 2, '2026-07-17', 3000.0, 1, 8,  false, 11, 10),
+  (65, 2, '2026-07-24', 3000.0, 1, 8,  false, 11, 10),
+  (66, 2, '2026-07-31', 3000.0, 1, 8,  false, 11, 10),
+  (67, 2, '2026-08-07', 3000.0, 1, 8,  false, 11, 10),
+  (68, 2, '2026-08-14', 3000.0, 1, 8,  false, 11, 10),
+  (69, 2, '2026-08-21', 3000.0, 1, 8,  false, 11, 10),
+  (70, 2, '2026-08-28', 3000.0, 1, 8,  false, 11, 10)
+    ON CONFLICT (id_clase) DO UPDATE
+        SET cupo = EXCLUDED.cupo,
+            fecha = EXCLUDED.fecha,
+            precio = EXCLUDED.precio,
+            actividad_id = EXCLUDED.actividad_id,
+            profesor_id = EXCLUDED.profesor_id,
+            cancelada = EXCLUDED.cancelada,
+            hora = EXCLUDED.hora,
+            plantilla_id = EXCLUDED.plantilla_id;
+
+-- Una lista_asistencia por clase (id_lista = id_clase - 29)
+INSERT INTO lista_asistencia (id_lista_asistencia, clase_id) VALUES
+  (6,35),(7,36),(8,37),(9,38),(10,39),(11,40),(12,41),(13,42),(14,43),
+  (15,44),(16,45),(17,46),(18,47),(19,48),(20,49),(21,50),(22,51),(23,52),
+  (24,53),(25,54),(26,55),(27,56),(28,57),(29,58),(30,59),(31,60),(32,61),
+  (33,62),(34,63),(35,64),(36,65),(37,66),(38,67),(39,68),(40,69),(41,70)
+    ON CONFLICT (id_lista_asistencia) DO UPDATE
+        SET clase_id = EXCLUDED.clase_id;
+
+-- 2 inscriptos por clase (la pareja fija de cada serie)
+INSERT INTO lista_asistencia_alumnos (lista_asistencia_id, alumno_id) VALUES
+  -- Serie 7 (listas 6-14): Lucas (3) y Sofía (4)
+  (6,3),(6,4),(7,3),(7,4),(8,3),(8,4),(9,3),(9,4),(10,3),(10,4),(11,3),(11,4),(12,3),(12,4),(13,3),(13,4),(14,3),(14,4),
+  -- Serie 8 (listas 15-23): Martín (5) y Camila (6)
+  (15,5),(15,6),(16,5),(16,6),(17,5),(17,6),(18,5),(18,6),(19,5),(19,6),(20,5),(20,6),(21,5),(21,6),(22,5),(22,6),(23,5),(23,6),
+  -- Serie 9 (listas 24-32): Valentina (7) y Lucas (3)
+  (24,7),(24,3),(25,7),(25,3),(26,7),(26,3),(27,7),(27,3),(28,7),(28,3),(29,7),(29,3),(30,7),(30,3),(31,7),(31,3),(32,7),(32,3),
+  -- Serie 10 (listas 33-41): Sofía (4) y Martín (5)
+  (33,4),(33,5),(34,4),(34,5),(35,4),(35,5),(36,4),(36,5),(37,4),(37,5),(38,4),(38,5),(39,4),(39,5),(40,4),(40,5),(41,4),(41,5)
+    ON CONFLICT DO NOTHING;
+
+-- =========================
 -- PAGOS DE PRUEBA (para estadísticas de ingresos)
 -- =========================
 -- Pagos COMPLETADO repartidos en los meses de 2026, mezclando clases
@@ -365,6 +489,30 @@ INSERT INTO pago (id_pago, alumno_id, clase_id, valor, fecha, fecha_creacion, fe
   (15, 7, 27,  3500.0, '2026-07-14', NOW(), NOW(), 'INDIVIDUAL', 'MERCADOPAGO',     'COMPLETADO', 'Clase individual','SEED-PAGO-15'),
   (16, 3, 18, 12000.0, '2026-08-03', NOW(), NOW(), 'ABONADO',    'MERCADOPAGO',     'COMPLETADO', 'Abono mensual',  'SEED-PAGO-16'),
   (17, 4, 9,   3000.0, '2026-08-19', NOW(), NOW(), 'INDIVIDUAL', 'TARJETADECREDITO','COMPLETADO', 'Clase individual','SEED-PAGO-17')
+    ON CONFLICT (id_pago) DO UPDATE
+        SET alumno_id = EXCLUDED.alumno_id,
+            clase_id = EXCLUDED.clase_id,
+            valor = EXCLUDED.valor,
+            fecha = EXCLUDED.fecha,
+            tipo = EXCLUDED.tipo,
+            tipo_pago = EXCLUDED.tipo_pago,
+            estado = EXCLUDED.estado;
+
+-- =========================
+-- PAGOS DE LAS CLASES LLENAS DE PRUEBA (clases 31-34)
+-- =========================
+-- Un pago por cada inscripto, mezclando ABONADO e INDIVIDUAL, para poder probar
+-- la cancelación de asistencia con su regla correcta (48hs abono / 24hs individual,
+-- crédito vs email de reembolso).
+INSERT INTO pago (id_pago, alumno_id, clase_id, valor, fecha, fecha_creacion, fecha_actualizacion, tipo, tipo_pago, estado, descripcion, id_transaccion) VALUES
+  (18, 3, 31, 14000.0, '2026-06-01', NOW(), NOW(), 'ABONADO',    'MERCADOPAGO',     'COMPLETADO', 'Abono - clase 31 (Lucas)',      'SEED-LLENA-18'),
+  (19, 4, 31,  3000.0, '2026-06-01', NOW(), NOW(), 'INDIVIDUAL', 'TARJETADECREDITO','COMPLETADO', 'Individual - clase 31 (Sofía)', 'SEED-LLENA-19'),
+  (20, 5, 32, 14000.0, '2026-06-01', NOW(), NOW(), 'ABONADO',    'MERCADOPAGO',     'COMPLETADO', 'Abono - clase 32 (Martín)',     'SEED-LLENA-20'),
+  (21, 6, 32,  2500.0, '2026-06-01', NOW(), NOW(), 'INDIVIDUAL', 'TARJETADECREDITO','COMPLETADO', 'Individual - clase 32 (Camila)','SEED-LLENA-21'),
+  (22, 7, 33, 14000.0, '2026-06-01', NOW(), NOW(), 'ABONADO',    'MERCADOPAGO',     'COMPLETADO', 'Abono - clase 33 (Valentina)',  'SEED-LLENA-22'),
+  (23, 3, 33,  3500.0, '2026-06-01', NOW(), NOW(), 'INDIVIDUAL', 'TARJETADECREDITO','COMPLETADO', 'Individual - clase 33 (Lucas)', 'SEED-LLENA-23'),
+  (24, 4, 34, 14000.0, '2026-06-01', NOW(), NOW(), 'ABONADO',    'MERCADOPAGO',     'COMPLETADO', 'Abono - clase 34 (Sofía)',      'SEED-LLENA-24'),
+  (25, 5, 34,  3000.0, '2026-06-01', NOW(), NOW(), 'INDIVIDUAL', 'TARJETADECREDITO','COMPLETADO', 'Individual - clase 34 (Martín)','SEED-LLENA-25')
     ON CONFLICT (id_pago) DO UPDATE
         SET alumno_id = EXCLUDED.alumno_id,
             clase_id = EXCLUDED.clase_id,
