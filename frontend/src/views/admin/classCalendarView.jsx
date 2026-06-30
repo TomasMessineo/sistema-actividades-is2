@@ -4,6 +4,7 @@ import AvailableClassesCalendar from '../../components/AvailableClassesCalendar.
 import CrearClaseModal from '../../components/CrearClaseModal.jsx'
 import ModificarClaseModal from '../../components/ModificarClaseModal.jsx'
 import { listarClases } from '../../services/claseService'
+import { apiFetch } from '../../services/apiClient'
 import { getDayKey, buildWeekDays } from '../../utils/weekDays'
 import '../../styles/AvailableClasses.css'
 
@@ -54,6 +55,19 @@ function ClassCalendarView() {
   const [modalCrearAbierto, setModalCrearAbierto] = useState(false)
   const [modalModificarAbierto, setModalModificarAbierto] = useState(false)
   const [claseSeleccionada, setClaseSeleccionada] = useState(null)
+ 
+  const [modalDisciplinaAbierto, setModalDisciplinaAbierto] = useState(false)
+  const [nombreDisciplina, setNombreDisciplina] = useState('')
+  const [tarifaDisciplina, setTarifaDisciplina] = useState('')
+  const [errorDisciplina, setErrorDisciplina] = useState('')
+  const [exitoDisciplina, setExitoDisciplina] = useState('')
+
+  const [modalAjusteAbierto, setModalAjusteAbierto] = useState(false)
+  const [actividades, setActividades] = useState([])
+  const [actividadSeleccionada, setActividadSeleccionada] = useState('')
+  const [nuevoPrecio, setNuevoPrecio] = useState('')
+  const [errorAjuste, setErrorAjuste] = useState('')
+  const [exitoAjuste, setExitoAjuste] = useState('')
 
   const cargarClases = async () => {
     setLoading(true)
@@ -66,6 +80,99 @@ function ClassCalendarView() {
       setError(loadError.message || 'No se pudieron cargar las clases.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const abrirModalAjuste = async () => {
+    setErrorAjuste('')
+    setExitoAjuste('')
+    setNuevoPrecio('')
+    setActividadSeleccionada('')
+    setModalAjusteAbierto(true)
+    setActividades([]) // Reset list to trigger loading state
+    try {
+      const data = await apiFetch('/actividades')
+      const dataArr = Array.isArray(data) ? data : []
+      setActividades(dataArr)
+      if (dataArr.length > 0) {
+        setActividadSeleccionada(dataArr[0].idActividad.toString())
+        setNuevoPrecio(dataArr[0].precio ? dataArr[0].precio.toString() : '')
+      }
+    } catch (err) {
+      setErrorAjuste(err.message || 'Error al cargar las disciplinas.')
+    }
+  }
+
+  const manejarCambioActividad = (id) => {
+    setActividadSeleccionada(id)
+    const act = actividades.find(a => a.idActividad.toString() === id)
+    if (act) {
+      setNuevoPrecio(act.precio ? act.precio.toString() : '')
+    }
+  }
+
+  const confirmarAjuste = async () => {
+    if (!actividadSeleccionada) {
+      setErrorAjuste('Seleccioná una disciplina.')
+      return
+    }
+    const precioNum = parseFloat(nuevoPrecio)
+    if (isNaN(precioNum) || precioNum < 0) {
+      setErrorAjuste('Por favor, ingresá un precio válido.')
+      return
+    }
+
+    try {
+      await apiFetch(`/actividades/${actividadSeleccionada}/precio`, {
+        method: 'PUT',
+        body: JSON.stringify({ precio: precioNum })
+      })
+
+      setExitoAjuste('El precio ha sido ajustado correctamente')
+      setTimeout(() => {
+        setModalAjusteAbierto(false)
+        cargarClases()
+      }, 1500)
+    } catch (err) {
+      setErrorAjuste(err.message || 'Ocurrió un error al ajustar el precio.')
+    }
+  }
+
+  const abrirModalDisciplina = () => {
+    setNombreDisciplina('')
+    setTarifaDisciplina('')
+    setErrorDisciplina('')
+    setExitoDisciplina('')
+    setModalDisciplinaAbierto(true)
+  }
+
+  const guardarDisciplina = async () => {
+    if (!nombreDisciplina.trim()) {
+      setErrorDisciplina('El nombre de la disciplina es obligatorio')
+      return
+    }
+    const precioNum = parseFloat(tarifaDisciplina)
+    if (isNaN(precioNum) || precioNum < 0) {
+      setErrorDisciplina('Por favor, ingresá una tarifa válida.')
+      return
+    }
+
+    try {
+      await apiFetch('/actividades', {
+        method: 'POST',
+        body: JSON.stringify({
+          tipo: nombreDisciplina,
+          precio: precioNum
+        })
+      })
+
+      setExitoDisciplina('La disciplina ha sido añadida correctamente')
+      setTimeout(() => {
+        setModalDisciplinaAbierto(false)
+        cargarClases()
+      }, 1500)
+    } catch (err) {
+      setErrorDisciplina(err.message || 'La Disciplina no ha sido añadida debido a que la misma ya se encuentra en el sistema')
     }
   }
 
@@ -139,13 +246,23 @@ function ClassCalendarView() {
         {!loading && error && <p className="calendar-status calendar-status--error">{error}</p>}
         <AvailableClassesCalendar
           headerLeft={(
-            <button
-              type="button"
-              className="calendar-create-button"
-              onClick={() => setModalCrearAbierto(true)}
-            >
-              Crear clase nueva
-            </button>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                type="button"
+                className="calendar-create-button"
+                onClick={() => setModalCrearAbierto(true)}
+              >
+                Crear clase nueva
+              </button>
+              <button
+                type="button"
+                className="calendar-create-button"
+                style={{ background: 'rgba(255,255,255,0.08)', color: '#fff', border: '1px solid rgba(255,255,255,0.12)' }}
+                onClick={abrirModalAjuste}
+              >
+                Ajustar Precio
+              </button>
+            </div>
           )}
           headerCenter={(
             <div className="calendar-week-controls" aria-label="Navegación de semana">
@@ -162,7 +279,7 @@ function ClassCalendarView() {
             <button
               type="button"
               className="calendar-create-button"
-              onClick={() => {}}
+              onClick={abrirModalDisciplina}
             >
               Crear disciplina
             </button>
@@ -194,6 +311,132 @@ function ClassCalendarView() {
           cargarClases()
         }}
       />
+
+      {modalAjusteAbierto && (
+        <div 
+          onClick={() => setModalAjusteAbierto(false)}
+          style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{ background: '#1e1e24', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '16px', padding: '2rem', width: '90%', maxWidth: '400px', display: 'flex', flexDirection: 'column', gap: '1.25rem', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}
+          >
+            <h3 style={{ color: '#fff', fontSize: '1.25rem', margin: 0 }}>Ajustar Precios</h3>
+
+            {actividades.length === 0 && !errorAjuste ? (
+              <p style={{ color: '#a1a1aa', margin: 0, fontSize: '0.875rem' }}>Cargando disciplinas...</p>
+            ) : (
+              <>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <label style={{ color: '#a1a1aa', fontSize: '0.875rem' }}>Disciplina</label>
+                  <select
+                    value={actividadSeleccionada}
+                    onChange={(e) => manejarCambioActividad(e.target.value)}
+                    style={{ width: '100%', padding: '0.75rem', background: '#15151a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#fff', fontSize: '1rem', outline: 'none' }}
+                  >
+                    {actividades.map((act) => (
+                      <option key={act.idActividad} value={act.idActividad}>
+                        {act.tipo} (Precio actual: ${act.precio})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <label style={{ color: '#a1a1aa', fontSize: '0.875rem' }}>Nuevo precio por clase</label>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#a1a1aa' }}>$</span>
+                    <input
+                      type="number"
+                      value={nuevoPrecio}
+                      onChange={(e) => setNuevoPrecio(e.target.value)}
+                      style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 1.75rem', background: '#15151a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#fff', fontSize: '1rem', outline: 'none' }}
+                      placeholder="0.00"
+                      autoFocus
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {errorAjuste && <p style={{ color: '#ff6b6b', fontSize: '0.875rem', margin: 0 }}>{errorAjuste}</p>}
+            {exitoAjuste && <p style={{ color: '#3ecf2a', fontSize: '0.875rem', margin: 0 }}>{exitoAjuste}</p>}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+              <button
+                onClick={() => setModalAjusteAbierto(false)}
+                style={{ padding: '0.5rem 1rem', background: 'transparent', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', color: '#fff', cursor: 'pointer', fontWeight: '600' }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmarAjuste}
+                disabled={actividades.length === 0}
+                style={{ padding: '0.5rem 1rem', background: actividades.length === 0 ? 'rgba(255,255,255,0.08)' : '#3ecf2a', border: 'none', borderRadius: '6px', color: actividades.length === 0 ? '#666' : '#000', cursor: actividades.length === 0 ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {modalDisciplinaAbierto && (
+        <div 
+          onClick={() => setModalDisciplinaAbierto(false)}
+          style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{ background: '#1e1e24', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '16px', padding: '2rem', width: '90%', maxWidth: '400px', display: 'flex', flexDirection: 'column', gap: '1.25rem', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}
+          >
+            <h3 style={{ color: '#fff', fontSize: '1.25rem', margin: 0 }}>Añadir Disciplina</h3>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label style={{ color: '#a1a1aa', fontSize: '0.875rem' }}>Nombre de la disciplina</label>
+              <input
+                type="text"
+                value={nombreDisciplina}
+                onChange={(e) => setNombreDisciplina(e.target.value)}
+                style={{ width: '100%', padding: '0.75rem', background: '#15151a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#fff', fontSize: '1rem', outline: 'none' }}
+                placeholder="Ej. Funcional"
+                autoFocus
+              />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label style={{ color: '#a1a1aa', fontSize: '0.875rem' }}>Tarifa individual</label>
+              <div style={{ position: 'relative' }}>
+                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#a1a1aa' }}>$</span>
+                <input
+                  type="number"
+                  value={tarifaDisciplina}
+                  onChange={(e) => setTarifaDisciplina(e.target.value)}
+                  style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 1.75rem', background: '#15151a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#fff', fontSize: '1rem', outline: 'none' }}
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+
+            {errorDisciplina && <p style={{ color: '#ff6b6b', fontSize: '0.875rem', margin: 0 }}>{errorDisciplina}</p>}
+            {exitoDisciplina && <p style={{ color: '#3ecf2a', fontSize: '0.875rem', margin: 0 }}>{exitoDisciplina}</p>}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+              <button
+                onClick={() => setModalDisciplinaAbierto(false)}
+                style={{ padding: '0.5rem 1rem', background: 'transparent', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', color: '#fff', cursor: 'pointer', fontWeight: '600' }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={guardarDisciplina}
+                style={{ padding: '0.5rem 1rem', background: '#3ecf2a', border: 'none', borderRadius: '6px', color: '#000', cursor: 'pointer', fontWeight: 'bold' }}
+              >
+                Añadir Disciplina
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -90,8 +90,7 @@ public class ProfesorService {
         if (!clasesPendientes.isEmpty()) {
             throw new ProfesorConClasesActivasException(
                     "No se pudo eliminar el profesor porque posee clases activas pendientes. Antes debe modificar las clases asignando un reemplazo.",
-                    clasesPendientes
-            );
+                    clasesPendientes);
         }
 
         profesor.setActivo(false);
@@ -110,13 +109,12 @@ public class ProfesorService {
 
     private ClasePendienteDTO convertirAClasePendienteDTO(Clase clase) {
         String actividad = clase.getActividad() != null && clase.getActividad().getTipo() != null
-                ? clase.getActividad().getTipo().name()
+                ? clase.getActividad().getTipo()
                 : "CLASE";
         return new ClasePendienteDTO(
                 clase.getIdClase(),
                 clase.getFecha(),
                 clase.getHora() == null ? 0 : clase.getHora(),
-                actividad
-        );
+                actividad);
     }
 }

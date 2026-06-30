@@ -21,14 +21,9 @@ public class Actividad {
     @SequenceGenerator(name = "actividad_gen", sequenceName = "actividad_seq", allocationSize = 1)
     private Integer idActividad;
 
-    @Enumerated(EnumType.STRING)
-    private TipoActividad tipo;
+    private String tipo;
 
-    public enum TipoActividad {
-        YOGA,
-        PILATES,
-        FUNCIONAL
-    }
+    private Double precio;
 
     @JsonIgnore
     @OneToMany(mappedBy = "actividad")

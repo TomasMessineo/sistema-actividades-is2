@@ -10,7 +10,12 @@ import com.sportify.backend.repositories.AlumnoRepository;
 import com.sportify.backend.repositories.AptoMedicoRepository;
 import com.sportify.backend.repositories.PagoRepository;
 import com.sportify.backend.validations.AlumnoValidator;
+import com.sportify.backend.entities.ListaAsistencia;
+import com.sportify.backend.entities.ListaEspera;
+import com.sportify.backend.repositories.ListaAsistenciaRepository;
+import com.sportify.backend.repositories.ListaEsperaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -46,6 +51,12 @@ public class AlumnoService {
     @Autowired
     private AlumnoValidator alumnoValidator;
 
+    @Autowired
+    private ListaAsistenciaRepository listaAsistenciaRepository;
+
+    @Autowired
+    private ListaEsperaRepository listaEsperaRepository;
+
     // 1. LISTAR (solo activos)
     public List<Alumno> listarTodos() {
         return alumnoRepository.findByActivoTrue();
@@ -78,15 +89,31 @@ public class AlumnoService {
     }
 
     // 4. ELIMINAR (borrado lógico)
+    @Transactional
     public void desactivar(Integer id) {
         Alumno alumno = alumnoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Alumno no encontrado"));
 
-        boolean tieneClaseActiva = pagoRepository.existsByAlumnoIdAndEstadoAndClaseCanceladaFalseAndClaseFechaGreaterThanEqual(
-                id, Pago.EstadoPago.COMPLETADO, LocalDate.now());
+        // Quitar de todas las listas de asistencia
+        if (alumno.getAsistencias() != null) {
+            for (ListaAsistencia asistencia : new java.util.ArrayList<>(alumno.getAsistencias())) {
+                if (asistencia.getAlumnos() != null) {
+                    asistencia.getAlumnos().remove(alumno);
+                    listaAsistenciaRepository.save(asistencia);
+                }
+            }
+            alumno.getAsistencias().clear();
+        }
 
-        if (tieneClaseActiva) {
-            throw new RuntimeException("No se puede desactivar el alumno porque tiene clases activas pendientes");
+        // Quitar de todas las listas de espera
+        if (alumno.getEsperas() != null) {
+            for (ListaEspera espera : new java.util.ArrayList<>(alumno.getEsperas())) {
+                if (espera.getAlumnos() != null) {
+                    espera.getAlumnos().remove(alumno);
+                    listaEsperaRepository.save(espera);
+                }
+            }
+            alumno.getEsperas().clear();
         }
 
         alumno.setActivo(false);
