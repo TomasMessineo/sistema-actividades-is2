@@ -5,6 +5,7 @@ import com.sportify.backend.entities.Alumno;
 import com.sportify.backend.entities.Clase;
 import com.sportify.backend.entities.ListaAsistencia;
 import com.sportify.backend.entities.Pago;
+import com.sportify.backend.repositories.EsperaAlumnoRepository;
 import com.sportify.backend.repositories.ListaAsistenciaRepository;
 import com.sportify.backend.repositories.PagoRepository;
 import com.sportify.backend.repositories.AlumnoRepository;
@@ -33,6 +34,9 @@ public class PagoService {
 
     @Autowired
     private ListaAsistenciaRepository listaAsistenciaRepository;
+
+    @Autowired
+    private EsperaAlumnoRepository esperaAlumnoRepository;
 
     @Autowired
     @Lazy
@@ -142,6 +146,13 @@ public class PagoService {
 
         lista.getAlumnos().add(alumno);
         listaAsistenciaRepository.save(lista);
+
+        // Si el alumno venía de la lista de espera de esta clase, lo sacamos de la cola.
+        esperaAlumnoRepository.findByAlumno_Id(alumno.getId()).stream()
+                .filter(ea -> ea.getListaEspera() != null
+                        && ea.getListaEspera().getClase() != null
+                        && ea.getListaEspera().getClase().getIdClase() == clase.getIdClase())
+                .forEach(esperaAlumnoRepository::delete);
     }
 
     public Pago actualizarEstado(int idPago, Pago.EstadoPago estado) {

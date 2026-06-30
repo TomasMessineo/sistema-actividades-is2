@@ -104,12 +104,13 @@ public class ClaseService {
     }
 
     private boolean isAlumnoInWaitingList(Clase clase, Integer alumnoId) {
-        if (clase.getListaEspera() == null || clase.getListaEspera().getAlumnos() == null) {
+        if (clase.getListaEspera() == null || clase.getListaEspera().getIntegrantes() == null) {
             return false;
         }
 
-        return clase.getListaEspera().getAlumnos().stream()
-                .map(Alumno::getId)
+        return clase.getListaEspera().getIntegrantes().stream()
+                .filter(ea -> ea.getAlumno() != null)
+                .map(ea -> ea.getAlumno().getId())
                 .anyMatch(id -> java.util.Objects.equals(id, alumnoId));
     }
 
