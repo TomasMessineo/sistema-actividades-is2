@@ -30,6 +30,9 @@ public class Actividad {
         FUNCIONAL
     }
 
+    @Column(columnDefinition = "double precision default 0 not null")
+    private Double precio = 0.0;//por ahora estan con
+
     @JsonIgnore
     @OneToMany(mappedBy = "actividad")
     private List<Clase> clases;

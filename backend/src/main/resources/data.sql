@@ -8,20 +8,20 @@ ALTER TABLE pago DROP CONSTRAINT IF EXISTS pago_tipo_pago_check;
 -- ACTIVIDADES
 -- =========================
 
-INSERT INTO actividad (id_actividad, tipo)
-VALUES (1, 'YOGA')
+INSERT INTO actividad (id_actividad, tipo, precio)
+VALUES (1, 'YOGA', 2500.0)
     ON CONFLICT (id_actividad) DO UPDATE
-                                      SET tipo = EXCLUDED.tipo;
+        SET tipo = EXCLUDED.tipo, precio = EXCLUDED.precio;
 
-INSERT INTO actividad (id_actividad, tipo)
-VALUES (2, 'PILATES')
+INSERT INTO actividad (id_actividad, tipo, precio)
+VALUES (2, 'PILATES', 2000.0)
     ON CONFLICT (id_actividad) DO UPDATE
-                                      SET tipo = EXCLUDED.tipo;
+        SET tipo = EXCLUDED.tipo, precio = EXCLUDED.precio;
 
-INSERT INTO actividad (id_actividad, tipo)
-VALUES (3, 'FUNCIONAL')
+INSERT INTO actividad (id_actividad, tipo, precio)
+VALUES (3, 'FUNCIONAL', 3000.0)
     ON CONFLICT (id_actividad) DO UPDATE
-                                      SET tipo = EXCLUDED.tipo;
+        SET tipo = EXCLUDED.tipo, precio = EXCLUDED.precio;
 
 
 -- =========================
@@ -211,12 +211,12 @@ VALUES (11, 3)
 -- clases con fecha de más abajo son sus instancias (clase_id -> plantilla_id).
 
 INSERT INTO clase_plantilla (id_plantilla, dia_semana, hora, cupo, precio, activa, vigencia_desde, vigencia_hasta, actividad_id, profesor_id) VALUES
-  (1, 'MONDAY',    9,  1,  3000.0, true, '2026-06-01', NULL, 1, 9),
-  (2, 'WEDNESDAY', 9,  10, 3000.0, true, '2026-06-03', NULL, 1, 9),
-  (3, 'WEDNESDAY', 13, 15, 3500.0, true, '2026-06-03', NULL, 2, 8),
-  (4, 'FRIDAY',    13, 10, 3500.0, true, '2026-06-05', NULL, 2, 9),
-  (5, 'TUESDAY',   13, 1,  2500.0, true, '2026-06-02', NULL, 3, 8),
-  (6, 'FRIDAY',    13, 10, 2500.0, true, '2026-06-05', NULL, 3, 8)
+  (1, 'MONDAY',    9,  1,  2500.0, true, '2026-06-01', NULL, 1, 9),
+  (2, 'WEDNESDAY', 9,  10, 2500.0, true, '2026-06-03', NULL, 1, 9),
+  (3, 'WEDNESDAY', 13, 15, 2000.0, true, '2026-06-03', NULL, 2, 8),
+  (4, 'FRIDAY',    13, 10, 2000.0, true, '2026-06-05', NULL, 2, 9),
+  (5, 'TUESDAY',   13, 1,  3000.0, true, '2026-06-02', NULL, 3, 8),
+  (6, 'FRIDAY',    13, 10, 3000.0, true, '2026-06-05', NULL, 3, 8)
     ON CONFLICT (id_plantilla) DO UPDATE
         SET dia_semana = EXCLUDED.dia_semana,
             hora = EXCLUDED.hora,
@@ -233,16 +233,16 @@ INSERT INTO clase_plantilla (id_plantilla, dia_semana, hora, cupo, precio, activ
 -- =========================
 
 INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, cancelada, hora, plantilla_id) VALUES
-  (1, 1, '2026-06-01', 3000.0, 1, 9, false, 9, 1),
-  (2, 1, '2026-06-08', 3000.0, 1, 9, false, 9, 1),
-  (3, 1, '2026-06-15', 3000.0, 1, 9, false, 9, 1),
-  (4, 1, '2026-06-22', 3000.0, 1, 9, false, 9, 1),
-  (5, 1, '2026-06-29', 3000.0, 1, 9, false, 9, 1),
-  (6, 10, '2026-06-03', 3000.0, 1, 9, false, 9, 2),
-  (7, 10, '2026-06-10', 3000.0, 1, 9, false, 9, 2),
-  (8, 10, '2026-06-17', 3000.0, 1, 9, false, 9, 2),
-  (9, 10, '2026-06-24', 3000.0, 1, 9, false, 9, 2),
-  (10, 10, '2026-07-01', 3000.0, 1, 9, false, 9, 2)
+  (1, 1, '2026-06-01', 2500.0, 1, 9, false, 9, 1),
+  (2, 1, '2026-06-08', 2500.0, 1, 9, false, 9, 1),
+  (3, 1, '2026-06-15', 2500.0, 1, 9, false, 9, 1),
+  (4, 1, '2026-06-22', 2500.0, 1, 9, false, 9, 1),
+  (5, 1, '2026-06-29', 2500.0, 1, 9, false, 9, 1),
+  (6, 10, '2026-06-03', 2500.0, 1, 9, false, 9, 2),
+  (7, 10, '2026-06-10', 2500.0, 1, 9, false, 9, 2),
+  (8, 10, '2026-06-17', 2500.0, 1, 9, false, 9, 2),
+  (9, 10, '2026-06-24', 2500.0, 1, 9, false, 9, 2),
+  (10, 10, '2026-07-01', 2500.0, 1, 9, false, 9, 2)
     ON CONFLICT (id_clase) DO UPDATE
         SET cupo = EXCLUDED.cupo,
             fecha = EXCLUDED.fecha,
@@ -257,16 +257,16 @@ INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, can
 -- CLASES FUNCIONAL (profesor 9 - Marcelo Mendoza y profesor 11 - Lucía Torres)
 -- =========================
 INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, cancelada, hora, plantilla_id) VALUES
-  (21, 15, '2026-06-03', 3500.0, 2, 8, false, 13, 3),
-  (22, 15, '2026-06-10', 3500.0, 2, 8, false, 13, 3),
-  (23, 15, '2026-06-17', 3500.0, 2, 8, false, 13, 3),
-  (24, 15, '2026-06-24', 3500.0, 2, 8, false, 13, 3),
-  (25, 15, '2026-07-01', 3500.0, 2, 8, false, 13, 3),
-  (26, 10, '2026-06-05', 3500.0, 2, 9, false, 13, 4),
-  (27, 10, '2026-06-12', 3500.0, 2, 9, false, 13, 4),
-  (28, 10, '2026-06-19', 3500.0, 2, 9, false, 13, 4),
-  (29, 10, '2026-06-26', 3500.0, 2, 9, false, 13, 4),
-  (30, 10, '2026-07-03', 3500.0, 2, 9, false, 13, 4)
+  (21, 15, '2026-06-03', 2000.0, 2, 8, false, 13, 3),
+  (22, 15, '2026-06-10', 2000.0, 2, 8, false, 13, 3),
+  (23, 15, '2026-06-17', 2000.0, 2, 8, false, 13, 3),
+  (24, 15, '2026-06-24', 2000.0, 2, 8, false, 13, 3),
+  (25, 15, '2026-07-01', 2000.0, 2, 8, false, 13, 3),
+  (26, 10, '2026-06-05', 2000.0, 2, 9, false, 13, 4),
+  (27, 10, '2026-06-12', 2000.0, 2, 9, false, 13, 4),
+  (28, 10, '2026-06-19', 2000.0, 2, 9, false, 13, 4),
+  (29, 10, '2026-06-26', 2000.0, 2, 9, false, 13, 4),
+  (30, 10, '2026-07-03', 2000.0, 2, 9, false, 13, 4)
     ON CONFLICT (id_clase) DO UPDATE
         SET cupo = EXCLUDED.cupo,
             fecha = EXCLUDED.fecha,
@@ -281,16 +281,16 @@ INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, can
 -- CLASES PILATES (profesor 10 - Carlos Ruiz)
 -- =========================
 INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, cancelada, hora, plantilla_id) VALUES
-  (11, 1, '2026-06-02', 2500.0, 3, 8, false, 13, 5),
-  (12, 1, '2026-06-09', 2500.0, 3, 8, false, 13, 5),
-  (13, 1, '2026-06-16', 2500.0, 3, 8, false, 13, 5),
-  (14, 1, '2026-06-23', 2500.0, 3, 8, false, 13, 5),
-  (15, 1, '2026-06-30', 2500.0, 3, 8, false, 13, 5),
-  (16, 10, '2026-06-05', 2500.0, 3, 8, false, 13, 6),
-  (17, 10, '2026-06-12', 2500.0, 3, 8, false, 13, 6),
-  (18, 10, '2026-06-19', 2500.0, 3, 8, false, 13, 6),
-  (19, 10, '2026-06-26', 2500.0, 3, 8, false, 13, 6),
-  (20, 10, '2026-07-03', 2500.0, 3, 8, false, 13, 6)
+  (11, 1, '2026-06-02', 3000.0, 3, 8, false, 13, 5),
+  (12, 1, '2026-06-09', 3000.0, 3, 8, false, 13, 5),
+  (13, 1, '2026-06-16', 3000.0, 3, 8, false, 13, 5),
+  (14, 1, '2026-06-23', 3000.0, 3, 8, false, 13, 5),
+  (15, 1, '2026-06-30', 3000.0, 3, 8, false, 13, 5),
+  (16, 10, '2026-06-05', 3000.0, 3, 8, false, 13, 6),
+  (17, 10, '2026-06-12', 3000.0, 3, 8, false, 13, 6),
+  (18, 10, '2026-06-19', 3000.0, 3, 8, false, 13, 6),
+  (19, 10, '2026-06-26', 3000.0, 3, 8, false, 13, 6),
+  (20, 10, '2026-07-03', 3000.0, 3, 8, false, 13, 6)
     ON CONFLICT (id_clase) DO UPDATE
         SET cupo = EXCLUDED.cupo,
             fecha = EXCLUDED.fecha,

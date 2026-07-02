@@ -38,19 +38,26 @@ const PopupInscripcionClase = ({
     error = '',
     claseInfo = null,
     idClase = null,
-    idAlumno = null
+    idAlumno = null,
+    tipoForzado = null,
+    onPrecioMensualCalculado = null
 }) => {
     const [previewAbono, setPreviewAbono] = useState([])
     const [cargandoPreview, setCargandoPreview] = useState(false)
+    const [precioMensualCalculado, setPrecioMensualCalculado] = useState(null)
+    const [sinClasesMes, setSinClasesMes] = useState(false)
 
     useEffect(() => {
-        if (!isOpen || !idClase) {
+        if (!isOpen || !idClase || tipoForzado === 'individual') {
             setPreviewAbono([])
+            setPrecioMensualCalculado(null)
+            setSinClasesMes(false)
             return
         }
 
         const cargar = async () => {
             setCargandoPreview(true)
+            setSinClasesMes(false)
             try {
                 const url = `${API_BASE_URL}/clases/abono/preview?idClase=${idClase}${idAlumno ? `&idAlumno=${idAlumno}` : ''}`
                 const respuesta = await fetch(url)
@@ -59,7 +66,19 @@ const PopupInscripcionClase = ({
                     return
                 }
                 const data = await respuesta.json()
-                setPreviewAbono(Array.isArray(data) ? data : [])
+                const preview = Array.isArray(data) ? data : []
+                setPreviewAbono(preview)
+
+                const paraCalculo = preview.filter(c => c.motivo !== 'CANCELADA' && c.motivo !== 'LLENA' && c.motivo !== 'YA_INSCRIPTO' && c.motivo !== 'CONFLICTO_HORARIO')
+                if (paraCalculo.length === 0) {
+                    setSinClasesMes(true)
+                    setPrecioMensualCalculado(0)
+                    if (onPrecioMensualCalculado) onPrecioMensualCalculado(0)
+                } else {
+                    const total = Math.round(paraCalculo.reduce((sum, c) => sum + (c.precio || 0), 0) * 0.8)
+                    setPrecioMensualCalculado(total)
+                    if (onPrecioMensualCalculado) onPrecioMensualCalculado(total)
+                }
             } catch {
                 setPreviewAbono([])
             } finally {
@@ -78,7 +97,6 @@ const PopupInscripcionClase = ({
 
     const diariaUsaCredito = creditos > 0
     const clasesDisponibles = previewAbono.filter((c) => c.disponible)
-    const mensualHabilitado = !cargandoPreview && clasesDisponibles.length > 0
 
     return (
         <div className="popup-overlay-chic" onClick={onClose}>
@@ -108,59 +126,78 @@ const PopupInscripcionClase = ({
                     <div className="popup-error" role="alert">{error}</div>
                 )}
 
-                <p className="popup-prompt-chic">Elegí tu modalidad de inscripción.</p>
+                {!cargandoPreview && sinClasesMes && tipoForzado !== 'individual' && (
+                    <div className="popup-error" role="alert">No quedan clases disponibles para inscribirse en este mes.</div>
+                )}
+
+                <p className="popup-prompt-chic">
+                    {tipoForzado === 'individual' && 'Confirmá tu inscripción individual.'}
+                    {tipoForzado === 'mensual' && 'Confirmá tu inscripción mensual.'}
+                    {!tipoForzado && 'Elegí tu modalidad de inscripción.'}
+                </p>
 
                 <div className="popup-actions-chic">
-                    <button
-                        className="btn-opt-primary-chic"
-                        onClick={() => onConfirm('individual')}
-                    >
-                        <div className="btn-tile-icon">📅</div>
-                        <div className="btn-content-wrapper">
-                            <span className="btn-title">Inscripción Diaria</span>
-                            {diariaUsaCredito ? (
-                                <span className="btn-price btn-price--credito">
-                                    <CreditIconSmall />
-                                    1 crédito
-                                </span>
-                            ) : (
-                                <span className="btn-price">${precioDiario.toLocaleString('es-AR')}</span>
-                            )}
-                        </div>
-                    </button>
-
-                    <div className="btn-opt-wrapper">
+                    {tipoForzado !== 'mensual' && (
                         <button
                             className="btn-opt-primary-chic"
-                            onClick={() => mensualHabilitado && onConfirm('mensual')}
-                            disabled={!mensualHabilitado}
+                            onClick={() => onConfirm('individual')}
                         >
-                            <div className="btn-tile-icon">📆</div>
+                            <div className="btn-tile-icon">📅</div>
                             <div className="btn-content-wrapper">
-                                <span className="btn-title">Inscripción Mensual</span>
-                                <span className="btn-price">${precioMensual.toLocaleString('es-AR')}</span>
+                                <span className="btn-title">Inscribirse Individualmente</span>
+                                {diariaUsaCredito ? (
+                                    <span className="btn-price btn-price--credito">
+                                        <CreditIconSmall />
+                                        1 crédito
+                                    </span>
+                                ) : (
+                                    <span className="btn-price">${precioDiario.toLocaleString('es-AR')}</span>
+                                )}
                             </div>
                         </button>
+                    )}
 
-                        <div className="abono-tooltip" role="tooltip">
-                            {cargandoPreview ? (
-                                <span className="abono-tooltip__loading">Buscando clases...</span>
-                            ) : clasesDisponibles.length === 0 ? (
-                                <span className="abono-tooltip__empty">No hay clases disponibles este mes</span>
-                            ) : (
-                                <>
-                                    <p className="abono-tooltip__title">Te inscribirás a:</p>
-                                    <ul className="abono-tooltip__list">
-                                        {clasesDisponibles.map((c) => (
-                                            <li key={c.idClase}>
-                                                {formatearFecha(c.fecha)} · {String(c.hora).padStart(2, '0')}:00
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </>
+                    {tipoForzado !== 'individual' && (
+                        <div className="btn-opt-wrapper">
+                            <button
+                                className="btn-opt-primary-chic"
+                                onClick={() => onConfirm('mensual')}
+                                disabled={sinClasesMes}
+                                style={sinClasesMes ? { opacity: 0.4, cursor: 'not-allowed' } : {}}
+                            >
+                                <div className="btn-tile-icon">📆</div>
+                                <div className="btn-content-wrapper">
+                                    <span className="btn-title">Inscribirse Mensualmente</span>
+                                    {cargandoPreview ? (
+                                        <span className="btn-price">Calculando...</span>
+                                    ) : precioMensualCalculado !== null ? (
+                                        <span className="btn-price">${precioMensualCalculado.toLocaleString('es-AR')} <span style={{fontSize:'0.7em', opacity:0.7}}>(20% off)</span></span>
+                                    ) : (
+                                        <span className="btn-price">${precioMensual.toLocaleString('es-AR')}</span>
+                                    )}
+                                </div>
+                            </button>
+
+                            {(cargandoPreview || clasesDisponibles.length > 0) && (
+                                <div className="abono-tooltip" role="tooltip">
+                                    {cargandoPreview ? (
+                                        <span className="abono-tooltip__loading">Buscando clases...</span>
+                                    ) : (
+                                        <>
+                                            <p className="abono-tooltip__title">Te inscribirás a:</p>
+                                            <ul className="abono-tooltip__list">
+                                                {clasesDisponibles.map((c) => (
+                                                    <li key={c.idClase}>
+                                                        {formatearFecha(c.fecha)} · {String(c.hora).padStart(2, '0')}:00 · ${(c.precio || 0).toLocaleString('es-AR')}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </>
+                                    )}
+                                </div>
                             )}
                         </div>
-                    </div>
+                    )}
                 </div>
 
             </div>

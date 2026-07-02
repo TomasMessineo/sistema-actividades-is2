@@ -64,7 +64,7 @@ public class InscripcionValidator {
                 .filter(c -> !Boolean.TRUE.equals(c.getCancelada()))
                 .filter(c -> c.getFecha().equals(clase.getFecha()) && c.getHora().equals(clase.getHora()))
                 .findFirst()
-                .ifPresent(c -> { throw new RuntimeException("El alumno ya tiene una clase en ese horario"); });
+                .ifPresent(c -> { throw new RuntimeException("Ya tenés una inscripción realizada en este horario"); });
     }
 
     public void cupoDisponible(InscripcionRequest request) {///  lo valida por las dudas no es necesario

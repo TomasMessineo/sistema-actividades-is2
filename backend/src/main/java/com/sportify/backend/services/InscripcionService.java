@@ -23,13 +23,15 @@ public class InscripcionService {
     private final PagoRepository pagoRepository;
     private final InscripcionValidator inscripcionValidator;
     private final PagoService pagoService;
+    private final ClaseService claseService;
 
-    public InscripcionService(AlumnoRepository alumnoRepository, ClaseRepository claseRepository, PagoRepository pagoRepository, InscripcionValidator inscripcionValidator, PagoService pagoService) {
+    public InscripcionService(AlumnoRepository alumnoRepository, ClaseRepository claseRepository, PagoRepository pagoRepository, InscripcionValidator inscripcionValidator, PagoService pagoService, ClaseService claseService) {
         this.alumnoRepository = alumnoRepository;
         this.claseRepository = claseRepository;
         this.pagoRepository = pagoRepository;
         this.inscripcionValidator = inscripcionValidator;
         this.pagoService = pagoService;
+        this.claseService = claseService;
     }
 
     @Transactional
@@ -65,7 +67,15 @@ public class InscripcionService {
                         alumno.getCreditos());
             }
 
-            pago.setValor(clase.getPrecio());
+            double valorPago;
+            if (pago.getTipo() == Pago.TipoClase.ABONADO) {
+                // Abono mensual: total de las clases del mes con 20% off (igual que el popup).
+                valorPago = claseService.calcularPrecioAbono(request.getIdClase(), request.getIdAlumno());
+            } else {
+                valorPago = (clase.getActividad() != null && clase.getActividad().getPrecio() != null && clase.getActividad().getPrecio() > 0)
+                        ? clase.getActividad().getPrecio() : clase.getPrecio();
+            }
+            pago.setValor(valorPago);
             pago.setEstado(Pago.EstadoPago.PENDIENTE);
             Pago pagoGuardado = pagoRepository.save(pago);
 
@@ -76,7 +86,7 @@ public class InscripcionService {
                     pagoGuardado.getValor(),
                     null);
         } catch (Exception e) {
-            throw new RuntimeException("Error de Inscripcion: " + e.getMessage());
+            throw new RuntimeException(e.getMessage());
         }
     }
 }

@@ -27,6 +27,43 @@ const formatearMonto = (monto) => {
   }).format(monto);
 };
 
+const capitalizar = (texto) =>
+  texto ? texto.charAt(0).toUpperCase() + texto.slice(1).toLowerCase() : texto;
+
+const nombreActividad = (actividad) => (actividad ? capitalizar(actividad) : 'Clase');
+
+const formatearHora = (hora) => {
+  if (hora === null || hora === undefined) {
+    return null;
+  }
+  return `${String(hora).padStart(2, '0')}:00 hs`;
+};
+
+const formatearFechaHora = (fecha) => {
+  if (!fecha) {
+    return 'Sin fecha';
+  }
+  return new Date(fecha).toLocaleString('es-AR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+};
+
+const detalleClaseItem = (clase) => {
+  const fecha = clase.fecha ? formatearFecha(clase.fecha) : null;
+  const hora = formatearHora(clase.hora);
+  if (fecha && hora) {
+    return `${fecha} · ${hora}`;
+  }
+  return fecha || hora || 'Clase';
+};
+
+const esAbono = (pago) => (pago.tipoClase || '').toUpperCase() === 'ABONADO';
+
 function ProfilePaymentsMenu({ onCancel }) {
   const [pagos, setPagos] = useState([]);
   const [cargando, setCargando] = useState(false);
@@ -156,26 +193,71 @@ function ProfilePaymentsMenu({ onCancel }) {
             <p className="profile-payments-empty">Todavía no hay pagos registrados.</p>
           ) : (
             <div className="profile-payments-list">
-              {pagos.map((pago) => (
-                <article className="profile-payments-item" key={pago.idPago || pago.id}>
-                  <div className="profile-payments-item-row">
-                    <span className="profile-payments-item-label">Fecha</span>
-                    <span className="profile-payments-item-value">{formatearFecha(pago.fecha)}</span>
-                  </div>
-                  <div className="profile-payments-item-row">
-                    <span className="profile-payments-item-label">Monto</span>
-                    <span className="profile-payments-item-value">{formatearMonto(pago.monto)}</span>
-                  </div>
-                  <div className="profile-payments-item-row">
-                    <span className="profile-payments-item-label">Estado</span>
-                    <span className="profile-payments-status">{pago.estadoPago || pago.estado || 'Sin estado'}</span>
-                  </div>
-                  <div className="profile-payments-item-row">
-                    <span className="profile-payments-item-label">Medio de pago</span>
-                    <span className="profile-payments-item-value">{pago.medioPago || pago.metodoPago || '-'}</span>
-                  </div>
-                </article>
-              ))}
+              {pagos.map((pago) => {
+                const abono = esAbono(pago);
+                const clases = Array.isArray(pago.clases) ? pago.clases : [];
+                const claseUnica = !abono && clases.length > 0 ? clases[0] : null;
+                return (
+                  <article className="profile-payments-item" key={pago.idPago || pago.id}>
+                    <header className="profile-payments-card-head">
+                      <div className="profile-payments-card-title">
+                        <span className="profile-payments-activity">{nombreActividad(pago.nombreActividad)}</span>
+                        <span className="profile-payments-tag">
+                          {abono ? 'Abono mensual' : 'Clase individual'}
+                        </span>
+                      </div>
+                      <span className="profile-payments-status">Pagado</span>
+                    </header>
+
+                    <div className="profile-payments-card-body">
+                      <div className="profile-payments-item-row">
+                        <span className="profile-payments-item-label">Pagado el</span>
+                        <span className="profile-payments-item-value">{formatearFechaHora(pago.fechaPago)}</span>
+                      </div>
+                      <div className="profile-payments-item-row">
+                        <span className="profile-payments-item-label">Medio de pago</span>
+                        <span className="profile-payments-item-value">{pago.medioPago || '-'}</span>
+                      </div>
+                      {claseUnica && (
+                        <div className="profile-payments-item-row">
+                          <span className="profile-payments-item-label">Clase</span>
+                          <span className="profile-payments-item-value">{detalleClaseItem(claseUnica)}</span>
+                        </div>
+                      )}
+                      {claseUnica?.profesor && (
+                        <div className="profile-payments-item-row">
+                          <span className="profile-payments-item-label">Profesor</span>
+                          <span className="profile-payments-item-value">{claseUnica.profesor}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {abono && clases.length > 0 && (
+                      <div className="profile-payments-classes" tabIndex={0}>
+                        <span className="profile-payments-classes-toggle">
+                          {clases.length} {clases.length === 1 ? 'clase incluida' : 'clases incluidas'}
+                          <span className="profile-payments-classes-hint">pasá el cursor para ver</span>
+                        </span>
+                        <ul className="profile-payments-classes-list">
+                          {clases.map((clase, idx) => (
+                            <li className="profile-payments-classes-item" key={idx}>
+                              <span className="profile-payments-classes-when">{detalleClaseItem(clase)}</span>
+                              {clase.profesor && (
+                                <span className="profile-payments-classes-prof">{clase.profesor}</span>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    <footer className="profile-payments-card-foot">
+                      <span className="profile-payments-item-label">Total</span>
+                      <span className="profile-payments-amount">{formatearMonto(pago.monto)}</span>
+                    </footer>
+                  </article>
+                );
+              })}
             </div>
           )}
         </div>

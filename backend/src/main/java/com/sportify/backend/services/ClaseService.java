@@ -21,6 +21,7 @@ import com.sportify.backend.repositories.AlumnoRepository;
 import com.sportify.backend.repositories.ClasePlantillaRepository;
 import com.sportify.backend.repositories.ClaseRepository;
 import com.sportify.backend.repositories.LicenciaProfesorRepository;
+import com.sportify.backend.repositories.ListaAsistenciaRepository;
 import com.sportify.backend.repositories.ProfesorRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -56,6 +57,9 @@ public class ClaseService {
 
     @Autowired
     private LicenciaProfesorRepository licenciaProfesorRepository;
+
+    @Autowired
+    private ListaAsistenciaRepository listaAsistenciaRepository;
 
     // 1. LISTAR
     public List<Clase> listarClases() {
@@ -125,12 +129,16 @@ public class ClaseService {
 
     // HELPER — true si el alumno ya está inscripto en OTRA clase en la misma fecha y hora.
     private boolean alumnoTieneOtraClaseEnHorario(Integer alumnoId, Clase clase) {
-        if (alumnoId == null) {
-            return false;
-        }
-        return listForAlumno(alumnoId).stream()
-                .anyMatch(c -> c.getIdClase() != clase.getIdClase()
-                        && java.util.Objects.equals(c.getFecha(), clase.getFecha())
+        if (alumnoId == null) return false;
+        List<Integer> claseIds = listaAsistenciaRepository.findClaseIdsByAlumnoId(alumnoId)
+                .stream()
+                .map(obj -> ((Number) obj).intValue())
+                .collect(Collectors.toList());
+        if (claseIds.isEmpty()) return false;
+        return claseRepository.findAllById(claseIds).stream()
+                .filter(c -> !java.util.Objects.equals(c.getIdClase(), clase.getIdClase()))
+                .filter(c -> !Boolean.TRUE.equals(c.getCancelada()))
+                .anyMatch(c -> java.util.Objects.equals(c.getFecha(), clase.getFecha())
                         && java.util.Objects.equals(c.getHora(), clase.getHora()));
     }
 
@@ -157,18 +165,26 @@ public class ClaseService {
         // Aseguramos que existan todas las instancias del mes (materialización lazy).
         materializarRango(fechaInicio, finDeMes);
 
+        // El abono nunca incluye clases que ya ocurrieron.
+        LocalDate hoy = LocalDate.now();
+        LocalDate inicioEfectivo = fechaInicio.isBefore(hoy) ? hoy : fechaInicio;
+
         List<Clase> instancias;
         ClasePlantilla plantilla = claseElegida.getPlantilla();
         if (plantilla != null) {
             instancias = claseRepository.findByPlantilla_IdPlantilla(plantilla.getIdPlantilla()).stream()
                     .filter(c -> c.getFecha() != null
-                            && !c.getFecha().isBefore(fechaInicio)
+                            && !c.getFecha().isBefore(inicioEfectivo)
                             && !c.getFecha().isAfter(finDeMes))
                     .sorted(Comparator.comparing(Clase::getFecha))
                     .collect(Collectors.toList());
         } else {
-            // Clase suelta (sin serie): el abono cubre solo esa clase.
-            instancias = List.of(claseElegida);
+            // Clase suelta (sin serie): el abono cubre solo esa clase si no pasó.
+            if (claseElegida.getFecha() != null && claseElegida.getFecha().isBefore(hoy)) {
+                instancias = List.of();
+            } else {
+                instancias = List.of(claseElegida);
+            }
         }
 
         List<AbonoPreviewDTO> preview = new ArrayList<>();
@@ -194,17 +210,34 @@ public class ClaseService {
                     ? clase.getActividad().getTipo().name()
                     : "CLASE";
 
+            double precio = (clase.getActividad() != null && clase.getActividad().getPrecio() != null)
+                    ? clase.getActividad().getPrecio() : 0.0;
+
             preview.add(new AbonoPreviewDTO(
                     clase.getIdClase(),
                     clase.getFecha(),
                     clase.getHora() != null ? clase.getHora() : 0,
                     actividad,
                     disponible,
-                    motivo
+                    motivo,
+                    precio
             ));
         }
 
         return preview;
+    }
+
+    /**
+     * Precio del abono mensual: suma de las clases disponibles del mes con 20% off.
+     * Debe coincidir con lo que muestra el popup al inscribirse.
+     */
+    public double calcularPrecioAbono(Integer idClase, Integer idAlumno) {
+        List<AbonoPreviewDTO> preview = previewAbono(idClase, idAlumno);
+        double suma = preview.stream()
+                .filter(item -> item.getMotivo() == null)   // solo las disponibles, igual que el popup
+                .mapToDouble(AbonoPreviewDTO::getPrecio)
+                .sum();
+        return Math.round(suma * 0.8);   // 20% de descuento
     }
 
     public List<Clase> listarClasesDeUnaFechaYHora(LocalDate fecha, int hora) {
@@ -734,7 +767,9 @@ public class ClaseService {
                 clase.setFecha(fecha);
                 clase.setHora(plantilla.getHora());
                 clase.setCupo(plantilla.getCupo());
-                clase.setPrecio(plantilla.getPrecio());
+                double precioActividad = (plantilla.getActividad() != null && plantilla.getActividad().getPrecio() != null && plantilla.getActividad().getPrecio() > 0)
+                        ? plantilla.getActividad().getPrecio() : plantilla.getPrecio();
+                clase.setPrecio(precioActividad);
                 clase.setActividad(plantilla.getActividad());
                 clase.setProfesor(plantilla.getProfesor());
                 clase.setCancelada(false);
