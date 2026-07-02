@@ -6,10 +6,13 @@ import com.sportify.backend.entities.ClasePlantilla;
 import com.sportify.backend.repositories.ActividadRepository;
 import com.sportify.backend.repositories.ClasePlantillaRepository;
 import com.sportify.backend.repositories.ClaseRepository;
+import com.sportify.backend.services.ClaseService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -21,18 +24,60 @@ public class ActividadController {
     private final ActividadRepository actividadRepository;
     private final ClaseRepository claseRepository;
     private final ClasePlantillaRepository clasePlantillaRepository;
+    private final ClaseService claseService;
 
     public ActividadController(ActividadRepository actividadRepository,
             ClaseRepository claseRepository,
-            ClasePlantillaRepository clasePlantillaRepository) {
+            ClasePlantillaRepository clasePlantillaRepository,
+            ClaseService claseService) {
         this.actividadRepository = actividadRepository;
         this.claseRepository = claseRepository;
         this.clasePlantillaRepository = clasePlantillaRepository;
+        this.claseService = claseService;
     }
 
     @GetMapping
     public List<Actividad> getActividades() {
-        return actividadRepository.findAll();
+        return actividadRepository.findByActivaTrue();
+    }
+
+    // Eliminar Disciplina (baja lógica): bloquea si la disciplina tiene clases
+    // futuras no canceladas; las clases pasadas no cuentan para el bloqueo.
+    @PatchMapping("/{id}/desactivar")
+    @Transactional
+    public ResponseEntity<?> desactivarActividad(@PathVariable Integer id) {
+        Actividad actividad = actividadRepository.findById(id).orElse(null);
+        if (actividad == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        if (!Boolean.TRUE.equals(actividad.getActiva())) {
+            return ResponseEntity.badRequest().body(Map.of("message", "La disciplina ya se encuentra eliminada."));
+        }
+
+        // Las instancias de Clase se materializan de forma perezosa (recién existen
+        // en la base cuando alguien pidió esa semana en el calendario). Sin esto, una
+        // serie activa cuyas próximas clases todavía no se materializaron pasaría el
+        // chequeo de abajo como si no tuviera nada agendado.
+        LocalDate hoy = LocalDate.now();
+        claseService.materializarRango(hoy, hoy.plusMonths(2));
+
+        LocalDateTime ahora = LocalDateTime.now();
+        boolean tieneClasesActivas = claseRepository.findByActividad_IdActividad(id).stream()
+                .anyMatch(c -> !Boolean.TRUE.equals(c.getCancelada())
+                        && c.getFecha() != null
+                        && c.getFecha().atTime(c.getHora() == null ? 0 : c.getHora(), 0).isAfter(ahora));
+
+        if (tieneClasesActivas) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "message", "La eliminación no pudo realizarse debido a que la disciplina seleccionada cuenta con clases activas. Por favor, elimine primero las clases asociadas a la disciplina"
+            ));
+        }
+
+        actividad.setActiva(false);
+        actividadRepository.save(actividad);
+
+        return ResponseEntity.ok(Map.of("message", "La disciplina ha sido eliminada correctamente"));
     }
 
     @PutMapping("/{id}/precio")
