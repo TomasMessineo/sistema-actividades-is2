@@ -54,7 +54,7 @@ export const listarAlumnosDeClase = (idClase) => {
   return apiFetch(`/clases/${idClase}/alumnos`);
 };
 
-// Marca a un alumno como presente en una clase a partir de su QR escaneado.
+// Marca a un alumno como presente en una clase a partir del QR de la clase.
 export const registrarAsistenciaEscaneada = (idClase, idAlumno) => {
   return apiFetch(`/clases/${idClase}/asistencia/escanear`, {
     method: 'POST',

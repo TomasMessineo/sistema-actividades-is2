@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Navbar from '../../components/Navbar/NavbarProfesor.jsx'
 import AlumnosDeClaseModal from '../../components/AlumnosDeClaseModal.jsx'
+import QrAlumnoModal from '../../components/QrAlumnoModal.jsx'
 import { useAuth } from '../../context/AuthContext'
 import { listarClasesDelProfesor, obtenerClaseActualDelProfesor } from '../../services/claseService'
 import '../../styles/MyClasses.css'
@@ -114,6 +115,7 @@ function MisClasesView() {
   const [isMonthModalOpen, setIsMonthModalOpen] = useState(false)
   const [activeMonth, setActiveMonth] = useState(() => new Date())
   const [claseParaVerAlumnos, setClaseParaVerAlumnos] = useState(null)
+  const [mostrarQrClase, setMostrarQrClase] = useState(false)
 
   useEffect(() => {
     if (authLoading || !user?.id) {
@@ -283,8 +285,8 @@ function MisClasesView() {
               </div>
             )}
 
-            <button type="button" className="btn-pasar-asistencia" onClick={() => {}}>
-              Pasar Asistencia
+            <button type="button" className="btn-pasar-asistencia" onClick={() => setMostrarQrClase(true)}>
+              Mostrar QR de la clase
             </button>
           </section>
         ) : (
@@ -387,6 +389,15 @@ function MisClasesView() {
         abierto={claseParaVerAlumnos !== null}
         clase={claseParaVerAlumnos}
         onCerrar={cerrarAlumnosDeClase}
+      />
+
+      <QrAlumnoModal
+        abierto={mostrarQrClase && !!claseActual}
+        onCerrar={() => setMostrarQrClase(false)}
+        valor={claseActual ? `sportify-${claseActual.idClase}` : null}
+        titulo="Código de la clase"
+        descripcion="Mostrale este código al alumno para que registre su asistencia desde su celular."
+        etiquetaInferior={claseActual ? `${normalizarNombreActividad(claseActual.actividad)} · ${String(claseActual.hora).padStart(2, '0')}:00` : ''}
       />
     </div>
   )
