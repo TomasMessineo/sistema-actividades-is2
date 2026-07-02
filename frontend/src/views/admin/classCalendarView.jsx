@@ -3,6 +3,7 @@ import Navbar from '../../components/Navbar/NavbarAdmin.jsx'
 import AvailableClassesCalendar from '../../components/AvailableClassesCalendar.jsx'
 import CrearClaseModal from '../../components/CrearClaseModal.jsx'
 import ModificarClaseModal from '../../components/ModificarClaseModal.jsx'
+import EliminarDisciplinaModal from '../../components/EliminarDisciplinaModal.jsx'
 import { listarClases } from '../../services/claseService'
 import { apiFetch } from '../../services/apiClient'
 import { getDayKey, buildWeekDays } from '../../utils/weekDays'
@@ -57,6 +58,7 @@ function ClassCalendarView() {
   const [claseSeleccionada, setClaseSeleccionada] = useState(null)
  
   const [modalDisciplinaAbierto, setModalDisciplinaAbierto] = useState(false)
+  const [modalEliminarDisciplinaAbierto, setModalEliminarDisciplinaAbierto] = useState(false)
   const [nombreDisciplina, setNombreDisciplina] = useState('')
   const [tarifaDisciplina, setTarifaDisciplina] = useState('')
   const [errorDisciplina, setErrorDisciplina] = useState('')
@@ -276,13 +278,23 @@ function ClassCalendarView() {
             </div>
           )}
           headerRight={(
-            <button
-              type="button"
-              className="calendar-create-button"
-              onClick={abrirModalDisciplina}
-            >
-              Crear disciplina
-            </button>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                type="button"
+                className="calendar-create-button"
+                onClick={abrirModalDisciplina}
+              >
+                Crear disciplina
+              </button>
+              <button
+                type="button"
+                className="calendar-create-button"
+                style={{ background: 'rgba(255, 80, 80, 0.12)', color: '#ffd7d7', border: '1px solid rgba(255, 80, 80, 0.35)' }}
+                onClick={() => setModalEliminarDisciplinaAbierto(true)}
+              >
+                Eliminar disciplina
+              </button>
+            </div>
           )}
           weekStart={weekStart}
           days={days}
@@ -308,6 +320,15 @@ function ClassCalendarView() {
         onCerrar={cerrarModificarClase}
         onClaseModificada={() => {
           cerrarModificarClase()
+          cargarClases()
+        }}
+      />
+
+      <EliminarDisciplinaModal
+        abierto={modalEliminarDisciplinaAbierto}
+        onCerrar={() => setModalEliminarDisciplinaAbierto(false)}
+        onDisciplinaEliminada={() => {
+          setModalEliminarDisciplinaAbierto(false)
           cargarClases()
         }}
       />
