@@ -3,7 +3,7 @@ import { QRCodeSVG } from 'qrcode.react'
 import Navbar from '../../components/Navbar/NavbarProfesor.jsx'
 import AlumnosDeClaseModal from '../../components/AlumnosDeClaseModal.jsx'
 import { useAuth } from '../../context/AuthContext'
-import { listarClasesDelProfesor, obtenerClaseActualDelProfesor } from '../../services/claseService'
+import { listarClasesDelProfesor, listarAlumnosDeClase, obtenerClaseActualDelProfesor } from '../../services/claseService'
 import '../../styles/MyClasses.css'
 import '../../styles/misClasesProfesor.css'
 
@@ -129,8 +129,22 @@ function MisClasesView() {
         if (primeraVez) setCargandoClaseActual(true)
         setErrorClaseActual(null)
         const clase = await obtenerClaseActualDelProfesor(user.id)
+
+        if (!clase?.idClase) {
+          if (!cancelado) {
+            setClaseActual(clase)
+          }
+          return
+        }
+
+        const alumnos = await listarAlumnosDeClase(clase.idClase)
+        const claseConAsistencia = {
+          ...clase,
+          alumnos: Array.isArray(alumnos) ? alumnos : [],
+        }
+
         if (!cancelado) {
-          setClaseActual(clase)
+          setClaseActual(claseConAsistencia)
         }
       } catch {
         if (!cancelado) {
@@ -278,7 +292,12 @@ function MisClasesView() {
                     <span className="clase-actual-alumno-nombre">
                       {alumno.nombre} {alumno.apellido}
                     </span>
-                    <span className="asistencia-badge" title="Asistencia pendiente" />
+                    <span
+                      className={`asistencia-badge ${alumno.falto === false ? 'asistencia-badge--asistio' : 'asistencia-badge--pendiente'}`}
+                      title={alumno.falto === false ? 'Asistencia registrada' : 'Asistencia pendiente'}
+                    >
+                      {alumno.falto === false ? '✓' : ''}
+                    </span>
                   </div>
                 ))}
               </div>

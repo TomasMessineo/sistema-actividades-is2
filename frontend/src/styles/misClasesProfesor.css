@@ -113,9 +113,22 @@
   width: 22px;
   height: 22px;
   border-radius: 5px;
-  background: #71717a;
   border: 1px solid rgba(255, 255, 255, 0.12);
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.asistencia-badge--pendiente {
+  background: #71717a;
+}
+
+.asistencia-badge--asistio {
+  background: #22c55e;
+  color: #0b1b10;
 }
 
 .clase-actual-qr {
