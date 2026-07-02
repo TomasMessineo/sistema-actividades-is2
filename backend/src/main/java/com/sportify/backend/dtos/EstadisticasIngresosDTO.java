@@ -11,6 +11,13 @@ public class EstadisticasIngresosDTO {
     /** False cuando el período elegido no tiene ningún pago (escenario "sin datos"). */
     private boolean hayDatos;
 
+    /**
+     * True cuando el año elegido todavía no llegó (es posterior al actual). Sirve
+     * para distinguir el mensaje de "sin datos": un año futuro "todavía no tiene
+     * datos", mientras que uno pasado o el actual sin pagos "no tiene estadísticas".
+     */
+    private boolean anioEsFuturo;
+
     private int anio;
     private List<Integer> aniosDisponibles;
 
@@ -33,6 +40,12 @@ public class EstadisticasIngresosDTO {
 
     // Detalle mensual (12 meses), por si luego se agrega una línea de evolución
     private List<MesDTO> porMes;
+
+    /** Cantidad de inscripciones por disciplina del año (comparación; no se filtra). */
+    private List<InscripcionesDisciplinaDTO> inscripcionesPorDisciplina;
+
+    /** Asistencia real (vía check-in) por día de la semana, lunes a viernes. Respeta el filtro de disciplina. */
+    private List<AsistenciaDiaDTO> asistenciaPorDia;
 
     public static class DisciplinaDTO {
         private String disciplina;
@@ -80,8 +93,53 @@ public class EstadisticasIngresosDTO {
         public void setTotal(double total) { this.total = total; }
     }
 
+    public static class InscripcionesDisciplinaDTO {
+        private String disciplina;
+        private int cantidad;
+
+        public InscripcionesDisciplinaDTO() {}
+
+        public InscripcionesDisciplinaDTO(String disciplina, int cantidad) {
+            this.disciplina = disciplina;
+            this.cantidad = cantidad;
+        }
+
+        public String getDisciplina() { return disciplina; }
+        public void setDisciplina(String disciplina) { this.disciplina = disciplina; }
+        public int getCantidad() { return cantidad; }
+        public void setCantidad(int cantidad) { this.cantidad = cantidad; }
+    }
+
+    public static class AsistenciaDiaDTO {
+        private String dia;
+        private int asistieron;
+        private int faltaron;
+        private double porcentajeAsistencia;
+
+        public AsistenciaDiaDTO() {}
+
+        public AsistenciaDiaDTO(String dia, int asistieron, int faltaron, double porcentajeAsistencia) {
+            this.dia = dia;
+            this.asistieron = asistieron;
+            this.faltaron = faltaron;
+            this.porcentajeAsistencia = porcentajeAsistencia;
+        }
+
+        public String getDia() { return dia; }
+        public void setDia(String dia) { this.dia = dia; }
+        public int getAsistieron() { return asistieron; }
+        public void setAsistieron(int asistieron) { this.asistieron = asistieron; }
+        public int getFaltaron() { return faltaron; }
+        public void setFaltaron(int faltaron) { this.faltaron = faltaron; }
+        public double getPorcentajeAsistencia() { return porcentajeAsistencia; }
+        public void setPorcentajeAsistencia(double porcentajeAsistencia) { this.porcentajeAsistencia = porcentajeAsistencia; }
+    }
+
     public boolean isHayDatos() { return hayDatos; }
     public void setHayDatos(boolean hayDatos) { this.hayDatos = hayDatos; }
+
+    public boolean isAnioEsFuturo() { return anioEsFuturo; }
+    public void setAnioEsFuturo(boolean anioEsFuturo) { this.anioEsFuturo = anioEsFuturo; }
 
     public int getAnio() { return anio; }
     public void setAnio(int anio) { this.anio = anio; }
@@ -118,4 +176,10 @@ public class EstadisticasIngresosDTO {
 
     public List<MesDTO> getPorMes() { return porMes; }
     public void setPorMes(List<MesDTO> porMes) { this.porMes = porMes; }
+
+    public List<InscripcionesDisciplinaDTO> getInscripcionesPorDisciplina() { return inscripcionesPorDisciplina; }
+    public void setInscripcionesPorDisciplina(List<InscripcionesDisciplinaDTO> inscripcionesPorDisciplina) { this.inscripcionesPorDisciplina = inscripcionesPorDisciplina; }
+
+    public List<AsistenciaDiaDTO> getAsistenciaPorDia() { return asistenciaPorDia; }
+    public void setAsistenciaPorDia(List<AsistenciaDiaDTO> asistenciaPorDia) { this.asistenciaPorDia = asistenciaPorDia; }
 }

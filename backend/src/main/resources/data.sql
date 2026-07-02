@@ -375,6 +375,62 @@ INSERT INTO pago (id_pago, alumno_id, clase_id, valor, fecha, fecha_creacion, fe
             estado = EXCLUDED.estado;
 
 -- =========================
+-- INSCRIPCIONES Y ASISTENCIA DE PRUEBA (para estadísticas de inscripciones/asistencia)
+-- =========================
+-- Inscripciones (lista_asistencia) repartidas entre las tres disciplinas, y
+-- registros de asistencia (check-in) repartidos entre los días de la semana en
+-- los que efectivamente hay clases (lunes, martes, miércoles y viernes — no hay
+-- plantillas los jueves), con una mezcla de asistió/faltó.
+
+INSERT INTO lista_asistencia (id_lista_asistencia, clase_id) VALUES
+  (2, 2),
+  (3, 8),
+  (4, 13),
+  (5, 17),
+  (6, 22),
+  (7, 27)
+    ON CONFLICT (id_lista_asistencia) DO UPDATE
+        SET clase_id = EXCLUDED.clase_id;
+
+INSERT INTO lista_asistencia_alumnos (lista_asistencia_id, alumno_id) VALUES
+  (2, 3), (2, 5), (2, 7),
+  (3, 4), (3, 6),
+  (4, 3), (4, 4), (4, 5), (4, 6),
+  (5, 5), (5, 7),
+  (6, 3), (6, 4), (6, 6), (6, 7),
+  (7, 4), (7, 5)
+    ON CONFLICT DO NOTHING;
+
+INSERT INTO registro_asistencia (id_registro_asistencia, alumno_id, clase_id, falto) VALUES
+  -- Lunes (clases 1 y 2, Yoga)
+  (1, 3, 1, false),
+  (2, 5, 1, false),
+  (3, 3, 2, false),
+  (4, 5, 2, false),
+  (5, 7, 2, true),
+  -- Martes (clases 11 y 13, Funcional)
+  (6, 4, 11, false),
+  (7, 6, 11, true),
+  (8, 3, 13, false),
+  (9, 4, 13, false),
+  (10, 5, 13, true),
+  (11, 6, 13, false),
+  -- Miércoles (clase 6 Yoga, clase 22 Pilates)
+  (12, 4, 6, true),
+  (13, 6, 6, false),
+  (14, 3, 22, false),
+  (15, 4, 22, true),
+  (16, 6, 22, false),
+  (17, 7, 22, true),
+  -- Viernes (clase 17 Funcional, clase 27 Pilates)
+  (18, 5, 17, false),
+  (19, 7, 17, false),
+  (20, 4, 27, false),
+  (21, 5, 27, false)
+    ON CONFLICT (alumno_id, clase_id) DO UPDATE
+        SET falto = EXCLUDED.falto;
+
+-- =========================
 -- APTOS MÉDICOS (prueba, solo hasta uqe este el subir aoto medico)
 -- =========================
 
@@ -446,6 +502,10 @@ SELECT setval('pago_seq', COALESCE((SELECT MAX(id_pago) FROM pago), 0) + 1, fals
 DROP SEQUENCE IF EXISTS lista_asistencia_seq;
 CREATE SEQUENCE lista_asistencia_seq INCREMENT BY 1 START WITH 1;
 SELECT setval('lista_asistencia_seq', COALESCE((SELECT MAX(id_lista_asistencia) FROM lista_asistencia), 0) + 1, false);
+
+DROP SEQUENCE IF EXISTS registro_asistencia_seq;
+CREATE SEQUENCE registro_asistencia_seq INCREMENT BY 1 START WITH 1;
+SELECT setval('registro_asistencia_seq', COALESCE((SELECT MAX(id_registro_asistencia) FROM registro_asistencia), 0) + 1, false);
 
 DROP SEQUENCE IF EXISTS lista_espera_seq;
 CREATE SEQUENCE lista_espera_seq INCREMENT BY 1 START WITH 1;
