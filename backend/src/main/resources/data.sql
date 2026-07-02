@@ -221,7 +221,9 @@ INSERT INTO clase_plantilla (id_plantilla, dia_semana, hora, cupo, precio, activ
   (7,  'THURSDAY', 10, 2, 3000.0, true, '2026-06-04', NULL, 1, 8),   -- Yoga · Juan Luis · Jue 10
   (8,  'THURSDAY', 16, 2, 2500.0, true, '2026-06-04', NULL, 2, 10),  -- Pilates · Carlos · Jue 16
   (9,  'FRIDAY',   18, 2, 3500.0, true, '2026-06-05', NULL, 3, 11),  -- Funcional · Lucía · Vie 18
-  (10, 'FRIDAY',   11, 2, 3000.0, true, '2026-06-05', NULL, 1, 8)    -- Yoga · Juan Luis · Vie 11
+  (10, 'FRIDAY',   11, 2, 3000.0, true, '2026-06-05', NULL, 1, 8),    -- Yoga · Juan Luis · Vie 11
+  (11, 'MONDAY',   13, 2, 3000.0, true, '2026-06-01', NULL, 1, 9),    -- Yoga · Marcelo · Lun 13 (cupo 2)
+  (12, 'MONDAY',   14, 2, 3500.0, true, '2026-06-01', NULL, 2, 10)    -- Pilates · Carlos · Lun 14 (cupo 2)
     ON CONFLICT (id_plantilla) DO UPDATE
         SET dia_semana = EXCLUDED.dia_semana,
             hora = EXCLUDED.hora,
@@ -555,6 +557,46 @@ VALUES (5, '2099-12-31', 'http://prueba/apto5.pdf', 7)
     ON CONFLICT (id_apto_medico) DO UPDATE
         SET fecha_de_vencimiento = EXCLUDED.fecha_de_vencimiento,
             alumno_id = EXCLUDED.alumno_id;
+
+-- =========================
+-- CLASES DE LUNES PARA PRUEBA DE CUPO (Yoga 13hs y Pilates 14hs, cupo 2, 1 inscripto en cada una)
+-- =========================
+
+INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, cancelada, hora, plantilla_id) VALUES
+  (75, 2, '2026-07-06', 3000.0, 1, 9, false, 13, 11),
+  (76, 2, '2026-07-06', 3500.0, 2, 10, false, 14, 12)
+    ON CONFLICT (id_clase) DO UPDATE
+        SET cupo = EXCLUDED.cupo,
+            fecha = EXCLUDED.fecha,
+            precio = EXCLUDED.precio,
+            actividad_id = EXCLUDED.actividad_id,
+            profesor_id = EXCLUDED.profesor_id,
+            cancelada = EXCLUDED.cancelada,
+            hora = EXCLUDED.hora,
+            plantilla_id = EXCLUDED.plantilla_id;
+
+INSERT INTO lista_asistencia (id_lista_asistencia, clase_id) VALUES
+  (75, 75),
+  (76, 76)
+    ON CONFLICT (id_lista_asistencia) DO UPDATE
+        SET clase_id = EXCLUDED.clase_id;
+
+INSERT INTO lista_asistencia_alumnos (lista_asistencia_id, alumno_id) VALUES
+  (75, 3),
+  (76, 5)
+    ON CONFLICT DO NOTHING;
+
+INSERT INTO pago (id_pago, alumno_id, clase_id, valor, fecha, fecha_creacion, fecha_actualizacion, tipo, tipo_pago, estado, descripcion, id_transaccion) VALUES
+  (26, 3, 75, 3000.0, '2026-07-01', NOW(), NOW(), 'INDIVIDUAL', 'MERCADOPAGO', 'COMPLETADO', 'Individual - clase Yoga 13hs (Lucas)', 'SEED-LUNES-26'),
+  (27, 5, 76, 3500.0, '2026-07-01', NOW(), NOW(), 'INDIVIDUAL', 'MERCADOPAGO', 'COMPLETADO', 'Individual - clase Pilates 14hs (Martín)', 'SEED-LUNES-27')
+    ON CONFLICT (id_pago) DO UPDATE
+        SET alumno_id = EXCLUDED.alumno_id,
+            clase_id = EXCLUDED.clase_id,
+            valor = EXCLUDED.valor,
+            fecha = EXCLUDED.fecha,
+            tipo = EXCLUDED.tipo,
+            tipo_pago = EXCLUDED.tipo_pago,
+            estado = EXCLUDED.estado;
 
 -- =========================
 -- REAJUSTE DE SECUENCIAS
