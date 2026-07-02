@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
+import { QRCodeSVG } from 'qrcode.react'
 import Navbar from '../../components/Navbar/NavbarProfesor.jsx'
 import AlumnosDeClaseModal from '../../components/AlumnosDeClaseModal.jsx'
-import QrAlumnoModal from '../../components/QrAlumnoModal.jsx'
 import { useAuth } from '../../context/AuthContext'
 import { listarClasesDelProfesor, obtenerClaseActualDelProfesor } from '../../services/claseService'
 import '../../styles/MyClasses.css'
@@ -115,7 +115,6 @@ function MisClasesView() {
   const [isMonthModalOpen, setIsMonthModalOpen] = useState(false)
   const [activeMonth, setActiveMonth] = useState(() => new Date())
   const [claseParaVerAlumnos, setClaseParaVerAlumnos] = useState(null)
-  const [mostrarQrClase, setMostrarQrClase] = useState(false)
 
   useEffect(() => {
     if (authLoading || !user?.id) {
@@ -285,9 +284,14 @@ function MisClasesView() {
               </div>
             )}
 
-            <button type="button" className="btn-pasar-asistencia" onClick={() => setMostrarQrClase(true)}>
-              Mostrar QR de la clase
-            </button>
+            <div className="clase-actual-qr">
+              <p className="clase-actual-qr__texto">
+                Este es el código de la clase para que los alumnos registren asistencia.
+              </p>
+              <div className="clase-actual-qr__codigo" aria-label="Código QR de la clase">
+                <QRCodeSVG value={`sportify-${claseActual.idClase}`} size={210} />
+              </div>
+            </div>
           </section>
         ) : (
           <section className="my-classes-panel">
@@ -389,15 +393,6 @@ function MisClasesView() {
         abierto={claseParaVerAlumnos !== null}
         clase={claseParaVerAlumnos}
         onCerrar={cerrarAlumnosDeClase}
-      />
-
-      <QrAlumnoModal
-        abierto={mostrarQrClase && !!claseActual}
-        onCerrar={() => setMostrarQrClase(false)}
-        valor={claseActual ? `sportify-${claseActual.idClase}` : null}
-        titulo="Código de la clase"
-        descripcion="Mostrale este código al alumno para que registre su asistencia desde su celular."
-        etiquetaInferior={claseActual ? `${normalizarNombreActividad(claseActual.actividad)} · ${String(claseActual.hora).padStart(2, '0')}:00` : ''}
       />
     </div>
   )
