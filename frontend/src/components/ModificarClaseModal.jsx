@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import '../styles/ModificarClaseModal.css'
-import { cancelarClase as cancelarClaseApi } from '../services/claseService'
+import {
+  cancelarClase as cancelarClaseApi,
+  cambiarProfesorClase
+} from '../services/claseService'
 import { isClassOnOrBeforeBuenosAiresNow } from '../utils/buenosAiresTime'
 
 const HORAS = Array.from({ length: 17 }, (_, i) => i + 6)
@@ -28,6 +31,7 @@ function ModificarClaseModal({
   const [claseModificada, setClaseModificada] = useState(null)
   const [accionEnProceso, setAccionEnProceso] = useState(false)
   const [mostrarConfirmacionCancelacion, setMostrarConfirmacionCancelacion] = useState(false)
+  const [mostrarOpcionesModificar, setMostrarOpcionesModificar] = useState(false)
 
   useEffect(() => {
     if (abierto && claseSeleccionada) {
@@ -46,6 +50,7 @@ function ModificarClaseModal({
       setClaseModificada(null)
       setAccionEnProceso(false)
       setMostrarConfirmacionCancelacion(false)
+      setMostrarOpcionesModificar(false)
       cargarProfesores()
     }
   }, [abierto, claseSeleccionada])
@@ -189,6 +194,14 @@ function ModificarClaseModal({
     return dia === 0 || dia === 6
   }
 
+  const obtenerActividadDeClase = () => {
+    if (!claseSeleccionada) return null
+    if (typeof claseSeleccionada.actividad === 'string') {
+      return claseSeleccionada.actividad
+    }
+    return claseSeleccionada.actividad?.tipo || claseSeleccionada.actividad?.nombre || null
+  }
+
   // Solo los profesores que dictan la actividad de esta clase: el backend rechaza
   // asignar un profesor que no la dicta ("El profesor seleccionado no dicta esta actividad").
   const profesoresDeLaActividad = () => {
@@ -211,6 +224,38 @@ function ModificarClaseModal({
 
     const enListaCompleta = profesores.find((p) => Number(obtenerIdProfesor(p)) === Number(idActual))
     return [enListaCompleta || claseSeleccionada.profesor, ...base]
+  }
+
+  const guardarCambioProfesor = async (alcanceElegido) => {
+    setCargando(true)
+    setError('')
+
+    const idClase = obtenerIdClase()
+    const idProfesor = convertirEntero(form.profesorId)
+
+    if (!idClase) {
+      setError('No se pudo identificar la clase seleccionada.')
+      setCargando(false)
+      return
+    }
+
+    if (idProfesor === null || idProfesor <= 0) {
+      setError('Debe seleccionar un profesor válido.')
+      setCargando(false)
+      return
+    }
+
+    try {
+      const data = await cambiarProfesorClase(idClase, idProfesor, alcanceElegido)
+      setClaseModificada(data)
+      setMostrarExito(true)
+    } catch (err) {
+      setError(err.message || 'Ocurrió un error al modificar la clase.')
+    } finally {
+      setCargando(false)
+    }
+  }
+
   const manejarCambio = (e) => {
     const { name, value } = e.target
 
@@ -220,90 +265,7 @@ function ModificarClaseModal({
     }))
   }
 
-  const manejarCambioFecha = (e) => {
-    const nuevaFecha = e.target.value
 
-    if (esFindeSemana(nuevaFecha)) {
-      setError('El gimnasio no opera los fines de semana. Seleccioná un día de lunes a viernes.')
-      setForm((prev) => ({ ...prev, fecha: '' }))
-      return
-    }
-
-    setError('')
-    setForm((prev) => ({ ...prev, fecha: nuevaFecha }))
-  }
-
-  const modificarClase = async (e) => {
-    e.preventDefault()
-
-    setCargando(true)
-    setError('')
-
-    const idClase = obtenerIdClase()
-    const hora = convertirEntero(form.hora)
-    const profesorId = convertirEntero(form.profesorId)
-
-    if (!idClase) {
-      setError('No se pudo identificar la clase seleccionada.')
-      setCargando(false)
-      return
-    }
-
-    if (!form.fecha) {
-      setError('Debe seleccionar una fecha.')
-      setCargando(false)
-      return
-    }
-
-    if (hora === null || hora < 0 || hora > 23) {
-      setError('Debe ingresar una hora válida entre 0 y 23.')
-      setCargando(false)
-      return
-    }
-
-    if (profesorId === null || profesorId <= 0) {
-      setError('Debe seleccionar un profesor válido.')
-      setCargando(false)
-      return
-    }
-
-    const claseActualizada = {
-      fecha: form.fecha,
-      hora,
-      profesor: {
-        id: profesorId
-      }
-    }
-
-    console.log('Clase modificada enviada al backend:', claseActualizada)
-    console.log('JSON modificación:', JSON.stringify(claseActualizada))
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/clases/${idClase}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(claseActualizada)
-      })
-
-      const data = await leerRespuesta(response)
-
-      console.log('Status modificación clase:', response.status)
-      console.log('Respuesta modificación clase:', data)
-
-      if (!response.ok) {
-        throw new Error(obtenerMensajeError(data, 'No se pudo modificar la clase.'))
-      }
-
-      setClaseModificada(data)
-      setMostrarExito(true)
-    } catch (err) {
-      setError(err.message || 'Ocurrió un error al modificar la clase.')
-    } finally {
-      setCargando(false)
-    }
-  }
 
   const cancelarClase = async () => {
     const idClase = obtenerIdClase()
@@ -377,7 +339,7 @@ function ModificarClaseModal({
           <p className="modificar-clase-modal__label">Panel administrativo</p>
           <h2>Modificar clase</h2>
           <p>
-            Cambiá el día, horario o profesor de la clase seleccionada.
+            Cambiá el profesor de la clase seleccionada.
           </p>
         </div>
 
@@ -388,34 +350,7 @@ function ModificarClaseModal({
         )}
 
         <div className="modificar-clase-modal__content">
-          <form className="modificar-clase-modal__form" onSubmit={modificarClase}>
-            <label className="modificar-clase-modal__field">
-              <span>Día</span>
-              <input
-                type="date"
-                name="fecha"
-                value={form.fecha}
-                onChange={manejarCambioFecha}
-                onKeyDown={(e) => { if (e.key !== 'Tab') e.preventDefault() }}
-                required
-              />
-            </label>
-
-            <label className="modificar-clase-modal__field">
-              <span>Hora</span>
-              <select
-                name="hora"
-                value={form.hora}
-                onChange={manejarCambio}
-                required
-              >
-                <option value="">Seleccionar hora</option>
-                {HORAS.map((h) => (
-                  <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
-                ))}
-              </select>
-            </label>
-
+          <form className="modificar-clase-modal__form" onSubmit={(e) => e.preventDefault()}>
             <label className="modificar-clase-modal__field modificar-clase-modal__field--full">
               <span>Profesor</span>
               <select
@@ -430,11 +365,10 @@ function ModificarClaseModal({
                     ? 'Cargando profesores...'
                     : profesoresDeLaActividad().length === 0
                       ? 'No hay profesores para esta actividad'
-                      : 'Cambiar profesor'}
-                  {cargandoProfesores ? 'Cargando profesores...' : 'Seleccionar profesor'}
+                      : 'Seleccionar profesor'}
                 </option>
 
-                {profesores.map((profesor) => {
+                {profesoresDeLaActividad().map((profesor) => {
                   const idProfesor = obtenerIdProfesor(profesor)
 
                   if (!idProfesor) {
@@ -450,9 +384,24 @@ function ModificarClaseModal({
               </select>
             </label>
 
+            {mostrarOpcionesModificar && (
+              <p className="modificar-clase-modal__note" style={{ gridColumn: 'span 2', marginTop: '0.5rem', marginBottom: '0' }}>
+                <strong>Para esta clase</strong>: cambia el profesor solo de esta fecha.<br />
+                <strong>Para todas las clases</strong>: cambia el profesor de toda la serie en adelante.
+              </p>
+            )}
+
             <div className="modificar-clase-modal__actions">
               {!mostrarOpcionesModificar ? (
-                <div className="modificar-clase-modal__actions-group">
+                <>
+                  <button
+                    type="button"
+                    className="modificar-clase-modal__button modificar-clase-modal__button--secondary"
+                    onClick={onCerrar}
+                  >
+                    Cancelar
+                  </button>
+
                   <button
                     type="button"
                     className="modificar-clase-modal__button modificar-clase-modal__button--danger"
@@ -470,7 +419,7 @@ function ModificarClaseModal({
                   >
                     Modificar profesor
                   </button>
-                </div>
+                </>
               ) : (
                 <div className="modificar-clase-modal__actions-group modificar-clase-modal__options">
                   <button
@@ -501,30 +450,6 @@ function ModificarClaseModal({
                   </button>
                 </div>
               )}
-              <button
-                type="button"
-                className="modificar-clase-modal__button modificar-clase-modal__button--secondary"
-                onClick={onCerrar}
-              >
-                Cancelar
-              </button>
-
-              <button
-                type="button"
-                className="modificar-clase-modal__button modificar-clase-modal__button--danger"
-                onClick={abrirConfirmacionCancelacion}
-                disabled={cargando || cargandoProfesores || accionEnProceso || Boolean(claseSeleccionada.cancelada)}
-              >
-                {claseSeleccionada.cancelada ? 'Clase cancelada' : accionEnProceso ? 'Cancelando...' : 'Cancelar clase'}
-              </button>
-
-              <button
-                type="submit"
-                className="modificar-clase-modal__button modificar-clase-modal__button--primary"
-                disabled={cargando || cargandoProfesores}
-              >
-                {cargando ? 'Modificando...' : 'Modificar'}
-              </button>
             </div>
           </form>
 
@@ -537,23 +462,13 @@ function ModificarClaseModal({
             </div>
 
             <div className="modificar-clase-modal__summary-item">
-              <span>Día actual</span>
+              <span>Día</span>
               <strong>{claseSeleccionada.fecha || 'Sin fecha'}</strong>
             </div>
 
             <div className="modificar-clase-modal__summary-item">
-              <span>Hora actual</span>
+              <span>Hora</span>
               <strong>{claseSeleccionada.hora ? `${claseSeleccionada.hora} hs` : 'Sin hora'}</strong>
-            </div>
-
-            <div className="modificar-clase-modal__summary-item">
-              <span>Nuevo día</span>
-              <strong>{form.fecha || 'Sin seleccionar'}</strong>
-            </div>
-
-            <div className="modificar-clase-modal__summary-item">
-              <span>Nueva hora</span>
-              <strong>{form.hora ? `${form.hora} hs` : 'Sin seleccionar'}</strong>
             </div>
 
             <div className="modificar-clase-modal__summary-item">
@@ -562,7 +477,7 @@ function ModificarClaseModal({
             </div>
 
             <p className="modificar-clase-modal__note">
-              La modificación solo se registrará si la clase no tiene alumnos inscriptos y el nuevo turno está disponible.
+              La modificación de profesor solo se registrará si el nuevo profesor se encuentra disponible.
             </p>
           </aside>
         </div>
