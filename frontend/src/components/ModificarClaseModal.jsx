@@ -189,6 +189,28 @@ function ModificarClaseModal({
     return dia === 0 || dia === 6
   }
 
+  // Solo los profesores que dictan la actividad de esta clase: el backend rechaza
+  // asignar un profesor que no la dicta ("El profesor seleccionado no dicta esta actividad").
+  const profesoresDeLaActividad = () => {
+    const actividadClase = (obtenerActividadDeClase() || '').toString().toUpperCase()
+    const base = !actividadClase
+      ? profesores
+      : profesores.filter((p) => {
+          const tipoProf = (p?.actividad?.tipo || '').toString().toUpperCase()
+          return tipoProf === actividadClase
+        })
+
+    // El profesor asignado a la clase siempre debe poder verse preseleccionado en
+    // el <select>, aunque por algún motivo (p.ej. cambió de disciplina) haya
+    // quedado afuera del filtro de arriba. Si no está en "base", lo agregamos.
+    const idActual = obtenerIdProfesor(claseSeleccionada.profesor)
+    if (!idActual) return base
+
+    const yaIncluido = base.some((p) => Number(obtenerIdProfesor(p)) === Number(idActual))
+    if (yaIncluido) return base
+
+    const enListaCompleta = profesores.find((p) => Number(obtenerIdProfesor(p)) === Number(idActual))
+    return [enListaCompleta || claseSeleccionada.profesor, ...base]
   const manejarCambio = (e) => {
     const { name, value } = e.target
 
@@ -404,6 +426,11 @@ function ModificarClaseModal({
                 required
               >
                 <option value="">
+                  {cargandoProfesores
+                    ? 'Cargando profesores...'
+                    : profesoresDeLaActividad().length === 0
+                      ? 'No hay profesores para esta actividad'
+                      : 'Cambiar profesor'}
                   {cargandoProfesores ? 'Cargando profesores...' : 'Seleccionar profesor'}
                 </option>
 
@@ -424,6 +451,56 @@ function ModificarClaseModal({
             </label>
 
             <div className="modificar-clase-modal__actions">
+              {!mostrarOpcionesModificar ? (
+                <div className="modificar-clase-modal__actions-group">
+                  <button
+                    type="button"
+                    className="modificar-clase-modal__button modificar-clase-modal__button--danger"
+                    onClick={abrirConfirmacionCancelacion}
+                    disabled={cargando || cargandoProfesores || accionEnProceso || Boolean(claseSeleccionada.cancelada)}
+                  >
+                    {claseSeleccionada.cancelada ? 'Clase cancelada' : accionEnProceso ? 'Cancelando...' : 'Cancelar clase'}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="modificar-clase-modal__button modificar-clase-modal__button--primary"
+                    onClick={() => { setError(''); setMostrarOpcionesModificar(true) }}
+                    disabled={cargando || cargandoProfesores}
+                  >
+                    Modificar profesor
+                  </button>
+                </div>
+              ) : (
+                <div className="modificar-clase-modal__actions-group modificar-clase-modal__options">
+                  <button
+                    type="button"
+                    className="modificar-clase-modal__button modificar-clase-modal__button--link"
+                    onClick={() => setMostrarOpcionesModificar(false)}
+                    disabled={cargando}
+                  >
+                    ← Volver
+                  </button>
+
+                  <button
+                    type="button"
+                    className="modificar-clase-modal__button modificar-clase-modal__button--primary"
+                    onClick={() => guardarCambioProfesor('INDIVIDUAL')}
+                    disabled={cargando || cargandoProfesores}
+                  >
+                    {cargando ? 'Modificando...' : 'Para esta clase'}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="modificar-clase-modal__button modificar-clase-modal__button--primary"
+                    onClick={() => guardarCambioProfesor('SERIE')}
+                    disabled={cargando || cargandoProfesores}
+                  >
+                    {cargando ? 'Modificando...' : 'Para todas las clases'}
+                  </button>
+                </div>
+              )}
               <button
                 type="button"
                 className="modificar-clase-modal__button modificar-clase-modal__button--secondary"
