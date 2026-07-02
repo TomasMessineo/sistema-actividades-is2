@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
+import { QRCodeSVG } from 'qrcode.react'
 import Navbar from '../../components/Navbar/NavbarProfesor.jsx'
 import AlumnosDeClaseModal from '../../components/AlumnosDeClaseModal.jsx'
 import { useAuth } from '../../context/AuthContext'
-import { listarClasesDelProfesor, obtenerClaseActualDelProfesor } from '../../services/claseService'
+import { listarClasesDelProfesor, listarAlumnosDeClase, obtenerClaseActualDelProfesor } from '../../services/claseService'
 import '../../styles/MyClasses.css'
 import '../../styles/misClasesProfesor.css'
 
@@ -128,8 +129,22 @@ function MisClasesView() {
         if (primeraVez) setCargandoClaseActual(true)
         setErrorClaseActual(null)
         const clase = await obtenerClaseActualDelProfesor(user.id)
+
+        if (!clase?.idClase) {
+          if (!cancelado) {
+            setClaseActual(clase)
+          }
+          return
+        }
+
+        const alumnos = await listarAlumnosDeClase(clase.idClase)
+        const claseConAsistencia = {
+          ...clase,
+          alumnos: Array.isArray(alumnos) ? alumnos : [],
+        }
+
         if (!cancelado) {
-          setClaseActual(clase)
+          setClaseActual(claseConAsistencia)
         }
       } catch {
         if (!cancelado) {
@@ -277,15 +292,25 @@ function MisClasesView() {
                     <span className="clase-actual-alumno-nombre">
                       {alumno.nombre} {alumno.apellido}
                     </span>
-                    <span className="asistencia-badge" title="Asistencia pendiente" />
+                    <span
+                      className={`asistencia-badge ${alumno.falto === false ? 'asistencia-badge--asistio' : 'asistencia-badge--pendiente'}`}
+                      title={alumno.falto === false ? 'Asistencia registrada' : 'Asistencia pendiente'}
+                    >
+                      {alumno.falto === false ? '✓' : ''}
+                    </span>
                   </div>
                 ))}
               </div>
             )}
 
-            <button type="button" className="btn-pasar-asistencia" onClick={() => {}}>
-              Pasar Asistencia
-            </button>
+            <div className="clase-actual-qr">
+              <p className="clase-actual-qr__texto">
+                Este es el código de la clase para que los alumnos registren asistencia.
+              </p>
+              <div className="clase-actual-qr__codigo" aria-label="Código QR de la clase">
+                <QRCodeSVG value={`sportify-${claseActual.idClase}`} size={210} />
+              </div>
+            </div>
           </section>
         ) : (
           <section className="my-classes-panel">

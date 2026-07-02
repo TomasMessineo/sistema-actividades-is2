@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '../../components/Navbar/NavbarAlumno.jsx'
+import PasarAsistenciaModal from '../../components/PasarAsistenciaModal.jsx'
 import { useAuth } from '../../context/AuthContext'
 import {
   listarClasesDelAlumno,
@@ -10,6 +11,7 @@ import {
 } from '../../services/claseService'
 import { apiFetch } from '../../services/apiClient'
 import { obtenerInasistenciasAlumno } from '../../services/alumnoService'
+import { isClassInBuenosAiresCurrentHour } from '../../utils/buenosAiresTime'
 import '../../styles/AvailableClasses.css'
 import '../../styles/MyClasses.css'
 
@@ -26,6 +28,27 @@ const monthDayFormatter = new Intl.DateTimeFormat('es-AR', { day: 'numeric' })
 const monthWeekdayHeaders = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 
 const getClassDateTime = (item) => new Date(`${item.fecha}T${String(item.hora).padStart(2, '0')}:00:00`)
+
+const normalizarNombreActividad = (actividad) => {
+  if (!actividad) return 'Clase'
+
+  const formateado = actividad
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/_/g, ' ')
+
+  if (!formateado) return 'Clase'
+  return formateado.charAt(0).toUpperCase() + formateado.slice(1)
+}
+
+const claseEnCurso = (clase) => {
+  if (clase.cancelada) {
+    return false
+  }
+
+  return isClassInBuenosAiresCurrentHour(clase?.fecha, Number(clase?.hora))
+}
 
 const toDateOnly = (value) => new Date(`${value}T00:00:00`)
 
@@ -107,6 +130,7 @@ function MyClassesView() {
   const [isMonthModalOpen, setIsMonthModalOpen] = useState(false)
   const [isEsperaModalOpen, setIsEsperaModalOpen] = useState(false)
   const [isInasistenciasModalOpen, setIsInasistenciasModalOpen] = useState(false)
+  const [isAsistenciaModalOpen, setIsAsistenciaModalOpen] = useState(false)
   const [inasistencias, setInasistencias] = useState(null) // { inasistencias, limite }
   const [activeMonth, setActiveMonth] = useState(() => new Date())
   const [feedback, setFeedback] = useState(null) // { tipo: 'ok'|'error', texto }
@@ -263,6 +287,10 @@ function MyClassesView() {
   }, [classes])
 
   const renderedMonthDays = useMemo(() => buildMonthGrid(activeMonth, allClasses), [activeMonth, allClasses])
+  const claseEnCursoActual = useMemo(
+    () => allClasses.find((clase) => claseEnCurso(clase)) || null,
+    [allClasses]
+  )
 
   const openMonthModal = () => {
     setActiveMonth(new Date())
@@ -329,25 +357,45 @@ function MyClassesView() {
             </div>
 
             <aside className="my-classes-cta">
-              <div>
-                <p className="my-classes-kicker">Nueva clase</p>
-                <h2 className="my-classes-title">Encontrá una clase nueva para sumarte</h2>
-              </div>
-              <Link to="/alumno/clasesDisponibles" className="my-classes-button">Buscas clases nuevas</Link>
-              <button
-                type="button"
-                className="my-classes-button my-classes-button--secondary"
-                onClick={() => setIsEsperaModalOpen(true)}
-              >
-                Lista de espera
-              </button>
-              <button
-                type="button"
-                className="my-classes-button my-classes-button--secondary"
-                onClick={abrirInasistencias}
-              >
-                Inasistencias
-              </button>
+              {claseEnCursoActual ? (
+                <>
+                  <div>
+                    <p className="my-classes-kicker">Clase en curso</p>
+                    <h2 className="my-classes-title">
+                      Tenes una clase de {normalizarNombreActividad(claseEnCursoActual.actividad)} en curso
+                    </h2>
+                  </div>
+                  <button
+                    type="button"
+                    className="my-classes-button"
+                    onClick={() => setIsAsistenciaModalOpen(true)}
+                  >
+                    Abrir cámara
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <p className="my-classes-kicker">Nueva clase</p>
+                    <h2 className="my-classes-title">Encontrá una clase nueva para sumarte</h2>
+                  </div>
+                  <Link to="/alumno/clasesDisponibles" className="my-classes-button">Buscas clases nuevas</Link>
+                  <button
+                    type="button"
+                    className="my-classes-button my-classes-button--secondary"
+                    onClick={() => setIsEsperaModalOpen(true)}
+                  >
+                    Lista de espera
+                  </button>
+                  <button
+                    type="button"
+                    className="my-classes-button my-classes-button--secondary"
+                    onClick={abrirInasistencias}
+                  >
+                    Inasistencias
+                  </button>
+                </>
+              )}
             </aside>
           </section>
         )}
@@ -489,6 +537,13 @@ function MyClassesView() {
             </div>
           </div>
         )}
+
+        <PasarAsistenciaModal
+          abierto={isAsistenciaModalOpen}
+          onCerrar={() => setIsAsistenciaModalOpen(false)}
+          clase={claseEnCursoActual}
+          alumnoId={user?.id}
+        />
       </main>
     </div>
   )

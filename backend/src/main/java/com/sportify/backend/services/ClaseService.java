@@ -35,6 +35,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -46,6 +47,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class ClaseService {
+
+    private static final ZoneId BUENOS_AIRES_ZONE = ZoneId.of("America/Argentina/Buenos_Aires");
 
     @Autowired
     private ClaseRepository claseRepository;
@@ -238,15 +241,30 @@ public class ClaseService {
     // Clase que el profesor está dando en este momento (fecha y hora actuales),
     // o null si no tiene ninguna clase asignada ahora.
     public ClaseActualProfesorDTO buscarClaseActualDeProfesor(Integer profesorId) {
-        LocalDate hoy = LocalDate.now();
-        int horaActual = LocalTime.now().getHour();
+        LocalDate hoy = LocalDate.now(BUENOS_AIRES_ZONE);
+        int horaActual = LocalTime.now(BUENOS_AIRES_ZONE).getHour();
 
         return claseRepository.findByFechaAndHoraAndProfesor_Id(hoy, horaActual, profesorId)
                 .stream()
-                .filter(c -> !Boolean.TRUE.equals(c.getCancelada()))
+                .filter(this::claseEnCurso)
                 .findFirst()
                 .map(ClaseActualProfesorDTO::fromEntity)
                 .orElse(null);
+    }
+
+    private boolean claseEnCurso(Clase clase) {
+        if (clase == null || clase.getFecha() == null || clase.getHora() == null) {
+            return false;
+        }
+
+        if (Boolean.TRUE.equals(clase.getCancelada()) || Boolean.TRUE.equals(clase.getAsistenciaFinalizada())) {
+            return false;
+        }
+
+        LocalDate hoy = LocalDate.now(BUENOS_AIRES_ZONE);
+        int horaActual = LocalTime.now(BUENOS_AIRES_ZONE).getHour();
+
+        return clase.getFecha().equals(hoy) && clase.getHora().equals(horaActual);
     }
 
     // HELPER
@@ -436,6 +454,10 @@ public class ClaseService {
         Clase clase = claseRepository.findById(idClase)
                 .orElseThrow(() -> new RuntimeException("Clase no encontrada"));
 
+        if (!claseEnCurso(clase)) {
+            throw new RuntimeException("La clase no se encuentra en curso.");
+        }
+
         Alumno alumno = alumnoRepository.findById(idAlumno)
                 .orElseThrow(() -> new RuntimeException("El código no corresponde a ningún alumno."));
 
@@ -473,7 +495,7 @@ public class ClaseService {
     @Scheduled(fixedRate = 60000)
     @Transactional
     public void finalizarAsistenciasDeClasesTerminadas() {
-        LocalDateTime ahora = LocalDateTime.now();
+        LocalDateTime ahora = LocalDateTime.now(BUENOS_AIRES_ZONE);
 
         for (Clase clase : claseRepository.findPendientesDeFinalizarAsistencia()) {
             if (clase.getFecha() == null || clase.getHora() == null) {
@@ -734,13 +756,13 @@ public class ClaseService {
     // HELPER — genera las fechas semanales desde la próxima ocurrencia del día
     // elegido hasta dentro de 2 meses (misma ventana que usaba el front).
     private List<LocalDate> generarFechasSerie(DayOfWeek dia, int hora) {
-        LocalDate hoy = LocalDate.now();
+        LocalDate hoy = LocalDate.now(BUENOS_AIRES_ZONE);
         int diff = (dia.getValue() - hoy.getDayOfWeek().getValue() + 7) % 7;
         LocalDate inicio = hoy.plusDays(diff);
 
         // Si la primera ocurrencia es hoy pero la hora ya pasó, arrancamos la próxima
         // semana.
-        if (diff == 0 && hora <= LocalTime.now().getHour()) {
+        if (diff == 0 && hora <= LocalTime.now(BUENOS_AIRES_ZONE).getHour()) {
             inicio = inicio.plusWeeks(1);
         }
 
@@ -1032,7 +1054,7 @@ public class ClaseService {
 
             // Materializamos los próximos 2 meses para tener el período concreto de clases
             // futuras.
-            LocalDate hoy = LocalDate.now();
+            LocalDate hoy = LocalDate.now(BUENOS_AIRES_ZONE);
             materializarRango(hoy, hoy.plusMonths(2));
 
             // Todas las clases de la serie aún no impartidas (futuras, no canceladas).
