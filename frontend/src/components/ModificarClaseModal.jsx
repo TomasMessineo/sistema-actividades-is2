@@ -181,11 +181,24 @@ function ModificarClaseModal({
   // asignar un profesor que no la dicta ("El profesor seleccionado no dicta esta actividad").
   const profesoresDeLaActividad = () => {
     const actividadClase = (obtenerActividadDeClase() || '').toString().toUpperCase()
-    if (!actividadClase) return profesores
-    return profesores.filter((p) => {
-      const tipoProf = (p?.actividad?.tipo || '').toString().toUpperCase()
-      return tipoProf === actividadClase
-    })
+    const base = !actividadClase
+      ? profesores
+      : profesores.filter((p) => {
+          const tipoProf = (p?.actividad?.tipo || '').toString().toUpperCase()
+          return tipoProf === actividadClase
+        })
+
+    // El profesor asignado a la clase siempre debe poder verse preseleccionado en
+    // el <select>, aunque por algún motivo (p.ej. cambió de disciplina) haya
+    // quedado afuera del filtro de arriba. Si no está en "base", lo agregamos.
+    const idActual = obtenerIdProfesor(claseSeleccionada.profesor)
+    if (!idActual) return base
+
+    const yaIncluido = base.some((p) => Number(obtenerIdProfesor(p)) === Number(idActual))
+    if (yaIncluido) return base
+
+    const enListaCompleta = profesores.find((p) => Number(obtenerIdProfesor(p)) === Number(idActual))
+    return [enListaCompleta || claseSeleccionada.profesor, ...base]
   }
 
   const obtenerNombreDia = () => {
@@ -330,7 +343,7 @@ function ModificarClaseModal({
                     ? 'Cargando profesores...'
                     : profesoresDeLaActividad().length === 0
                       ? 'No hay profesores para esta actividad'
-                      : 'Seleccionar profesor'}
+                      : 'Cambiar profesor'}
                 </option>
 
                 {profesoresDeLaActividad().map((profesor) => {
@@ -370,7 +383,7 @@ function ModificarClaseModal({
                     onClick={() => { setError(''); setMostrarOpcionesModificar(true) }}
                     disabled={cargando || cargandoProfesores}
                   >
-                    Modificar clase
+                    Modificar profesor
                   </button>
                 </div>
               ) : (
@@ -431,7 +444,7 @@ function ModificarClaseModal({
             </div>
 
             <div className="modificar-clase-modal__summary-item">
-              <span>Nuevo profesor</span>
+              <span>Profesor</span>
               <strong>{obtenerNombreProfesor(obtenerProfesorSeleccionado())}</strong>
             </div>
           </aside>
