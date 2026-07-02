@@ -166,10 +166,12 @@ function MyClassesView() {
       const enrolledClasses = Array.isArray(response) ? response : []
       setAllClasses(enrolledClasses)
 
+      const ahora = Date.now()
       const upcomingClasses = enrolledClasses
         .filter((item) => item?.fecha && typeof item.hora === 'number')
+        .filter((item) => getClassDateTime(item).getTime() >= ahora)
         .sort((left, right) => getClassDateTime(left) - getClassDateTime(right))
-        .slice(0, 3)
+        .slice(0, 6)
 
       setClasses(upcomingClasses)
       setClasesEnEspera(Array.isArray(espera) ? espera : [])
@@ -325,7 +327,7 @@ function MyClassesView() {
         {!loading && !error && (
           <section className="my-classes-layout">
             <div className="my-classes-panel">
-              <p className="my-classes-kicker">Esta semana</p>
+              <p className="my-classes-kicker">Próximamente</p>
               <h1 className="my-classes-title">Tus próximas clases</h1>
 
               {hasClasses ? (
@@ -494,8 +496,8 @@ function MyClassesView() {
                   <p className="my-classes-modal__kicker">Calendario mensual</p>
                   <h2>{monthTitleFormatter.format(activeMonth)}</h2>
                 </div>
-                <button type="button" className="my-classes-modal__close" onClick={closeMonthModal} aria-label="Cerrar calendario mensual">
-                  ×
+                <button type="button" className="my-classes-modal__back" onClick={closeMonthModal} aria-label="Volver a próximas clases">
+                  ← Volver
                 </button>
               </div>
 
