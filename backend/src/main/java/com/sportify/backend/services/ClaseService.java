@@ -17,6 +17,7 @@ import com.sportify.backend.entities.Clase;
 import com.sportify.backend.entities.ClasePlantilla;
 import com.sportify.backend.entities.LicenciaProfesor;
 import com.sportify.backend.entities.ListaAsistencia;
+import com.sportify.backend.entities.Pago;
 import com.sportify.backend.entities.Profesor;
 import com.sportify.backend.entities.RegistroAsistencia;
 import com.sportify.backend.repositories.ActividadRepository;
@@ -24,6 +25,7 @@ import com.sportify.backend.repositories.AlumnoRepository;
 import com.sportify.backend.repositories.ClasePlantillaRepository;
 import com.sportify.backend.repositories.ClaseRepository;
 import com.sportify.backend.repositories.LicenciaProfesorRepository;
+import com.sportify.backend.repositories.PagoRepository;
 import com.sportify.backend.repositories.ProfesorRepository;
 import com.sportify.backend.repositories.RegistroAsistenciaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +37,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -71,6 +74,9 @@ public class ClaseService {
     @Autowired
     private ActividadRepository actividadRepository;
 
+    @Autowired
+    private PagoRepository pagoRepository;
+
     // 1. LISTAR
     public List<Clase> listarClases() {
         return claseRepository.findAll();
@@ -95,14 +101,18 @@ public class ClaseService {
     }
 
     public List<Clase> listAvailableForAlumno(Integer alumnoId) {
+        LocalDate hoy = LocalDate.now();
+
         if (alumnoId == null) {
             return listAll().stream()
                     .filter(clase -> !Boolean.TRUE.equals(clase.getCancelada()))
+                    .filter(clase -> clase.getFecha() != null && !clase.getFecha().isBefore(hoy))
                     .collect(Collectors.toList());
         }
 
         return listAll().stream()
                 .filter(clase -> !Boolean.TRUE.equals(clase.getCancelada()))
+                .filter(clase -> clase.getFecha() != null && !clase.getFecha().isBefore(hoy))
                 .filter(clase -> !isAlumnoEnrolled(clase, alumnoId))
                 .filter(clase -> !isAlumnoInWaitingList(clase, alumnoId))
                 .collect(Collectors.toList());
@@ -116,6 +126,90 @@ public class ClaseService {
         return clase.getListaAsistencia().getAlumnos().stream()
                 .map(Alumno::getId)
                 .anyMatch(id -> java.util.Objects.equals(id, alumnoId));
+    }
+
+    // ============================================================
+    // VISTA SEMANAL POR PLANTILLA (para inscripción mensual / abono)
+    // ============================================================
+    // Devuelve un slot por serie (ClasePlantilla activa) para la semana pedida.
+    // A diferencia de listAvailableForAlumno, NO oculta la serie por inscripción
+    // individual: solo la oculta si el alumno ya tiene un abono de esa serie este mes.
+    // Si la instancia de la semana está cancelada, apunta a la próxima instancia
+    // no cancelada del mes.
+    @Transactional
+    public List<ClaseCalendarioDTO> listarSemanaPorPlantilla(LocalDate desde, LocalDate hasta, Integer alumnoId) {
+        if (desde == null || hasta == null) {
+            return List.of();
+        }
+
+        // Materializamos la semana y el resto del mes (para poder apuntar a la
+        // próxima instancia si la de esta semana está cancelada).
+        LocalDate finDeMes = desde.withDayOfMonth(desde.lengthOfMonth());
+        LocalDate hastaMaterializar = hasta.isAfter(finDeMes) ? hasta : finDeMes;
+        materializarRango(desde, hastaMaterializar);
+
+        Set<Integer> plantillasAbonadas = plantillasConAbonoDelMes(alumnoId, desde);
+
+        List<ClaseCalendarioDTO> resultado = new ArrayList<>();
+        for (ClasePlantilla plantilla : clasePlantillaRepository.findAll()) {
+            if (!Boolean.TRUE.equals(plantilla.getActiva())) {
+                continue;
+            }
+            // Si ya tiene abono de esta serie este mes, la ocultamos.
+            if (plantillasAbonadas.contains(plantilla.getIdPlantilla())) {
+                continue;
+            }
+
+            Clase representativa = elegirInstanciaRepresentativa(plantilla, desde, hasta, finDeMes);
+            if (representativa == null) {
+                continue;
+            }
+
+            resultado.add(ClaseCalendarioDTO.fromEntity(representativa));
+        }
+        return resultado;
+    }
+
+    // Instancia que representa a la serie en la semana: la de esta semana si no está
+    // cancelada; si lo está (o no hay), la próxima no cancelada del mes.
+    private Clase elegirInstanciaRepresentativa(ClasePlantilla plantilla, LocalDate desde, LocalDate hasta, LocalDate finDeMes) {
+        List<Clase> instancias = claseRepository.findByPlantilla_IdPlantilla(plantilla.getIdPlantilla());
+
+        Clase semanal = instancias.stream()
+                .filter(c -> c.getFecha() != null
+                        && !c.getFecha().isBefore(desde)
+                        && !c.getFecha().isAfter(hasta))
+                .filter(c -> !Boolean.TRUE.equals(c.getCancelada()))
+                .findFirst()
+                .orElse(null);
+        if (semanal != null) {
+            return semanal;
+        }
+
+        return instancias.stream()
+                .filter(c -> c.getFecha() != null
+                        && !c.getFecha().isBefore(desde)
+                        && !c.getFecha().isAfter(finDeMes))
+                .filter(c -> !Boolean.TRUE.equals(c.getCancelada()))
+                .sorted(Comparator.comparing(Clase::getFecha))
+                .findFirst()
+                .orElse(null);
+    }
+
+    // Series (plantillas) donde el alumno ya tiene un abono COMPLETADO en el mes de referencia.
+    private Set<Integer> plantillasConAbonoDelMes(Integer alumnoId, LocalDate referencia) {
+        if (alumnoId == null) {
+            return Set.of();
+        }
+        YearMonth mes = YearMonth.from(referencia);
+        return pagoRepository.findByAlumnoId(alumnoId).stream()
+                .filter(p -> p.getEstado() == Pago.EstadoPago.COMPLETADO)
+                .filter(p -> p.getTipo() == Pago.TipoClase.ABONADO)
+                .filter(p -> p.getClase() != null && p.getClase().getPlantilla() != null)
+                .filter(p -> p.getClase().getFecha() != null
+                        && YearMonth.from(p.getClase().getFecha()).equals(mes))
+                .map(p -> p.getClase().getPlantilla().getIdPlantilla())
+                .collect(Collectors.toSet());
     }
 
     private boolean isAlumnoInWaitingList(Clase clase, Integer alumnoId) {
@@ -162,13 +256,15 @@ public class ClaseService {
         Clase claseElegida = claseRepository.findById(idClase)
                 .orElseThrow(() -> new RuntimeException("Clase no encontrada"));
 
-        LocalDate fechaInicio = claseElegida.getFecha();
-        if (fechaInicio == null) {
+        if (claseElegida.getFecha() == null) {
             return List.of();
         }
 
-        // Ventana del abono: desde la clase elegida hasta fin de ese mes.
-        LocalDate finDeMes = fechaInicio.withDayOfMonth(fechaInicio.lengthOfMonth());
+        // Ventana del abono: siempre el MES ACTUAL, desde hoy hasta fin de mes.
+        // (No se ancla a la fecha de la clase clickeada, para no caer en un mes pasado.)
+        LocalDate hoy = LocalDate.now();
+        LocalDate fechaInicio = hoy;
+        LocalDate finDeMes = hoy.withDayOfMonth(hoy.lengthOfMonth());
 
         // Aseguramos que existan todas las instancias del mes (materialización lazy).
         materializarRango(fechaInicio, finDeMes);

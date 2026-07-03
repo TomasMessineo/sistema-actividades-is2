@@ -15,6 +15,17 @@ export const listarClasesDelAlumno = (alumnoId) => {
   return apiFetch(`/alumnos/${alumnoId}/clases`);
 };
 
+// Vista semanal por plantilla (lunes-domingo), para inscripción mensual/abono.
+// Muestra un slot por serie; solo oculta las series ya abonadas por el alumno este mes.
+export const listarSemanaPlantilla = (alumnoId, desde, hasta) => {
+  const params = new URLSearchParams();
+  if (alumnoId) params.set('alumnoId', alumnoId);
+  if (desde) params.set('desde', desde);
+  if (hasta) params.set('hasta', hasta);
+  const query = params.toString();
+  return apiFetch(`/clases/semana-plantilla${query ? `?${query}` : ''}`);
+};
+
 // Todas las clases (pasadas y futuras) asignadas a un profesor.
 export const listarClasesDelProfesor = (profesorId) => {
   return apiFetch(`/profesores/${profesorId}/clases`);

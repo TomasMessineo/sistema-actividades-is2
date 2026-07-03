@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import Navbar from '../../components/Navbar/NavbarAlumno.jsx'
 import AvailableClassesCalendar from '../../components/AvailableClassesCalendar.jsx'
 import { useAuth } from '../../context/AuthContext'
-import { listarClases } from '../../services/claseService'
+import { listarClases, listarSemanaPlantilla } from '../../services/claseService'
 import { getDayKey, buildWeekDays } from '../../utils/weekDays'
 import '../../styles/AvailableClasses.css'
 import PopupInscripcionClase from '../../components/PopupInscripcionClase.jsx'
@@ -68,7 +68,11 @@ function AvailableClassesView() {
       setError('')
 
       try {
-        const response = await listarClases(user?.id, formatDate(weekStart), formatDate(weekEnd))
+        // Vista lunes-domingo (FIXED): se arma por plantilla (para inscripción mensual).
+        // Vista de 6 días (ROLLING): clases disponibles individuales.
+        const response = viewMode === VIEW_MODE_FIXED
+          ? await listarSemanaPlantilla(user?.id, formatDate(weekStart), formatDate(weekEnd))
+          : await listarClases(user?.id, formatDate(weekStart), formatDate(weekEnd))
         setClasses(Array.isArray(response) ? response : [])
       } catch (loadError) {
         setError(loadError.message || 'No se pudieron cargar las clases.')
@@ -79,7 +83,7 @@ function AvailableClassesView() {
 
     loadClasses()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoading, user?.id, weekStart, weekEnd])
+  }, [authLoading, user?.id, weekStart, weekEnd, viewMode])
 
   const calendarClasses = useMemo(() => {
     return classes

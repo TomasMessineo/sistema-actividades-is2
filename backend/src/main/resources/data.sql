@@ -136,6 +136,22 @@ VALUES (7)
     ON CONFLICT (id) DO NOTHING;
 
 
+-- Alumno con apto médico VENCIDO (para probar la validación de apto médico)
+INSERT INTO usuario (id, activo, apellido, dni, email, nombre, password)
+VALUES (12, true, 'García', '40666888', 'alumno7@sportify.com', 'Mateo', 'alumno123')
+    ON CONFLICT (id) DO UPDATE
+                            SET activo = EXCLUDED.activo,
+                            apellido = EXCLUDED.apellido,
+                            dni = EXCLUDED.dni,
+                            email = EXCLUDED.email,
+                            nombre = EXCLUDED.nombre,
+                            password = EXCLUDED.password;
+
+INSERT INTO alumno (id)
+VALUES (12)
+    ON CONFLICT (id) DO NOTHING;
+
+
 -- =========================
 -- PROFESORES
 -- =========================
@@ -554,6 +570,13 @@ VALUES (4, '2099-12-31', 'http://prueba/apto4.pdf', 6)
 
 INSERT INTO apto_medico (id_apto_medico, fecha_de_vencimiento, url, alumno_id)
 VALUES (5, '2099-12-31', 'http://prueba/apto5.pdf', 7)
+    ON CONFLICT (id_apto_medico) DO UPDATE
+        SET fecha_de_vencimiento = EXCLUDED.fecha_de_vencimiento,
+            alumno_id = EXCLUDED.alumno_id;
+
+-- Apto médico VENCIDO del alumno 12 (alumno7@sportify.com)
+INSERT INTO apto_medico (id_apto_medico, fecha_de_vencimiento, url, alumno_id)
+VALUES (6, '2024-01-01', 'http://prueba/apto-vencido.pdf', 12)
     ON CONFLICT (id_apto_medico) DO UPDATE
         SET fecha_de_vencimiento = EXCLUDED.fecha_de_vencimiento,
             alumno_id = EXCLUDED.alumno_id;
