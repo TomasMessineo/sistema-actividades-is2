@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Navbar from '../../components/Navbar/NavbarAlumno.jsx'
 import AvailableClassesCalendar from '../../components/AvailableClassesCalendar.jsx'
 import { useAuth } from '../../context/AuthContext'
@@ -118,7 +118,6 @@ function AvailableClassesView() {
   const [mostrarPopup, setMostrarPopup] = useState(false)
   const [idClaseSeleccionada, setIdClaseSeleccionada] = useState(null)
   const [precioDiarioActual, setPrecioDiarioActual] = useState(0)
-  const [precioMensualActual, setPrecioMensualActual] = useState(0)
   const [claseInfo, setClaseInfo] = useState(null)
   const [errorInscripcion, setErrorInscripcion] = useState('')
 
@@ -133,7 +132,6 @@ function AvailableClassesView() {
     setIdClaseSeleccionada(clase.id)
     setClaseInfo({ actividad: clase.activity, hora: clase.hour })
     setPrecioDiarioActual(precioDiario)
-    setPrecioMensualActual(precioDiario)
     setErrorInscripcion('')
     setErrorEspera('')
 
@@ -143,8 +141,6 @@ function AvailableClassesView() {
       setMostrarPopup(true)
     }
   }
-
-  const actualizarPrecioMensual = useCallback((precio) => setPrecioMensualActual(precio), [])
 
   const cerrarPopup = () => {
     setMostrarPopup(false)
@@ -259,14 +255,12 @@ function AvailableClassesView() {
           onClose={cerrarPopup}
           onConfirm={manejarInscripcion}
           precioDiario={precioDiarioActual}
-          precioMensual={precioMensualActual}
           creditos={user?.creditos || 0}
           error={errorInscripcion}
           claseInfo={claseInfo}
           idClase={idClaseSeleccionada}
           idAlumno={user?.id || null}
           tipoForzado={viewMode === VIEW_MODE_FIXED ? 'mensual' : 'individual'}
-          onPrecioMensualCalculado={actualizarPrecioMensual}
         />
         <PopupListaEspera
           isOpen={mostrarPopupEspera}

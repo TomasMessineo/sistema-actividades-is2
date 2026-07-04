@@ -33,14 +33,12 @@ const PopupInscripcionClase = ({
     onClose,
     onConfirm,
     precioDiario,
-    precioMensual,
     creditos = 0,
     error = '',
     claseInfo = null,
     idClase = null,
     idAlumno = null,
-    tipoForzado = null,
-    onPrecioMensualCalculado = null
+    tipoForzado = null
 }) => {
     const [previewAbono, setPreviewAbono] = useState([])
     const [cargandoPreview, setCargandoPreview] = useState(false)
@@ -49,9 +47,9 @@ const PopupInscripcionClase = ({
 
     useEffect(() => {
         if (!isOpen || !idClase || tipoForzado === 'individual') {
-            setPreviewAbono([])
-            setAlumnoDetalle({ strikes: 0, inasistencias: 0 })
-            setSinClasesMes(false)
+            setPreviewAbono(prev => prev.length === 0 ? prev : [])
+            setAlumnoDetalle(prev => (prev.strikes === 0 && prev.inasistencias === 0) ? prev : { strikes: 0, inasistencias: 0 })
+            setSinClasesMes(prev => !prev ? prev : false)
             return
         }
 
@@ -93,8 +91,6 @@ const PopupInscripcionClase = ({
         cargar()
     }, [isOpen, idClase, idAlumno, tipoForzado])
 
-    if (!isOpen) return null
-
     const tituloClase = claseInfo
         ? `${normalizeActivity(claseInfo.actividad)} · ${String(claseInfo.hora).padStart(2, '0')}:00`
         : 'Inscripción'
@@ -105,9 +101,9 @@ const PopupInscripcionClase = ({
     const clasesLlenas = previewAbono.filter((c) => !c.disponible)
 
     const baseMensual = clasesDisponibles.reduce((sum, c) => sum + (c.precio || precioDiario || 0), 0)
-    let factor = 1.0
-    let discountLabel = ''
-    let discountColor = ''
+    let factor
+    let discountLabel
+    let discountColor
 
     if (alumnoDetalle.inasistencias >= 3) {
         factor = 1.2
@@ -139,11 +135,7 @@ const PopupInscripcionClase = ({
 
     const precioMensualCalculado = baseMensual * factor
 
-    useEffect(() => {
-        if (onPrecioMensualCalculado && !cargandoPreview) {
-            onPrecioMensualCalculado(precioMensualCalculado)
-        }
-    }, [precioMensualCalculado, onPrecioMensualCalculado, cargandoPreview])
+    if (!isOpen) return null
 
     return (
         <div className="popup-overlay-chic" onClick={onClose}>
