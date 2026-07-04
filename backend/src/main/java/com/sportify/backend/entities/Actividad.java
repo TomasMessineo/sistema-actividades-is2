@@ -31,6 +31,9 @@ public class Actividad {
     @Column(nullable = false)
     private Boolean activa = true;
 
+    @Column(columnDefinition = "double precision default 0 not null")
+    private Double precio = 0.0;//por ahora estan con
+
     @JsonIgnore
     @OneToMany(mappedBy = "actividad")
     private List<Clase> clases;

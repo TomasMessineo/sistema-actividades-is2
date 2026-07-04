@@ -111,6 +111,7 @@ function AvailableClassesView() {
       .filter(Boolean)
   }, [classes, weekStart, weekEnd])
 
+
   const navigate = useNavigate()
 
   // popup inscripcion
@@ -129,12 +130,10 @@ function AvailableClassesView() {
   const abrirPopup = (clase) => {
     const estaLlena = Number(clase.inscritos) >= Number(clase.cupo)
     const precioDiario = clase.precio || 0
-    const precioMensual = precioDiario // Baseline placeholder
-
     setIdClaseSeleccionada(clase.id)
     setClaseInfo({ actividad: clase.activity, hora: clase.hour })
     setPrecioDiarioActual(precioDiario)
-    setPrecioMensualActual(precioMensual)
+    setPrecioMensualActual(precioDiario)
     setErrorInscripcion('')
     setErrorEspera('')
 
@@ -144,6 +143,8 @@ function AvailableClassesView() {
       setMostrarPopup(true)
     }
   }
+
+  const actualizarPrecioMensual = (precio) => setPrecioMensualActual(precio)
 
   const cerrarPopup = () => {
     setMostrarPopup(false)
@@ -264,6 +265,8 @@ function AvailableClassesView() {
           claseInfo={claseInfo}
           idClase={idClaseSeleccionada}
           idAlumno={user?.id || null}
+          tipoForzado={viewMode === VIEW_MODE_FIXED ? 'mensual' : 'individual'}
+          onPrecioMensualCalculado={actualizarPrecioMensual}
         />
         <PopupListaEspera
           isOpen={mostrarPopupEspera}

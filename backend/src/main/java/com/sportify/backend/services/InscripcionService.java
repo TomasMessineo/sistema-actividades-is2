@@ -68,7 +68,8 @@ public class InscripcionService {
                         alumno.getCreditos());
             }
 
-            double precio = clase.getPrecio() != null ? clase.getPrecio() : 0.0;
+            double precio = (clase.getActividad() != null && clase.getActividad().getPrecio() != null && clase.getActividad().getPrecio() > 0)
+                    ? clase.getActividad().getPrecio() : (clase.getPrecio() != null ? clase.getPrecio() : 0.0);
             if (pago.getTipo() == Pago.TipoClase.ABONADO) {
                 long cantidadClases = 1;
                 if (clase.getPlantilla() != null) {
