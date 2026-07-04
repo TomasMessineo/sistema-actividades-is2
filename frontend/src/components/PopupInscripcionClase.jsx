@@ -198,7 +198,7 @@ const PopupInscripcionClase = ({
                                         1 crédito
                                     </span>
                                 ) : (
-                                    <span className="btn-price">${precioDiario.toLocaleString('es-AR')}</span>
+                                    <span className="btn-price">${Number(precioDiario || 0).toLocaleString('es-AR')}</span>
                                 )}
                             </div>
                         </button>
@@ -215,7 +215,7 @@ const PopupInscripcionClase = ({
                                 <div className="btn-content-wrapper">
                                     <span className="btn-title">Inscripción Mensual</span>
                                     <span className="btn-price">
-                                        {cargandoPreview ? '...' : `$${precioMensualCalculado.toLocaleString('es-AR')}`}
+                                        {cargandoPreview ? '...' : `$${Number(precioMensualCalculado || 0).toLocaleString('es-AR')}`}
                                     </span>
                                     {!cargandoPreview && clasesDisponibles.length > 0 && discountLabel && (
                                         <span className="btn-discount-badge" style={{ color: discountColor, fontSize: '11px', fontWeight: '500', marginTop: '4px', display: 'block' }}>
@@ -239,7 +239,7 @@ const PopupInscripcionClase = ({
                                     <ul className="abono-info-panel__list" style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '3px' }}>
                                         {clasesDisponibles.map((c) => (
                                             <li key={c.idClase} style={{ color: 'rgba(255, 255, 255, 0.78)', fontVariantNumeric: 'tabular-nums' }}>
-                                                {formatearFecha(c.fecha)} · {String(c.hora).padStart(2, '0')}:00 · ${(c.precio || precioDiario || 0).toLocaleString('es-AR')}
+                                                {formatearFecha(c.fecha)} · {String(c.hora).padStart(2, '0')}:00 · ${Number(c.precio || precioDiario || 0).toLocaleString('es-AR')}
                                             </li>
                                         ))}
                                     </ul>

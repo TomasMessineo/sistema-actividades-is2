@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Navbar from '../../components/Navbar/NavbarAlumno.jsx'
 import AvailableClassesCalendar from '../../components/AvailableClassesCalendar.jsx'
 import { useAuth } from '../../context/AuthContext'
@@ -144,7 +144,7 @@ function AvailableClassesView() {
     }
   }
 
-  const actualizarPrecioMensual = (precio) => setPrecioMensualActual(precio)
+  const actualizarPrecioMensual = useCallback((precio) => setPrecioMensualActual(precio), [])
 
   const cerrarPopup = () => {
     setMostrarPopup(false)
