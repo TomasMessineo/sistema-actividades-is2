@@ -23,8 +23,6 @@ public class Actividad {
 
     private String tipo;
 
-    private Double precio;
-
     // Baja lógica: false = disciplina eliminada, deja de poder elegirse pero se
     // conserva la fila para no romper las FK de Clase/ClasePlantilla/Pago que
     // ya la referencian (mismo patrón que Alumno.activo / Profesor.activo).

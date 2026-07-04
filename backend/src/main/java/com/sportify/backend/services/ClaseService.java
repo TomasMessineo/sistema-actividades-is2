@@ -283,7 +283,6 @@ public class ClaseService {
         materializarRango(fechaInicio, finDeMes);
 
         // El abono nunca incluye clases que ya ocurrieron.
-        LocalDate hoy = LocalDate.now();
         LocalDate inicioEfectivo = fechaInicio.isBefore(hoy) ? hoy : fechaInicio;
 
         List<Clase> instancias;

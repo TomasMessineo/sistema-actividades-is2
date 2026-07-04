@@ -296,7 +296,7 @@ public class PagoService {
 
     private String nombreActividad(Clase clase) {
         if (clase.getActividad() != null && clase.getActividad().getTipo() != null) {
-            return clase.getActividad().getTipo().name();
+            return clase.getActividad().getTipo();
         }
         return null;
     }
