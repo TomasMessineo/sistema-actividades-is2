@@ -75,6 +75,9 @@ public class InscripcionService {
                     java.util.List<AbonoPreviewDTO> preview = claseService.previewAbono(clase.getIdClase(), alumno.getId());
                     cantidadClases = preview.stream().filter(AbonoPreviewDTO::isDisponible).count();
                 }
+                if (cantidadClases == 0) {
+                    throw new RuntimeException("Error de inscripción: No hay clases disponibles en este mes para el abono seleccionado.");
+                }
                 double totalSinDescuento = precio * cantidadClases;
 
                 double factor = 1.0;
@@ -110,7 +113,11 @@ public class InscripcionService {
                     pagoGuardado.getValor(),
                     null);
         } catch (Exception e) {
-            throw new RuntimeException("Error de Inscripcion: " + e.getMessage());
+            String message = e.getMessage();
+            if (message != null && (message.startsWith("Error de inscripción:") || message.startsWith("Error de Inscripcion:"))) {
+                throw new RuntimeException(message);
+            }
+            throw new RuntimeException("Error de Inscripcion: " + message);
         }
     }
 }

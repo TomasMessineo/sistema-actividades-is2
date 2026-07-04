@@ -105,6 +105,7 @@ function AvailableClassesView() {
           precio: item.precio ?? 0,
           idPlantilla: item.idPlantilla ?? null,
           fecha: item.fecha ?? '',
+          abonoDisponible: item.abonoDisponible,
         }
       })
       .filter(Boolean)
@@ -137,7 +138,7 @@ function AvailableClassesView() {
     setErrorInscripcion('')
     setErrorEspera('')
 
-    if (estaLlena) {
+    if (estaLlena && viewMode !== VIEW_MODE_FIXED) {
       setMostrarPopupEspera(true)
     } else {
       setMostrarPopup(true)

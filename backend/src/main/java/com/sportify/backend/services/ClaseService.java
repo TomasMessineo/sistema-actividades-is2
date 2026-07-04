@@ -165,7 +165,12 @@ public class ClaseService {
                 continue;
             }
 
-            resultado.add(ClaseCalendarioDTO.fromEntity(representativa));
+            ClaseCalendarioDTO dto = ClaseCalendarioDTO.fromEntity(representativa);
+            List<AbonoPreviewDTO> preview = previewAbono(representativa.getIdClase(), alumnoId);
+            boolean abonoDisponible = preview.stream().anyMatch(AbonoPreviewDTO::isDisponible);
+            dto.setAbonoDisponible(abonoDisponible);
+
+            resultado.add(dto);
         }
         return resultado;
     }

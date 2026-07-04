@@ -363,6 +363,7 @@ VALUES (1, 9, '2026-06-01', '2026-12-31', 'Vacaciones')
 -- =========================
 
 UPDATE alumno SET creditos = 15 WHERE id = 4;
+UPDATE alumno SET creditos = 10 WHERE id = 12;
 
 
 -- =========================

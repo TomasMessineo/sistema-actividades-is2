@@ -55,6 +55,8 @@ public class ClaseCalendarioDTO {
     private boolean cancelada;
     private ProfesorDTO profesor;
     private Integer idPlantilla;
+    private Boolean abonoDisponible;
+
 
     public ClaseCalendarioDTO() {
     }
@@ -179,5 +181,13 @@ public class ClaseCalendarioDTO {
 
     public void setIdPlantilla(Integer idPlantilla) {
         this.idPlantilla = idPlantilla;
+    }
+
+    public Boolean getAbonoDisponible() {
+        return abonoDisponible;
+    }
+
+    public void setAbonoDisponible(Boolean abonoDisponible) {
+        this.abonoDisponible = abonoDisponible;
     }
 }

@@ -91,6 +91,7 @@ const PopupInscripcionClase = ({
     const diariaUsaCredito = creditos > 0
     const clasesDisponibles = previewAbono.filter((c) => c.disponible)
     const mensualHabilitado = !cargandoPreview && clasesDisponibles.length > 0
+    const clasesLlenas = previewAbono.filter((c) => !c.disponible)
 
     const baseMensual = precioDiario * clasesDisponibles.length
     let factor = 1.0
@@ -155,6 +156,14 @@ const PopupInscripcionClase = ({
                     <div className="popup-error" role="alert">{error}</div>
                 )}
 
+                {clasesDisponibles.length === 0 && !cargandoPreview && (
+                    <div className="popup-warning-message" style={{ margin: '15px 0', padding: '12px', backgroundColor: '#fff3cd', color: '#856404', borderRadius: '6px', fontSize: '13px', border: '1px solid #ffeeba', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span>La clase ya está llena durante todo el mes, por lo que no se puede realizar la inscripción mensual.</span>
+                    </div>
+                )}
+
+
+
                 <p className="popup-prompt-chic">Elegí tu modalidad de inscripción.</p>
 
                 <div className="popup-actions-chic">
@@ -176,7 +185,7 @@ const PopupInscripcionClase = ({
                         </div>
                     </button>
 
-                    <div className="btn-opt-wrapper">
+                    <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
                         <button
                             className="btn-opt-primary-chic"
                             onClick={() => mensualHabilitado && onConfirm('mensual')}
@@ -196,24 +205,32 @@ const PopupInscripcionClase = ({
                             </div>
                         </button>
 
-                        <div className="abono-tooltip" role="tooltip">
-                            {cargandoPreview ? (
-                                <span className="abono-tooltip__loading">Buscando clases...</span>
-                            ) : clasesDisponibles.length === 0 ? (
-                                <span className="abono-tooltip__empty">No hay clases disponibles este mes</span>
-                            ) : (
-                                <>
-                                    <p className="abono-tooltip__title">Te inscribirás a:</p>
-                                    <ul className="abono-tooltip__list">
-                                        {clasesDisponibles.map((c) => (
-                                            <li key={c.idClase}>
-                                                {formatearFecha(c.fecha)} · {String(c.hora).padStart(2, '0')}:00
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </>
-                            )}
-                        </div>
+                        {mensualHabilitado && (
+                            <div className="abono-info-panel" style={{ marginTop: '10px', padding: '12px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '10px', fontSize: '0.78rem', color: '#e8e8ec', textAlign: 'left', width: '100%', boxSizing: 'border-box' }}>
+                                {clasesLlenas.length > 0 && (
+                                    <div className="abono-info-panel__warning" style={{ color: '#ffd54f', fontSize: '11px', marginBottom: '8px', borderBottom: '1px solid rgba(255, 255, 255, 0.15)', paddingBottom: '6px', fontWeight: '600', lineHeight: '1.4' }}>
+                                        ⚠️ {clasesLlenas.length === 1 
+                                            ? `La clase del ${formatearFecha(clasesLlenas[0].fecha)} está llena y no se incluirá en tu abono.`
+                                            : `Las clases de los días ${clasesLlenas.map(c => formatearFecha(c.fecha)).join(', ')} están llenas y no se incluirán en tu abono.`
+                                        }
+                                    </div>
+                                )}
+                                <p className="abono-info-panel__title" style={{ margin: '0 0 6px', fontWeight: '600', color: 'rgba(255, 255, 255, 0.92)' }}>Te inscribirás a {clasesDisponibles.length} clases:</p>
+                                <ul className="abono-info-panel__list" style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                    {clasesDisponibles.map((c) => (
+                                        <li key={c.idClase} style={{ color: 'rgba(255, 255, 255, 0.78)', fontVariantNumeric: 'tabular-nums' }}>
+                                            {formatearFecha(c.fecha)} · {String(c.hora).padStart(2, '0')}:00
+                                        </li>
+                                    ))}
+                                </ul>
+                                <p className="abono-info-panel__summary" style={{ fontSize: '11px', marginTop: '8px', color: '#a0aec0', borderTop: '1px solid rgba(255, 255, 255, 0.15)', paddingTop: '6px', fontWeight: '500' }}>
+                                    {clasesDisponibles.length < previewAbono.length 
+                                        ? `Pagás ${clasesDisponibles.length} clases en lugar de ${previewAbono.length} (solo días disponibles).`
+                                        : `Pagás las ${clasesDisponibles.length} clases del mes.`
+                                    }
+                                </p>
+                            </div>
+                        )}
                     </div>
                 </div>
 
