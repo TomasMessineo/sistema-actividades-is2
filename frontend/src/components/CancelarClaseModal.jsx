@@ -5,28 +5,32 @@ import {
   cancelarRangoSerie as cancelarRangoSerieApi,
   cancelarDesdeSerie as cancelarDesdeSerieApi
 } from '../services/claseService'
+import { getBuenosAiresNowParts, getBuenosAiresToday, isClassOnOrBeforeBuenosAiresNow } from '../utils/buenosAiresTime'
 
 const MODO_UNICA = 'UNICA'
 const MODO_RANGO = 'RANGO'
 const MODO_DESDE = 'DESDE'
-
-const UNA_HORA_EN_MS = 60 * 60 * 1000
 
 // Las fechas son de solo-día (sin hora), así que se valida contra el final
 // de ese día: alcanza con que quede al menos una hora entre ahora y la
 // medianoche del día elegido.
 const esFechaFutura = (fechaStr) => {
   if (!fechaStr) return false
-  const finDelDia = new Date(`${fechaStr}T23:59:59`)
-  return !Number.isNaN(finDelDia.getTime()) && finDelDia.getTime() >= Date.now() + UNA_HORA_EN_MS
+
+  const hoy = getBuenosAiresToday()
+  if (fechaStr > hoy) {
+    return true
+  }
+
+  if (fechaStr < hoy) {
+    return false
+  }
+
+  return getBuenosAiresNowParts().hour < 23
 }
 
 const obtenerFechaMinima = () => {
-  const hoy = new Date()
-  const y = hoy.getFullYear()
-  const m = String(hoy.getMonth() + 1).padStart(2, '0')
-  const d = String(hoy.getDate()).padStart(2, '0')
-  return `${y}-${m}-${d}`
+  return getBuenosAiresToday()
 }
 
 const construirMensajeExito = (resultado) => {
@@ -82,10 +86,10 @@ function CancelarClaseModal({
       return null
     }
 
-    const horaClase = String(Number(claseSeleccionada.hora)).padStart(2, '0')
-    const fechaHora = new Date(`${claseSeleccionada.fecha}T${horaClase}:00:00`)
-
-    return Number.isNaN(fechaHora.getTime()) ? null : fechaHora
+    return {
+      fecha: claseSeleccionada.fecha,
+      hora: Number(claseSeleccionada.hora),
+    }
   }
 
   const claseEstaOcurriendoOYaPaso = () => {
@@ -95,7 +99,7 @@ function CancelarClaseModal({
       return true
     }
 
-    return fechaHoraClase.getTime() <= Date.now()
+    return isClassOnOrBeforeBuenosAiresNow(fechaHoraClase.fecha, fechaHoraClase.hora)
   }
 
   const finalizarConExito = (resultado) => {

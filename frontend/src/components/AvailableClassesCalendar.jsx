@@ -146,7 +146,11 @@ function AvailableClassesCalendar({
                       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClassClick?.(classItem) }}
                       style={{ cursor: onClassClick ? 'pointer' : 'default' }}
                     >
-                      {showFullBadge && Number(classItem.inscritos) >= Number(classItem.cupo) && (
+                      {showFullBadge && (
+                        typeof classItem.abonoDisponible === 'boolean'
+                          ? classItem.abonoDisponible === false
+                          : Number(classItem.inscritos) >= Number(classItem.cupo)
+                      ) && (
                         <span className="calendar-class-full-badge" aria-label="Clase completa" title="Clase completa">
                           !
                         </span>
@@ -154,7 +158,9 @@ function AvailableClassesCalendar({
                       <span className="calendar-class-time">{formatHourRange(hour)}</span>
                       <strong>{normalizeActivityName(classItem.activity)}</strong>
                       {showCapacity && (
-                        <span className="calendar-class-capacity">{formatCapacity(classItem.inscritos, classItem.cupo)}</span>
+                        <span className="calendar-class-capacity">
+                          {classItem.abonoDisponible === false ? 'Lleno este mes' : formatCapacity(classItem.inscritos, classItem.cupo)}
+                        </span>
                       )}
                     </article>
                   ))}

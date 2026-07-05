@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { listarAlumnosDeClase } from '../services/claseService'
-import PasarAsistenciaModal from './PasarAsistenciaModal.jsx'
+import { isClassOnOrBeforeBuenosAiresNow } from '../utils/buenosAiresTime'
 import '../styles/AlumnosDeClaseModal.css'
 
 const weekdayFormatter = new Intl.DateTimeFormat('es-AR', { weekday: 'long' })
@@ -31,21 +31,13 @@ const formatClassDate = (fecha, hora) => {
 }
 
 const claseYaPaso = (clase) => {
-  if (!clase?.fecha || typeof clase.hora !== 'number') {
-    return false
-  }
-
-  const horaClase = String(clase.hora).padStart(2, '0')
-  const fechaHoraClase = new Date(`${clase.fecha}T${horaClase}:00:00`)
-
-  return !Number.isNaN(fechaHoraClase.getTime()) && fechaHoraClase.getTime() <= Date.now()
+  return isClassOnOrBeforeBuenosAiresNow(clase?.fecha, Number(clase?.hora))
 }
 
 function AlumnosDeClaseModal({ abierto, onCerrar, clase }) {
   const [alumnos, setAlumnos] = useState([])
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState('')
-  const [mostrarEscaneo, setMostrarEscaneo] = useState(false)
 
   useEffect(() => {
     if (!abierto || !clase?.idClase) {
@@ -79,24 +71,6 @@ function AlumnosDeClaseModal({ abierto, onCerrar, clase }) {
       cancelado = true
     }
   }, [abierto, clase?.idClase])
-
-  const recargarAlumnos = async () => {
-    if (!clase?.idClase) {
-      return
-    }
-
-    try {
-      const respuesta = await listarAlumnosDeClase(clase.idClase)
-      setAlumnos(Array.isArray(respuesta) ? respuesta : [])
-    } catch (err) {
-      setError(err.message || 'No se pudieron cargar los alumnos.')
-    }
-  }
-
-  const cerrarEscaneo = () => {
-    setMostrarEscaneo(false)
-    recargarAlumnos()
-  }
 
   if (!abierto) {
     return null
@@ -169,23 +143,8 @@ function AlumnosDeClaseModal({ abierto, onCerrar, clase }) {
           </div>
         )}
 
-        {!cargando && (
-          <button
-            type="button"
-            className="alumnos-clase-modal__button-asistencia"
-            onClick={() => setMostrarEscaneo(true)}
-          >
-            Pasar Asistencia
-          </button>
-        )}
       </section>
     </div>
-
-    <PasarAsistenciaModal
-      abierto={mostrarEscaneo}
-      clase={clase}
-      onCerrar={cerrarEscaneo}
-    />
     </>
   )
 }

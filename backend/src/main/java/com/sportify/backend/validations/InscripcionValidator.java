@@ -49,7 +49,7 @@ public class InscripcionValidator {
 
     public void aptoMedicoValido(InscripcionRequest request) {
         if (!aptoMedicoRepository.tieneAptoMedicoValido(request.getIdAlumno(), claseRepository.findById(request.getIdClase()).get().getFecha())) {
-            throw new RuntimeException("El alumno no posee un apto medico valido");
+            throw new RuntimeException("Error de inscripción: Su apto médico se encuentra vencido. Por favor, intente subirlo nuevamente desde su perfil de alumno.");
         }
     }
 
@@ -64,10 +64,14 @@ public class InscripcionValidator {
                 .filter(c -> !Boolean.TRUE.equals(c.getCancelada()))
                 .filter(c -> c.getFecha().equals(clase.getFecha()) && c.getHora().equals(clase.getHora()))
                 .findFirst()
-                .ifPresent(c -> { throw new RuntimeException("El alumno ya tiene una clase en ese horario"); });
+                .ifPresent(c -> { throw new RuntimeException("Ya tenés una inscripción realizada en este horario"); });
     }
 
     public void cupoDisponible(InscripcionRequest request) {///  lo valida por las dudas no es necesario
+        if (request.getTipoClase() == com.sportify.backend.entities.Pago.TipoClase.ABONADO) {
+            return;
+        }
+
         Clase clase = claseRepository.findById(request.getIdClase())
                 .orElseThrow(() -> new RuntimeException("La clase no existe"));
 

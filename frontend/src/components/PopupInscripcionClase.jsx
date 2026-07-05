@@ -33,26 +33,29 @@ const PopupInscripcionClase = ({
     onClose,
     onConfirm,
     precioDiario,
-    precioMensual,
     creditos = 0,
     error = '',
     claseInfo = null,
     idClase = null,
-    idAlumno = null
+    idAlumno = null,
+    tipoForzado = null
 }) => {
     const [previewAbono, setPreviewAbono] = useState([])
     const [cargandoPreview, setCargandoPreview] = useState(false)
     const [alumnoDetalle, setAlumnoDetalle] = useState({ strikes: 0, inasistencias: 0 })
+    const [sinClasesMes, setSinClasesMes] = useState(false)
 
     useEffect(() => {
-        if (!isOpen || !idClase) {
-            setPreviewAbono([])
-            setAlumnoDetalle({ strikes: 0, inasistencias: 0 })
+        if (!isOpen || !idClase || tipoForzado === 'individual') {
+            setPreviewAbono(prev => prev.length === 0 ? prev : [])
+            setAlumnoDetalle(prev => (prev.strikes === 0 && prev.inasistencias === 0) ? prev : { strikes: 0, inasistencias: 0 })
+            setSinClasesMes(prev => !prev ? prev : false)
             return
         }
 
         const cargar = async () => {
             setCargandoPreview(true)
+            setSinClasesMes(false)
             try {
                 const url = `${API_BASE_URL}/clases/abono/preview?idClase=${idClase}${idAlumno ? `&idAlumno=${idAlumno}` : ''}`
                 const respuesta = await fetch(url)
@@ -60,7 +63,13 @@ const PopupInscripcionClase = ({
                 if (respuesta.ok) {
                     data = await respuesta.json()
                 }
-                setPreviewAbono(Array.isArray(data) ? data : [])
+                const preview = Array.isArray(data) ? data : []
+                setPreviewAbono(preview)
+
+                const paraCalculo = preview.filter(c => c.disponible)
+                if (paraCalculo.length === 0) {
+                    setSinClasesMes(true)
+                }
 
                 if (idAlumno) {
                     const respAlumno = await fetch(`${API_BASE_URL}/alumnos/${idAlumno}`)
@@ -80,9 +89,7 @@ const PopupInscripcionClase = ({
         }
 
         cargar()
-    }, [isOpen, idClase, idAlumno])
-
-    if (!isOpen) return null
+    }, [isOpen, idClase, idAlumno, tipoForzado])
 
     const tituloClase = claseInfo
         ? `${normalizeActivity(claseInfo.actividad)} · ${String(claseInfo.hora).padStart(2, '0')}:00`
@@ -90,12 +97,13 @@ const PopupInscripcionClase = ({
 
     const diariaUsaCredito = creditos > 0
     const clasesDisponibles = previewAbono.filter((c) => c.disponible)
-    const mensualHabilitado = !cargandoPreview && clasesDisponibles.length > 0
+    const mensualHabilitado = !cargandoPreview && clasesDisponibles.length > 0 && tipoForzado !== 'individual'
+    const clasesLlenas = previewAbono.filter((c) => !c.disponible)
 
-    const baseMensual = precioDiario * clasesDisponibles.length
-    let factor = 1.0
-    let discountLabel = ''
-    let discountColor = ''
+    const baseMensual = clasesDisponibles.reduce((sum, c) => sum + (c.precio || precioDiario || 0), 0)
+    let factor
+    let discountLabel
+    let discountColor
 
     if (alumnoDetalle.inasistencias >= 3) {
         factor = 1.2
@@ -127,6 +135,8 @@ const PopupInscripcionClase = ({
 
     const precioMensualCalculado = baseMensual * factor
 
+    if (!isOpen) return null
+
     return (
         <div className="popup-overlay-chic" onClick={onClose}>
             <div className="popup-content-chic" onClick={(e) => e.stopPropagation()}>
@@ -155,66 +165,86 @@ const PopupInscripcionClase = ({
                     <div className="popup-error" role="alert">{error}</div>
                 )}
 
-                <p className="popup-prompt-chic">Elegí tu modalidad de inscripción.</p>
+                {!cargandoPreview && sinClasesMes && tipoForzado !== 'individual' && (
+                    <div className="popup-error" role="alert">No quedan clases disponibles para inscribirse en este mes.</div>
+                )}
+
+                <p className="popup-prompt-chic">
+                    {tipoForzado === 'individual' && 'Confirmá tu inscripción individual.'}
+                    {tipoForzado === 'mensual' && 'Confirmá tu inscripción mensual.'}
+                    {!tipoForzado && 'Elegí tu modalidad de inscripción.'}
+                </p>
 
                 <div className="popup-actions-chic">
-                    <button
-                        className="btn-opt-primary-chic"
-                        onClick={() => onConfirm('individual')}
-                    >
-                        <div className="btn-tile-icon">📅</div>
-                        <div className="btn-content-wrapper">
-                            <span className="btn-title">Inscripción Diaria</span>
-                            {diariaUsaCredito ? (
-                                <span className="btn-price btn-price--credito">
-                                    <CreditIconSmall />
-                                    1 crédito
-                                </span>
-                            ) : (
-                                <span className="btn-price">${precioDiario.toLocaleString('es-AR')}</span>
-                            )}
-                        </div>
-                    </button>
-
-                    <div className="btn-opt-wrapper">
+                    {tipoForzado !== 'mensual' && (
                         <button
                             className="btn-opt-primary-chic"
-                            onClick={() => mensualHabilitado && onConfirm('mensual')}
-                            disabled={!mensualHabilitado}
+                            onClick={() => onConfirm('individual')}
                         >
-                            <div className="btn-tile-icon">📆</div>
+                            <div className="btn-tile-icon">📅</div>
                             <div className="btn-content-wrapper">
-                                <span className="btn-title">Inscripción Mensual</span>
-                                <span className="btn-price">
-                                    {cargandoPreview ? '...' : `$${precioMensualCalculado.toLocaleString('es-AR')}`}
-                                </span>
-                                {!cargandoPreview && clasesDisponibles.length > 0 && discountLabel && (
-                                    <span className="btn-discount-badge" style={{ color: discountColor, fontSize: '11px', fontWeight: '500', marginTop: '4px', display: 'block' }}>
-                                        {discountLabel}
+                                <span className="btn-title">Inscripción Diaria</span>
+                                {diariaUsaCredito ? (
+                                    <span className="btn-price btn-price--credito">
+                                        <CreditIconSmall />
+                                        1 crédito
                                     </span>
+                                ) : (
+                                    <span className="btn-price">${Number(precioDiario || 0).toLocaleString('es-AR')}</span>
                                 )}
                             </div>
                         </button>
+                    )}
 
-                        <div className="abono-tooltip" role="tooltip">
-                            {cargandoPreview ? (
-                                <span className="abono-tooltip__loading">Buscando clases...</span>
-                            ) : clasesDisponibles.length === 0 ? (
-                                <span className="abono-tooltip__empty">No hay clases disponibles este mes</span>
-                            ) : (
-                                <>
-                                    <p className="abono-tooltip__title">Te inscribirás a:</p>
-                                    <ul className="abono-tooltip__list">
+                    {tipoForzado !== 'individual' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+                            <button
+                                className="btn-opt-primary-chic"
+                                onClick={() => mensualHabilitado && onConfirm('mensual')}
+                                disabled={!mensualHabilitado}
+                            >
+                                <div className="btn-tile-icon">📆</div>
+                                <div className="btn-content-wrapper">
+                                    <span className="btn-title">Inscripción Mensual</span>
+                                    <span className="btn-price">
+                                        {cargandoPreview ? '...' : `$${Number(precioMensualCalculado || 0).toLocaleString('es-AR')}`}
+                                    </span>
+                                    {!cargandoPreview && clasesDisponibles.length > 0 && discountLabel && (
+                                        <span className="btn-discount-badge" style={{ color: discountColor, fontSize: '11px', fontWeight: '500', marginTop: '4px', display: 'block' }}>
+                                            {discountLabel}
+                                        </span>
+                                    )}
+                                </div>
+                            </button>
+
+                            {mensualHabilitado && (
+                                <div className="abono-info-panel" style={{ marginTop: '10px', padding: '12px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '10px', fontSize: '0.78rem', color: '#e8e8ec', textAlign: 'left', width: '100%', boxSizing: 'border-box' }}>
+                                    {clasesLlenas.length > 0 && (
+                                        <div className="abono-info-panel__warning" style={{ color: '#ffd54f', fontSize: '11px', marginBottom: '8px', borderBottom: '1px solid rgba(255, 255, 255, 0.15)', paddingBottom: '6px', fontWeight: '600', lineHeight: '1.4' }}>
+                                            ⚠️ {clasesLlenas.length === 1 
+                                                ? `La clase del ${formatearFecha(clasesLlenas[0].fecha)} está llena y no se incluirá en tu abono.`
+                                                : `Las clases de los días ${clasesLlenas.map(c => formatearFecha(c.fecha)).join(', ')} están llenas y no se incluirán en tu abono.`
+                                            }
+                                        </div>
+                                    )}
+                                    <p className="abono-info-panel__title" style={{ margin: '0 0 6px', fontWeight: '600', color: 'rgba(255, 255, 255, 0.92)' }}>Te inscribirás a {clasesDisponibles.length} clases:</p>
+                                    <ul className="abono-info-panel__list" style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '3px' }}>
                                         {clasesDisponibles.map((c) => (
-                                            <li key={c.idClase}>
-                                                {formatearFecha(c.fecha)} · {String(c.hora).padStart(2, '0')}:00
+                                            <li key={c.idClase} style={{ color: 'rgba(255, 255, 255, 0.78)', fontVariantNumeric: 'tabular-nums' }}>
+                                                {formatearFecha(c.fecha)} · {String(c.hora).padStart(2, '0')}:00 · ${Number(c.precio || precioDiario || 0).toLocaleString('es-AR')}
                                             </li>
                                         ))}
                                     </ul>
-                                </>
+                                    <p className="abono-info-panel__summary" style={{ fontSize: '11px', marginTop: '8px', color: '#a0aec0', borderTop: '1px solid rgba(255, 255, 255, 0.15)', paddingTop: '6px', fontWeight: '500' }}>
+                                        {clasesDisponibles.length < previewAbono.length 
+                                            ? `Pagás ${clasesDisponibles.length} clases en lugar de ${previewAbono.length} (solo días disponibles).`
+                                            : `Pagás las ${clasesDisponibles.length} clases del mes.`
+                                        }
+                                    </p>
+                                </div>
                             )}
                         </div>
-                    </div>
+                    )}
                 </div>
 
             </div>

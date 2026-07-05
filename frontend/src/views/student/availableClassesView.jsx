@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import Navbar from '../../components/Navbar/NavbarAlumno.jsx'
 import AvailableClassesCalendar from '../../components/AvailableClassesCalendar.jsx'
 import { useAuth } from '../../context/AuthContext'
-import { listarClases } from '../../services/claseService'
+import { listarClases, listarSemanaPlantilla } from '../../services/claseService'
 import { getDayKey, buildWeekDays } from '../../utils/weekDays'
 import '../../styles/AvailableClasses.css'
 import PopupInscripcionClase from '../../components/PopupInscripcionClase.jsx'
@@ -68,7 +68,11 @@ function AvailableClassesView() {
       setError('')
 
       try {
-        const response = await listarClases(user?.id, formatDate(weekStart), formatDate(weekEnd))
+        // Vista lunes-domingo (FIXED): se arma por plantilla (para inscripción mensual).
+        // Vista de 6 días (ROLLING): clases disponibles individuales.
+        const response = viewMode === VIEW_MODE_FIXED
+          ? await listarSemanaPlantilla(user?.id, formatDate(weekStart), formatDate(weekEnd))
+          : await listarClases(user?.id, formatDate(weekStart), formatDate(weekEnd))
         setClasses(Array.isArray(response) ? response : [])
       } catch (loadError) {
         setError(loadError.message || 'No se pudieron cargar las clases.')
@@ -79,7 +83,7 @@ function AvailableClassesView() {
 
     loadClasses()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoading, user?.id, weekStart, weekEnd])
+  }, [authLoading, user?.id, weekStart, weekEnd, viewMode])
 
   const calendarClasses = useMemo(() => {
     return classes
@@ -101,10 +105,12 @@ function AvailableClassesView() {
           precio: item.precio ?? 0,
           idPlantilla: item.idPlantilla ?? null,
           fecha: item.fecha ?? '',
+          abonoDisponible: item.abonoDisponible,
         }
       })
       .filter(Boolean)
   }, [classes, weekStart, weekEnd])
+
 
   const navigate = useNavigate()
 
@@ -112,7 +118,6 @@ function AvailableClassesView() {
   const [mostrarPopup, setMostrarPopup] = useState(false)
   const [idClaseSeleccionada, setIdClaseSeleccionada] = useState(null)
   const [precioDiarioActual, setPrecioDiarioActual] = useState(0)
-  const [precioMensualActual, setPrecioMensualActual] = useState(0)
   const [claseInfo, setClaseInfo] = useState(null)
   const [errorInscripcion, setErrorInscripcion] = useState('')
 
@@ -124,16 +129,13 @@ function AvailableClassesView() {
   const abrirPopup = (clase) => {
     const estaLlena = Number(clase.inscritos) >= Number(clase.cupo)
     const precioDiario = clase.precio || 0
-    const precioMensual = precioDiario // Baseline placeholder
-
     setIdClaseSeleccionada(clase.id)
     setClaseInfo({ actividad: clase.activity, hora: clase.hour })
     setPrecioDiarioActual(precioDiario)
-    setPrecioMensualActual(precioMensual)
     setErrorInscripcion('')
     setErrorEspera('')
 
-    if (estaLlena) {
+    if (estaLlena && viewMode !== VIEW_MODE_FIXED) {
       setMostrarPopupEspera(true)
     } else {
       setMostrarPopup(true)
@@ -253,12 +255,12 @@ function AvailableClassesView() {
           onClose={cerrarPopup}
           onConfirm={manejarInscripcion}
           precioDiario={precioDiarioActual}
-          precioMensual={precioMensualActual}
           creditos={user?.creditos || 0}
           error={errorInscripcion}
           claseInfo={claseInfo}
           idClase={idClaseSeleccionada}
           idAlumno={user?.id || null}
+          tipoForzado={viewMode === VIEW_MODE_FIXED ? 'mensual' : 'individual'}
         />
         <PopupListaEspera
           isOpen={mostrarPopupEspera}

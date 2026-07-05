@@ -66,6 +66,17 @@ public class ClaseController {
                 .toList();
     }
 
+    // Vista semanal por plantilla (lunes-domingo) para inscripción mensual/abono.
+    // Muestra un slot por serie; oculta solo las series con abono del alumno este mes.
+    @GetMapping("/semana-plantilla")
+    @Transactional
+    public List<ClaseCalendarioDTO> listarSemanaPorPlantilla(
+            @RequestParam(value = "alumnoId", required = false) Integer alumnoId,
+            @RequestParam("desde") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
+            @RequestParam("hasta") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta) {
+        return claseService.listarSemanaPorPlantilla(desde, hasta, alumnoId);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<?> buscarPorId(@PathVariable Integer id) {
         try {

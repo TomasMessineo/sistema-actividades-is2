@@ -55,6 +55,8 @@ public class ClaseCalendarioDTO {
     private boolean cancelada;
     private ProfesorDTO profesor;
     private Integer idPlantilla;
+    private Boolean abonoDisponible;
+
 
     public ClaseCalendarioDTO() {
     }
@@ -86,6 +88,10 @@ public class ClaseCalendarioDTO {
                     clase.getProfesor().getApellido());
         }
 
+        double precio = (clase.getActividad() != null && clase.getActividad().getPrecio() != null && clase.getActividad().getPrecio() > 0)
+                ? clase.getActividad().getPrecio()
+                : clase.getPrecio();
+
         return new ClaseCalendarioDTO(
                 clase.getIdClase(),
                 clase.getFecha(),
@@ -95,7 +101,7 @@ public class ClaseCalendarioDTO {
                         ? clase.getListaAsistencia().getAlumnos().size()
                         : 0,
                 clase.getCupo(),
-                clase.getPrecio(),
+                precio,
                 clase.getCancelada(),
                 profesorDTO,
                 clase.getPlantilla() != null ? clase.getPlantilla().getIdPlantilla() : null);
@@ -179,5 +185,13 @@ public class ClaseCalendarioDTO {
 
     public void setIdPlantilla(Integer idPlantilla) {
         this.idPlantilla = idPlantilla;
+    }
+
+    public Boolean getAbonoDisponible() {
+        return abonoDisponible;
+    }
+
+    public void setAbonoDisponible(Boolean abonoDisponible) {
+        this.abonoDisponible = abonoDisponible;
     }
 }
