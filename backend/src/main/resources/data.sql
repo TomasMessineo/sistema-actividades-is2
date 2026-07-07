@@ -204,19 +204,41 @@ VALUES (11, 3)
         SET actividad_id = EXCLUDED.actividad_id;
 
 
+INSERT INTO usuario (id, activo, apellido, dni, email, nombre, password)
+VALUES (12, true, 'Paredes', '41000111', 'profesor5@sportify.com', 'Ana', 'profesor123')
+    ON CONFLICT (id) DO UPDATE
+                            SET activo = EXCLUDED.activo,
+                            apellido = EXCLUDED.apellido,
+                            dni = EXCLUDED.dni,
+                            email = EXCLUDED.email,
+                            nombre = EXCLUDED.nombre,
+                            password = EXCLUDED.password;
+
+-- Segunda profesora de YOGA: permite demostrar el cambio de profesor en esa
+-- disciplina (p.ej. una clase de Ana puede pasar a Juan Luis, y viceversa).
+INSERT INTO profesor (id, actividad_id)
+VALUES (12, 1)
+    ON CONFLICT (id) DO UPDATE
+        SET actividad_id = EXCLUDED.actividad_id;
+
+
 -- =========================
 -- PLANTILLAS (series perpetuas)
 -- =========================
 -- Cada plantilla representa una "clase en general" (día + hora fijos). Las
 -- clases con fecha de más abajo son sus instancias (clase_id -> plantilla_id).
 
+-- Cada profesor dicta UNA sola disciplina, y las series deben respetarla:
+-- YOGA (1) -> Juan Luis Guerra (8) y Ana Paredes (12)
+-- PILATES (2) -> Carlos Ruiz (10)
+-- FUNCIONAL (3) -> Marcelo Mendoza (9) y Lucía Torres (11)
 INSERT INTO clase_plantilla (id_plantilla, dia_semana, hora, cupo, precio, activa, vigencia_desde, vigencia_hasta, actividad_id, profesor_id) VALUES
-  (1, 'MONDAY',    9,  1,  3000.0, true, '2026-06-01', NULL, 1, 9),
-  (2, 'WEDNESDAY', 9,  10, 3000.0, true, '2026-06-03', NULL, 1, 9),
-  (3, 'WEDNESDAY', 13, 15, 3500.0, true, '2026-06-03', NULL, 2, 8),
-  (4, 'FRIDAY',    13, 10, 3500.0, true, '2026-06-05', NULL, 2, 9),
-  (5, 'TUESDAY',   13, 1,  2500.0, true, '2026-06-02', NULL, 3, 8),
-  (6, 'FRIDAY',    13, 10, 2500.0, true, '2026-06-05', NULL, 3, 8)
+  (1, 'MONDAY',    9,  1,  3000.0, true, '2026-06-01', NULL, 1, 12),
+  (2, 'WEDNESDAY', 9,  10, 3000.0, true, '2026-06-03', NULL, 1, 8),
+  (3, 'WEDNESDAY', 13, 15, 3500.0, true, '2026-06-03', NULL, 2, 10),
+  (4, 'FRIDAY',    13, 10, 3500.0, true, '2026-06-05', NULL, 2, 10),
+  (5, 'TUESDAY',   13, 1,  2500.0, true, '2026-06-02', NULL, 3, 9),
+  (6, 'FRIDAY',    13, 10, 2500.0, true, '2026-06-05', NULL, 3, 11)
     ON CONFLICT (id_plantilla) DO UPDATE
         SET dia_semana = EXCLUDED.dia_semana,
             hora = EXCLUDED.hora,
@@ -229,44 +251,20 @@ INSERT INTO clase_plantilla (id_plantilla, dia_semana, hora, cupo, precio, activ
             profesor_id = EXCLUDED.profesor_id;
 
 -- =========================
--- CLASES YOGA
+-- CLASES YOGA (lunes: profesora 12 - Ana Paredes / miércoles: profesor 8 - Juan Luis Guerra)
 -- =========================
 
 INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, cancelada, hora, plantilla_id) VALUES
-  (1, 1, '2026-06-01', 3000.0, 1, 9, false, 9, 1),
-  (2, 1, '2026-06-08', 3000.0, 1, 9, false, 9, 1),
-  (3, 1, '2026-06-15', 3000.0, 1, 9, false, 9, 1),
-  (4, 1, '2026-06-22', 3000.0, 1, 9, false, 9, 1),
-  (5, 1, '2026-06-29', 3000.0, 1, 9, false, 9, 1),
-  (6, 10, '2026-06-03', 3000.0, 1, 9, false, 9, 2),
-  (7, 10, '2026-06-10', 3000.0, 1, 9, false, 9, 2),
-  (8, 10, '2026-06-17', 3000.0, 1, 9, false, 9, 2),
-  (9, 10, '2026-06-24', 3000.0, 1, 9, false, 9, 2),
-  (10, 10, '2026-07-01', 3000.0, 1, 9, false, 9, 2)
-    ON CONFLICT (id_clase) DO UPDATE
-        SET cupo = EXCLUDED.cupo,
-            fecha = EXCLUDED.fecha,
-            precio = EXCLUDED.precio,
-            actividad_id = EXCLUDED.actividad_id,
-            profesor_id = EXCLUDED.profesor_id,
-            cancelada = EXCLUDED.cancelada,
-            hora = EXCLUDED.hora,
-            plantilla_id = EXCLUDED.plantilla_id;
-
--- =========================
--- CLASES FUNCIONAL (profesor 9 - Marcelo Mendoza y profesor 11 - Lucía Torres)
--- =========================
-INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, cancelada, hora, plantilla_id) VALUES
-  (21, 15, '2026-06-03', 3500.0, 2, 8, false, 13, 3),
-  (22, 15, '2026-06-10', 3500.0, 2, 8, false, 13, 3),
-  (23, 15, '2026-06-17', 3500.0, 2, 8, false, 13, 3),
-  (24, 15, '2026-06-24', 3500.0, 2, 8, false, 13, 3),
-  (25, 15, '2026-07-01', 3500.0, 2, 8, false, 13, 3),
-  (26, 10, '2026-06-05', 3500.0, 2, 9, false, 13, 4),
-  (27, 10, '2026-06-12', 3500.0, 2, 9, false, 13, 4),
-  (28, 10, '2026-06-19', 3500.0, 2, 9, false, 13, 4),
-  (29, 10, '2026-06-26', 3500.0, 2, 9, false, 13, 4),
-  (30, 10, '2026-07-03', 3500.0, 2, 9, false, 13, 4)
+  (1, 1, '2026-06-01', 3000.0, 1, 12, false, 9, 1),
+  (2, 1, '2026-06-08', 3000.0, 1, 12, false, 9, 1),
+  (3, 1, '2026-06-15', 3000.0, 1, 12, false, 9, 1),
+  (4, 1, '2026-06-22', 3000.0, 1, 12, false, 9, 1),
+  (5, 1, '2026-06-29', 3000.0, 1, 12, false, 9, 1),
+  (6, 10, '2026-06-03', 3000.0, 1, 8, false, 9, 2),
+  (7, 10, '2026-06-10', 3000.0, 1, 8, false, 9, 2),
+  (8, 10, '2026-06-17', 3000.0, 1, 8, false, 9, 2),
+  (9, 10, '2026-06-24', 3000.0, 1, 8, false, 9, 2),
+  (10, 10, '2026-07-01', 3000.0, 1, 8, false, 9, 2)
     ON CONFLICT (id_clase) DO UPDATE
         SET cupo = EXCLUDED.cupo,
             fecha = EXCLUDED.fecha,
@@ -281,16 +279,16 @@ INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, can
 -- CLASES PILATES (profesor 10 - Carlos Ruiz)
 -- =========================
 INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, cancelada, hora, plantilla_id) VALUES
-  (11, 1, '2026-06-02', 2500.0, 3, 8, false, 13, 5),
-  (12, 1, '2026-06-09', 2500.0, 3, 8, false, 13, 5),
-  (13, 1, '2026-06-16', 2500.0, 3, 8, false, 13, 5),
-  (14, 1, '2026-06-23', 2500.0, 3, 8, false, 13, 5),
-  (15, 1, '2026-06-30', 2500.0, 3, 8, false, 13, 5),
-  (16, 10, '2026-06-05', 2500.0, 3, 8, false, 13, 6),
-  (17, 10, '2026-06-12', 2500.0, 3, 8, false, 13, 6),
-  (18, 10, '2026-06-19', 2500.0, 3, 8, false, 13, 6),
-  (19, 10, '2026-06-26', 2500.0, 3, 8, false, 13, 6),
-  (20, 10, '2026-07-03', 2500.0, 3, 8, false, 13, 6)
+  (21, 15, '2026-06-03', 3500.0, 2, 10, false, 13, 3),
+  (22, 15, '2026-06-10', 3500.0, 2, 10, false, 13, 3),
+  (23, 15, '2026-06-17', 3500.0, 2, 10, false, 13, 3),
+  (24, 15, '2026-06-24', 3500.0, 2, 10, false, 13, 3),
+  (25, 15, '2026-07-01', 3500.0, 2, 10, false, 13, 3),
+  (26, 10, '2026-06-05', 3500.0, 2, 10, false, 13, 4),
+  (27, 10, '2026-06-12', 3500.0, 2, 10, false, 13, 4),
+  (28, 10, '2026-06-19', 3500.0, 2, 10, false, 13, 4),
+  (29, 10, '2026-06-26', 3500.0, 2, 10, false, 13, 4),
+  (30, 10, '2026-07-03', 3500.0, 2, 10, false, 13, 4)
     ON CONFLICT (id_clase) DO UPDATE
         SET cupo = EXCLUDED.cupo,
             fecha = EXCLUDED.fecha,
@@ -302,18 +300,28 @@ INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, can
             plantilla_id = EXCLUDED.plantilla_id;
 
 -- =========================
--- LICENCIAS DE PROFESOR (prueba)
+-- CLASES FUNCIONAL (profesor 9 - Marcelo Mendoza y profesor 11 - Lucía Torres)
 -- =========================
--- Marcelo Mendoza (9) de vacaciones: queda NO disponible para cambios de
--- profesor en ese rango (sirve para probar el escenario 2 de las HU).
-
-INSERT INTO licencia_profesor (id_licencia, profesor_id, desde, hasta, motivo)
-VALUES (1, 9, '2026-06-01', '2026-12-31', 'Vacaciones')
-    ON CONFLICT (id_licencia) DO UPDATE
-        SET profesor_id = EXCLUDED.profesor_id,
-            desde = EXCLUDED.desde,
-            hasta = EXCLUDED.hasta,
-            motivo = EXCLUDED.motivo;
+INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, cancelada, hora, plantilla_id) VALUES
+  (11, 1, '2026-06-02', 2500.0, 3, 9, false, 13, 5),
+  (12, 1, '2026-06-09', 2500.0, 3, 9, false, 13, 5),
+  (13, 1, '2026-06-16', 2500.0, 3, 9, false, 13, 5),
+  (14, 1, '2026-06-23', 2500.0, 3, 9, false, 13, 5),
+  (15, 1, '2026-06-30', 2500.0, 3, 9, false, 13, 5),
+  (16, 10, '2026-06-05', 2500.0, 3, 11, false, 13, 6),
+  (17, 10, '2026-06-12', 2500.0, 3, 11, false, 13, 6),
+  (18, 10, '2026-06-19', 2500.0, 3, 11, false, 13, 6),
+  (19, 10, '2026-06-26', 2500.0, 3, 11, false, 13, 6),
+  (20, 10, '2026-07-03', 2500.0, 3, 11, false, 13, 6)
+    ON CONFLICT (id_clase) DO UPDATE
+        SET cupo = EXCLUDED.cupo,
+            fecha = EXCLUDED.fecha,
+            precio = EXCLUDED.precio,
+            actividad_id = EXCLUDED.actividad_id,
+            profesor_id = EXCLUDED.profesor_id,
+            cancelada = EXCLUDED.cancelada,
+            hora = EXCLUDED.hora,
+            plantilla_id = EXCLUDED.plantilla_id;
 
 -- =========================
 -- CREDITOS (prueba)
@@ -423,13 +431,9 @@ DROP SEQUENCE IF EXISTS clase_plantilla_seq;
 CREATE SEQUENCE clase_plantilla_seq INCREMENT BY 1 START WITH 1;
 SELECT setval('clase_plantilla_seq', GREATEST(COALESCE((SELECT MAX(id_plantilla) FROM clase_plantilla), 0), 6) + 1, false);
 
-DROP SEQUENCE IF EXISTS licencia_profesor_seq;
-CREATE SEQUENCE licencia_profesor_seq INCREMENT BY 1 START WITH 1;
-SELECT setval('licencia_profesor_seq', COALESCE((SELECT MAX(id_licencia) FROM licencia_profesor), 0) + 1, false);
-
 DROP SEQUENCE IF EXISTS usuario_seq;
 CREATE SEQUENCE usuario_seq INCREMENT BY 1 START WITH 1;
-SELECT setval('usuario_seq', GREATEST(COALESCE((SELECT MAX(id) FROM usuario), 0), 11) + 1, false);
+SELECT setval('usuario_seq', GREATEST(COALESCE((SELECT MAX(id) FROM usuario), 0), 12) + 1, false);
 
 DROP SEQUENCE IF EXISTS actividad_seq;
 CREATE SEQUENCE actividad_seq INCREMENT BY 1 START WITH 1;

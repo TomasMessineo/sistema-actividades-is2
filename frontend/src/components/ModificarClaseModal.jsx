@@ -10,6 +10,29 @@ const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8080/api
 
 const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
+const MODO_UNICA = 'INDIVIDUAL'
+const MODO_RANGO = 'RANGO'
+const MODO_SERIE = 'SERIE'
+
+const UNA_HORA_EN_MS = 60 * 60 * 1000
+
+// Las fechas son de solo-día (sin hora): alcanza con que quede al menos una
+// hora entre ahora y la medianoche del día elegido (mismo criterio que el
+// modal de cancelar clase).
+const esFechaFutura = (fechaStr) => {
+  if (!fechaStr) return false
+  const finDelDia = new Date(`${fechaStr}T23:59:59`)
+  return !Number.isNaN(finDelDia.getTime()) && finDelDia.getTime() >= Date.now() + UNA_HORA_EN_MS
+}
+
+const obtenerFechaMinima = () => {
+  const hoy = new Date()
+  const y = hoy.getFullYear()
+  const m = String(hoy.getMonth() + 1).padStart(2, '0')
+  const d = String(hoy.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
 // El backend devuelve la actividad como string ("YOGA", "PILATES", "FUNCIONAL")
 // en el DTO del calendario. Este mapeo sirve para volver al id que necesita el endpoint
 // /profesores/actividad/{id}.
@@ -48,6 +71,10 @@ function ModificarClaseModal({
   const [mostrarConfirmacionCancelacion, setMostrarConfirmacionCancelacion] = useState(false)
   const [mostrarOpcionesModificar, setMostrarOpcionesModificar] = useState(false)
   const [mostrarModalCancelarClase, setMostrarModalCancelarClase] = useState(false)
+  const [modoProfesor, setModoProfesor] = useState(MODO_UNICA)
+  const [fechaDesde, setFechaDesde] = useState('')
+  const [fechaHasta, setFechaHasta] = useState('')
+  const [fechaApartirDe, setFechaApartirDe] = useState('')
 
   useEffect(() => {
     if (abierto && claseSeleccionada) {
@@ -63,6 +90,10 @@ function ModificarClaseModal({
       setAccionEnProceso(false)
       setMostrarConfirmacionCancelacion(false)
       setMostrarOpcionesModificar(false)
+      setModoProfesor(MODO_UNICA)
+      setFechaDesde('')
+      setFechaHasta('')
+      setFechaApartirDe('')
 
       cargarProfesores()
     }
@@ -208,7 +239,6 @@ function ModificarClaseModal({
   }
 
   const guardarCambioProfesor = async (alcanceElegido) => {
-    setCargando(true)
     setError('')
 
     const idClase = obtenerIdClase()
@@ -216,18 +246,56 @@ function ModificarClaseModal({
 
     if (!idClase) {
       setError('No se pudo identificar la clase seleccionada.')
-      setCargando(false)
       return
     }
 
     if (idProfesor === null || idProfesor <= 0) {
       setError('Debe seleccionar un profesor válido.')
-      setCargando(false)
       return
     }
 
+    if (alcanceElegido === MODO_RANGO) {
+      if (!fechaDesde || !fechaHasta) {
+        setError('Debe seleccionar ambas fechas del rango.')
+        return
+      }
+      if (fechaDesde > fechaHasta) {
+        setError('La fecha "desde" no puede ser posterior a la fecha "hasta".')
+        return
+      }
+      if (!esFechaFutura(fechaDesde) || !esFechaFutura(fechaHasta)) {
+        setError('Las fechas deben ser futuras (al menos una hora a partir de ahora).')
+        return
+      }
+    }
+
+    if (alcanceElegido === MODO_SERIE) {
+      if (!fechaApartirDe) {
+        setError('Debe seleccionar una fecha.')
+        return
+      }
+      if (!esFechaFutura(fechaApartirDe)) {
+        setError('La fecha debe ser futura (al menos una hora a partir de ahora).')
+        return
+      }
+    }
+
+    setCargando(true)
+
     try {
-      const data = await cambiarProfesorClase(idClase, idProfesor, alcanceElegido)
+      const desdeElegido = alcanceElegido === MODO_RANGO
+        ? fechaDesde
+        : alcanceElegido === MODO_SERIE
+          ? fechaApartirDe
+          : undefined
+
+      const data = await cambiarProfesorClase(
+        idClase,
+        idProfesor,
+        alcanceElegido,
+        desdeElegido,
+        alcanceElegido === MODO_RANGO ? fechaHasta : undefined
+      )
       setClaseModificada(data)
       setMostrarExito(true)
     } catch (err) {
@@ -302,7 +370,10 @@ function ModificarClaseModal({
   return (
     <>
     <div className="modificar-clase-modal__overlay" onClick={onCerrar}>
-      <section className="modificar-clase-modal" onClick={(e) => e.stopPropagation()}>
+      <section
+        className={`modificar-clase-modal${mostrarOpcionesModificar ? ' modificar-clase-modal--amplio' : ''}`}
+        onClick={(e) => e.stopPropagation()}
+      >
         <button
           type="button"
           className="modificar-clase-modal__close"
@@ -312,114 +383,18 @@ function ModificarClaseModal({
           ×
         </button>
 
-        <div className="modificar-clase-modal__content">
-          <div className="modificar-clase-modal__main">
-            <div className="modificar-clase-modal__header">
-              <p className="modificar-clase-modal__label">Panel administrativo</p>
-              <h2>Modificar clase</h2>
-              <p>
-                Cambiá el profesor de esta clase o de toda la serie.
-              </p>
-            </div>
+        <div className="modificar-clase-modal__header">
+          <p className="modificar-clase-modal__label">Panel administrativo</p>
+          {mostrarOpcionesModificar && <h2>Modificar profesor</h2>}
+        </div>
 
-            {error && (
-              <div className="modificar-clase-modal__alert modificar-clase-modal__alert--error">
-                {error}
-              </div>
-            )}
-
-          <form className="modificar-clase-modal__form" onSubmit={(e) => e.preventDefault()}>
-            <label className="modificar-clase-modal__field modificar-clase-modal__field--full">
-              <span>Profesor</span>
-              <select
-                name="profesorId"
-                value={profesorId}
-                onChange={(e) => setProfesorId(e.target.value)}
-                disabled={cargandoProfesores}
-                required
-              >
-                <option value="">
-                  {cargandoProfesores
-                    ? 'Cargando profesores...'
-                    : profesoresDeLaActividad().length === 0
-                      ? 'No hay profesores para esta actividad'
-                      : 'Cambiar profesor'}
-                </option>
-
-                {profesoresDeLaActividad().map((profesor) => {
-                  const idProfesor = obtenerIdProfesor(profesor)
-                  if (!idProfesor) return null
-                  return (
-                    <option key={idProfesor} value={idProfesor}>
-                      {obtenerNombreProfesor(profesor)}
-                    </option>
-                  )
-                })}
-              </select>
-            </label>
-
-            {mostrarOpcionesModificar && (
-              <p className="modificar-clase-modal__note">
-                <strong>Para esta clase</strong>: cambia el profesor solo del {claseSeleccionada.fecha || 'esta fecha'}.<br />
-                <strong>Para todas las clases</strong>: cambia el profesor de los {obtenerNombreDia()} a las {claseSeleccionada.hora ?? '--'} hs aún no impartidos.
-              </p>
-            )}
-
-            <div className="modificar-clase-modal__actions">
-              {!mostrarOpcionesModificar ? (
-                <div className="modificar-clase-modal__actions-group">
-                  <button
-                    type="button"
-                    className="modificar-clase-modal__button modificar-clase-modal__button--danger"
-                    onClick={abrirConfirmacionCancelacion}
-                    disabled={cargando || cargandoProfesores || accionEnProceso || Boolean(claseSeleccionada.cancelada)}
-                  >
-                    {claseSeleccionada.cancelada ? 'Clase cancelada' : accionEnProceso ? 'Cancelando...' : 'Cancelar clase'}
-                  </button>
-
-                  <button
-                    type="button"
-                    className="modificar-clase-modal__button modificar-clase-modal__button--primary"
-                    onClick={() => { setError(''); setMostrarOpcionesModificar(true) }}
-                    disabled={cargando || cargandoProfesores}
-                  >
-                    Modificar profesor
-                  </button>
-                </div>
-              ) : (
-                <div className="modificar-clase-modal__actions-group modificar-clase-modal__options">
-                  <button
-                    type="button"
-                    className="modificar-clase-modal__button modificar-clase-modal__button--link"
-                    onClick={() => setMostrarOpcionesModificar(false)}
-                    disabled={cargando}
-                  >
-                    ← Volver
-                  </button>
-
-                  <button
-                    type="button"
-                    className="modificar-clase-modal__button modificar-clase-modal__button--primary"
-                    onClick={() => guardarCambioProfesor('INDIVIDUAL')}
-                    disabled={cargando || cargandoProfesores}
-                  >
-                    {cargando ? 'Modificando...' : 'Para esta clase'}
-                  </button>
-
-                  <button
-                    type="button"
-                    className="modificar-clase-modal__button modificar-clase-modal__button--primary"
-                    onClick={() => guardarCambioProfesor('SERIE')}
-                    disabled={cargando || cargandoProfesores}
-                  >
-                    {cargando ? 'Modificando...' : 'Para todas las clases'}
-                  </button>
-                </div>
-              )}
-            </div>
-            </form>
+        {error && (
+          <div className="modificar-clase-modal__alert modificar-clase-modal__alert--error">
+            {error}
           </div>
+        )}
 
+        {!mostrarOpcionesModificar && (
           <aside className="modificar-clase-modal__summary">
             <h3>Resumen</h3>
 
@@ -448,7 +423,177 @@ function ModificarClaseModal({
               <strong>{obtenerNombreProfesor(obtenerProfesorSeleccionado())}</strong>
             </div>
           </aside>
-        </div>
+        )}
+
+        <form className="modificar-clase-modal__form" onSubmit={(e) => e.preventDefault()}>
+            {mostrarOpcionesModificar ? (
+              <>
+                <label className="modificar-clase-modal__field modificar-clase-modal__field--full">
+                  <span>Profesor</span>
+                  <select
+                    name="profesorId"
+                    value={profesorId}
+                    onChange={(e) => setProfesorId(e.target.value)}
+                    disabled={cargandoProfesores}
+                    required
+                  >
+                    <option value="">
+                      {cargandoProfesores
+                        ? 'Cargando profesores...'
+                        : profesoresDeLaActividad().length === 0
+                          ? 'No hay profesores para esta actividad'
+                          : 'Cambiar profesor'}
+                    </option>
+
+                    {profesoresDeLaActividad().map((profesor) => {
+                      const idProfesor = obtenerIdProfesor(profesor)
+                      if (!idProfesor) return null
+                      return (
+                        <option key={idProfesor} value={idProfesor}>
+                          {obtenerNombreProfesor(profesor)}
+                        </option>
+                      )
+                    })}
+                  </select>
+                </label>
+
+                <div className="modificar-clase-modal__opciones" role="radiogroup" aria-label="Alcance del cambio de profesor">
+                  <label className="modificar-clase-modal__opcion">
+                    <input
+                      type="radio"
+                      name="modoProfesor"
+                      value={MODO_UNICA}
+                      checked={modoProfesor === MODO_UNICA}
+                      onChange={() => setModoProfesor(MODO_UNICA)}
+                    />
+                    <div className="modificar-clase-modal__opcion-contenido">
+                      <span className="modificar-clase-modal__opcion-titulo">Cambiar en esta clase</span>
+
+                      <button
+                        type="button"
+                        className="modificar-clase-modal__button modificar-clase-modal__button--primary"
+                        disabled={modoProfesor !== MODO_UNICA || cargando || cargandoProfesores}
+                        onClick={() => guardarCambioProfesor(MODO_UNICA)}
+                      >
+                        {cargando && modoProfesor === MODO_UNICA ? 'Cambiando...' : 'Cambiar'}
+                      </button>
+                    </div>
+                  </label>
+
+                  <label className="modificar-clase-modal__opcion">
+                    <input
+                      type="radio"
+                      name="modoProfesor"
+                      value={MODO_RANGO}
+                      checked={modoProfesor === MODO_RANGO}
+                      onChange={() => setModoProfesor(MODO_RANGO)}
+                    />
+                    <div className="modificar-clase-modal__opcion-contenido">
+                      <span className="modificar-clase-modal__opcion-titulo">
+                        Cambiar desde{' '}
+                        <input
+                          type="date"
+                          value={fechaDesde}
+                          min={obtenerFechaMinima()}
+                          onChange={(e) => setFechaDesde(e.target.value)}
+                          disabled={modoProfesor !== MODO_RANGO}
+                        />{' '}
+                        hasta{' '}
+                        <input
+                          type="date"
+                          value={fechaHasta}
+                          min={obtenerFechaMinima()}
+                          onChange={(e) => setFechaHasta(e.target.value)}
+                          disabled={modoProfesor !== MODO_RANGO}
+                        />
+                      </span>
+
+                      <button
+                        type="button"
+                        className="modificar-clase-modal__button modificar-clase-modal__button--primary"
+                        disabled={modoProfesor !== MODO_RANGO || cargando || cargandoProfesores}
+                        onClick={() => guardarCambioProfesor(MODO_RANGO)}
+                      >
+                        {cargando && modoProfesor === MODO_RANGO ? 'Cambiando...' : 'Cambiar'}
+                      </button>
+                    </div>
+                  </label>
+
+                  <label className="modificar-clase-modal__opcion">
+                    <input
+                      type="radio"
+                      name="modoProfesor"
+                      value={MODO_SERIE}
+                      checked={modoProfesor === MODO_SERIE}
+                      onChange={() => setModoProfesor(MODO_SERIE)}
+                    />
+                    <div className="modificar-clase-modal__opcion-contenido">
+                      <span className="modificar-clase-modal__opcion-titulo">
+                        Cambiar a partir de{' '}
+                        <input
+                          type="date"
+                          value={fechaApartirDe}
+                          min={obtenerFechaMinima()}
+                          onChange={(e) => setFechaApartirDe(e.target.value)}
+                          disabled={modoProfesor !== MODO_SERIE}
+                        />
+                      </span>
+
+                      <button
+                        type="button"
+                        className="modificar-clase-modal__button modificar-clase-modal__button--primary"
+                        disabled={modoProfesor !== MODO_SERIE || cargando || cargandoProfesores}
+                        onClick={() => guardarCambioProfesor(MODO_SERIE)}
+                      >
+                        {cargando && modoProfesor === MODO_SERIE ? 'Cambiando...' : 'Cambiar'}
+                      </button>
+                    </div>
+                  </label>
+                </div>
+
+                <div className="modificar-clase-modal__actions">
+                  <button
+                    type="button"
+                    className="modificar-clase-modal__button modificar-clase-modal__button--secondary"
+                    onClick={() => setMostrarOpcionesModificar(false)}
+                    disabled={cargando}
+                  >
+                    Volver
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="modificar-clase-modal__actions">
+                <div className="modificar-clase-modal__actions-group">
+                  <button
+                    type="button"
+                    className="modificar-clase-modal__button modificar-clase-modal__button--danger"
+                    onClick={abrirConfirmacionCancelacion}
+                    disabled={cargando || cargandoProfesores || accionEnProceso || Boolean(claseSeleccionada.cancelada)}
+                  >
+                    {claseSeleccionada.cancelada ? 'Clase cancelada' : accionEnProceso ? 'Cancelando...' : 'Cancelar clase'}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="modificar-clase-modal__button modificar-clase-modal__button--primary"
+                    onClick={() => {
+                      setError('')
+                      // Restricción a nivel front: las clases que ya ocurrieron no se modifican.
+                      if (claseEstaOcurriendoOYaPaso()) {
+                        setError('No se puede modificar una clase que está ocurriendo o ya pasó.')
+                        return
+                      }
+                      setMostrarOpcionesModificar(true)
+                    }}
+                    disabled={cargando || cargandoProfesores}
+                  >
+                    Modificar profesor
+                  </button>
+                </div>
+              </div>
+            )}
+        </form>
 
         {mostrarExito && (
           <div className="modificar-clase-modal__success-overlay">
