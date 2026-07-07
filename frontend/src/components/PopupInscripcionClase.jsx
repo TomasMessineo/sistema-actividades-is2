@@ -147,19 +147,21 @@ const PopupInscripcionClase = ({
                     <h3>{tituloClase}</h3>
                 </div>
 
-                <div className={`popup-creditos-badge${creditos === 0 ? ' popup-creditos-badge--vacio' : ''}`}>
-                    <svg width="12" height="12" viewBox="0 0 13 13" fill="none" aria-hidden="true">
-                        <polygon
-                            points="6.5,0.8 11.8,3.5 11.8,9.5 6.5,12.2 1.2,9.5 1.2,3.5"
-                            stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinejoin="round"
-                        />
-                        <circle cx="6.5" cy="6.5" r="2" fill="currentColor" />
-                    </svg>
-                    {creditos === 0
-                        ? 'Sin créditos disponibles'
-                        : `${creditos} ${creditos === 1 ? 'crédito disponible' : 'créditos disponibles'}`
-                    }
-                </div>
+                {tipoForzado !== 'mensual' && (
+                    <div className={`popup-creditos-badge${creditos === 0 ? ' popup-creditos-badge--vacio' : ''}`}>
+                        <svg width="12" height="12" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+                            <polygon
+                                points="6.5,0.8 11.8,3.5 11.8,9.5 6.5,12.2 1.2,9.5 1.2,3.5"
+                                stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinejoin="round"
+                            />
+                            <circle cx="6.5" cy="6.5" r="2" fill="currentColor" />
+                        </svg>
+                        {creditos === 0
+                            ? 'Sin créditos disponibles'
+                            : `${creditos} ${creditos === 1 ? 'crédito disponible' : 'créditos disponibles'}`
+                        }
+                    </div>
+                )}
 
                 {error && (
                     <div className="popup-error" role="alert">{error}</div>
