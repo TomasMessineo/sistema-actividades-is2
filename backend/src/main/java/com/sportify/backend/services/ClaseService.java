@@ -81,6 +81,9 @@ public class ClaseService {
     @Autowired
     private ListaAsistenciaRepository listaAsistenciaRepository;
 
+    @Autowired
+    private EmailService emailService;
+
     // 1. LISTAR
     public List<Clase> listarClases() {
         return claseRepository.findAll();
@@ -758,7 +761,7 @@ public class ClaseService {
     }
 
     @Transactional
-    public Clase cancelarClase(Integer id) {
+    public Clase cancelarClase(Integer id, String motivo) {
         Clase claseExistente = claseRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Clase no encontrada"));
 
@@ -766,25 +769,54 @@ public class ClaseService {
             throw new RuntimeException("La clase ya se encuentra cancelada");
         }
 
+        boolean hayInscriptos = contarAlumnosInscriptos(claseExistente) > 0;
+        boolean motivoVacio = motivo == null || motivo.trim().isEmpty();
+
+        // Con alumnos inscriptos el motivo es obligatorio: hay que avisarles
+        // por qué se cancela la clase (se les comunica por mail).
+        if (hayInscriptos && motivoVacio) {
+            throw new RuntimeException(
+                    "Debe indicar el motivo de la cancelación ya que hay alumnos inscriptos en la clase");
+        }
+
         ListaAsistencia listaAsistencia = claseExistente.getListaAsistencia();
-        if (listaAsistencia != null && listaAsistencia.getAlumnos() != null
-                && !listaAsistencia.getAlumnos().isEmpty()) {
-            listaAsistencia.getAlumnos().forEach(alumno -> {
+        if (hayInscriptos) {
+            String descripcionClase = descripcionDeClase(claseExistente);
+            // Deduplicar por id: si la lista tuviera al mismo alumno repetido,
+            // igual recibe UN crédito y UN mail (mismo patrón que el scheduler
+            // de asistencias).
+            java.util.Collection<Alumno> alumnosUnicos = listaAsistencia.getAlumnos().stream()
+                    .collect(Collectors.toMap(Alumno::getId, a -> a, (existente, duplicado) -> existente, LinkedHashMap::new))
+                    .values();
+
+            alumnosUnicos.forEach(alumno -> {
                 Integer creditosActuales = alumno.getCreditos() == null ? 0 : alumno.getCreditos();
                 alumno.setCreditos(creditosActuales + 1);
+                emailService.notificarClaseCancelada(
+                        alumno.getEmail(), alumno.getNombre(), descripcionClase, motivo.trim());
             });
 
-            alumnoRepository.saveAll(listaAsistencia.getAlumnos());
+            alumnoRepository.saveAll(new ArrayList<>(alumnosUnicos));
         }
 
         claseExistente.setCancelada(true);
+        claseExistente.setMotivoCancelacion(motivoVacio ? null : motivo.trim());
         return claseRepository.save(claseExistente);
+    }
+
+    // HELPER — descripción legible de la clase para los avisos por mail.
+    private String descripcionDeClase(Clase clase) {
+        String actividad = (clase.getActividad() != null && clase.getActividad().getTipo() != null)
+                ? clase.getActividad().getTipo()
+                : "Clase";
+        String hora = clase.getHora() != null ? clase.getHora() + ":00 hs" : "";
+        return (actividad + " del " + clase.getFecha() + " " + hora).trim();
     }
 
     // Cancela una clase individual y reporta a cuántos alumnos se les
     // acreditó un crédito (para mostrarlo en el panel administrativo).
     @Transactional
-    public ClaseCancelacionResponse cancelarClaseConDetalle(Integer id) {
+    public ClaseCancelacionResponse cancelarClaseConDetalle(Integer id, String motivo) {
         Clase clase = claseRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Clase no encontrada"));
 
@@ -793,7 +825,7 @@ public class ClaseService {
         }
 
         int alumnosAcreditados = contarAlumnosInscriptos(clase);
-        cancelarClase(id);
+        cancelarClase(id, motivo);
 
         return new ClaseCancelacionResponse(1, 1, alumnosAcreditados);
     }
@@ -808,8 +840,9 @@ public class ClaseService {
     }
 
     // HELPER — cancela (idempotente sobre las ya canceladas) una lista de
-    // instancias reusando cancelarClase, que ya maneja el reembolso de créditos.
-    private ClaseCancelacionResponse cancelarInstancias(List<Clase> instancias) {
+    // instancias reusando cancelarClase, que ya maneja el reembolso de créditos,
+    // la exigencia de motivo cuando hay inscriptos y el aviso por mail.
+    private ClaseCancelacionResponse cancelarInstancias(List<Clase> instancias, String motivo) {
         int canceladas = 0;
         int alumnosAcreditados = 0;
 
@@ -818,7 +851,7 @@ public class ClaseService {
                 continue;
             }
             alumnosAcreditados += contarAlumnosInscriptos(clase);
-            cancelarClase(clase.getIdClase());
+            cancelarClase(clase.getIdClase(), motivo);
             canceladas++;
         }
 
@@ -845,7 +878,7 @@ public class ClaseService {
                 .filter(c -> c.getFecha() != null && !c.getFecha().isBefore(desde) && !c.getFecha().isAfter(hasta))
                 .toList();
 
-        ClaseCancelacionResponse resultado = cancelarInstancias(instancias);
+        ClaseCancelacionResponse resultado = cancelarInstancias(instancias, request.getMotivo());
         resultado.setTotalEnRango(instancias.size());
         return resultado;
     }
@@ -871,7 +904,7 @@ public class ClaseService {
                 .filter(c -> c.getFecha() != null && !c.getFecha().isBefore(desde))
                 .toList();
 
-        ClaseCancelacionResponse resultado = cancelarInstancias(instanciasFuturas);
+        ClaseCancelacionResponse resultado = cancelarInstancias(instanciasFuturas, request.getMotivo());
         resultado.setTotalEnRango(instanciasFuturas.size());
         return resultado;
     }

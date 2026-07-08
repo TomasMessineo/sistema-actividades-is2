@@ -10,6 +10,22 @@ const normalizeActivity = (name) => {
     return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
+// Texto legible del motivo por el que una clase queda fuera del abono.
+const describirMotivoExclusion = (motivo) => {
+    switch (motivo) {
+        case 'LLENA':
+            return 'está llena'
+        case 'CONFLICTO_HORARIO':
+            return 'ya tenés otra clase en ese horario'
+        case 'CANCELADA':
+            return 'está cancelada'
+        case 'YA_INSCRIPTO':
+            return 'ya estás inscripto'
+        default:
+            return 'no está disponible'
+    }
+}
+
 const formatearFecha = (fechaStr) => {
     if (!fechaStr) return ''
     const [anio, mes, dia] = fechaStr.split('-').map(Number)
@@ -221,10 +237,11 @@ const PopupInscripcionClase = ({
                                 <div className="abono-info-panel" style={{ marginTop: '10px', padding: '12px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '10px', fontSize: '0.78rem', color: '#e8e8ec', textAlign: 'left', width: '100%', boxSizing: 'border-box' }}>
                                     {clasesLlenas.length > 0 && (
                                         <div className="abono-info-panel__warning" style={{ color: '#ffd54f', fontSize: '11px', marginBottom: '8px', borderBottom: '1px solid rgba(255, 255, 255, 0.15)', paddingBottom: '6px', fontWeight: '600', lineHeight: '1.4' }}>
-                                            ⚠️ {clasesLlenas.length === 1 
-                                                ? `La clase del ${formatearFecha(clasesLlenas[0].fecha)} está llena y no se incluirá en tu abono.`
-                                                : `Las clases de los días ${clasesLlenas.map(c => formatearFecha(c.fecha)).join(', ')} están llenas y no se incluirán en tu abono.`
-                                            }
+                                            {clasesLlenas.map((c) => (
+                                                <div key={c.idClase}>
+                                                    ⚠️ La clase del {formatearFecha(c.fecha)} no se incluirá en tu abono: {describirMotivoExclusion(c.motivo)}.
+                                                </div>
+                                            ))}
                                         </div>
                                     )}
                                     <p className="abono-info-panel__title" style={{ margin: '0 0 6px', fontWeight: '600', color: 'rgba(255, 255, 255, 0.92)' }}>Te inscribirás a {clasesDisponibles.length} clases:</p>

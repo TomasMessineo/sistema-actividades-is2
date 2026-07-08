@@ -54,6 +54,13 @@ public class InscripcionValidator {
     }
 
     public void horarioOcupado(InscripcionRequest request) {
+        // En el abono mensual la clase clickeada es solo la representante de la
+        // serie: los choques de horario se evalúan clase por clase en el preview
+        // (las que chocan se excluyen del abono, no bloquean la inscripción).
+        if (request.getTipoClase() == com.sportify.backend.entities.Pago.TipoClase.ABONADO) {
+            return;
+        }
+
         Clase clase = claseRepository.findById(request.getIdClase())
                 .orElseThrow(() -> new RuntimeException("La clase no existe"));
 
