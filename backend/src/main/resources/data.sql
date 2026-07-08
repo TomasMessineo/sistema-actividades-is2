@@ -546,31 +546,31 @@ INSERT INTO pago (id_pago, alumno_id, clase_id, valor, fecha, fecha_creacion, fe
 -- =========================
 
 INSERT INTO apto_medico (id_apto_medico, fecha_de_vencimiento, url, alumno_id)
-VALUES (1, '2099-12-31', 'http://prueba/apto1.pdf', 3)
+VALUES (1, (CURRENT_DATE + INTERVAL '1 year')::date, 'http://prueba/apto1.pdf', 3)
     ON CONFLICT (id_apto_medico) DO UPDATE
         SET fecha_de_vencimiento = EXCLUDED.fecha_de_vencimiento,
             alumno_id = EXCLUDED.alumno_id;
 
 INSERT INTO apto_medico (id_apto_medico, fecha_de_vencimiento, url, alumno_id)
-VALUES (2, '2099-12-31', 'http://prueba/apto2.pdf', 4)
+VALUES (2, (CURRENT_DATE + INTERVAL '1 year')::date, 'http://prueba/apto2.pdf', 4)
     ON CONFLICT (id_apto_medico) DO UPDATE
         SET fecha_de_vencimiento = EXCLUDED.fecha_de_vencimiento,
             alumno_id = EXCLUDED.alumno_id;
 
 INSERT INTO apto_medico (id_apto_medico, fecha_de_vencimiento, url, alumno_id)
-VALUES (3, '2099-12-31', 'http://prueba/apto3.pdf', 5)
+VALUES (3, (CURRENT_DATE + INTERVAL '1 year')::date, 'http://prueba/apto3.pdf', 5)
     ON CONFLICT (id_apto_medico) DO UPDATE
         SET fecha_de_vencimiento = EXCLUDED.fecha_de_vencimiento,
             alumno_id = EXCLUDED.alumno_id;
 
 INSERT INTO apto_medico (id_apto_medico, fecha_de_vencimiento, url, alumno_id)
-VALUES (4, '2099-12-31', 'http://prueba/apto4.pdf', 6)
+VALUES (4, (CURRENT_DATE + INTERVAL '1 year')::date, 'http://prueba/apto4.pdf', 6)
     ON CONFLICT (id_apto_medico) DO UPDATE
         SET fecha_de_vencimiento = EXCLUDED.fecha_de_vencimiento,
             alumno_id = EXCLUDED.alumno_id;
 
 INSERT INTO apto_medico (id_apto_medico, fecha_de_vencimiento, url, alumno_id)
-VALUES (5, '2099-12-31', 'http://prueba/apto5.pdf', 7)
+VALUES (5, (CURRENT_DATE + INTERVAL '1 year')::date, 'http://prueba/apto5.pdf', 7)
     ON CONFLICT (id_apto_medico) DO UPDATE
         SET fecha_de_vencimiento = EXCLUDED.fecha_de_vencimiento,
             alumno_id = EXCLUDED.alumno_id;

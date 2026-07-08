@@ -56,6 +56,13 @@ public class ClaseCalendarioDTO {
     private ProfesorDTO profesor;
     private Integer idPlantilla;
     private Boolean abonoDisponible;
+    // Cuando abonoDisponible es false, indica el motivo dominante:
+    // "CONFLICTO_HORARIO" si todas las clases restantes chocan con otra clase
+    // del alumno (no es que falte cupo), o "LLENA" en el resto de los casos.
+    private String motivoAbonoNoDisponible;
+    // True si el alumno que consulta tiene su cupo guardado por renovación
+    // (ReservaCupo PENDIENTE) para esta serie este mes.
+    private Boolean tieneReserva;
 
 
     public ClaseCalendarioDTO() {
@@ -193,5 +200,21 @@ public class ClaseCalendarioDTO {
 
     public void setAbonoDisponible(Boolean abonoDisponible) {
         this.abonoDisponible = abonoDisponible;
+    }
+
+    public Boolean getTieneReserva() {
+        return tieneReserva;
+    }
+
+    public void setTieneReserva(Boolean tieneReserva) {
+        this.tieneReserva = tieneReserva;
+    }
+
+    public String getMotivoAbonoNoDisponible() {
+        return motivoAbonoNoDisponible;
+    }
+
+    public void setMotivoAbonoNoDisponible(String motivoAbonoNoDisponible) {
+        this.motivoAbonoNoDisponible = motivoAbonoNoDisponible;
     }
 }
