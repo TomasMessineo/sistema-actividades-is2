@@ -11,4 +11,10 @@ public class CancelarDesdeRequest {
 
     public LocalDate getDesde() { return desde; }
     public void setDesde(LocalDate desde) { this.desde = desde; }
+
+    // Motivo de la cancelación (obligatorio si hay alumnos inscriptos).
+    private String motivo;
+
+    public String getMotivo() { return motivo; }
+    public void setMotivo(String motivo) { this.motivo = motivo; }
 }

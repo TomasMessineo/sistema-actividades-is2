@@ -140,9 +140,11 @@ public class ClaseController {
     }
 
     @PatchMapping("/{id}/cancelar")
-    public ResponseEntity<?> cancelarClase(@PathVariable Integer id) {
+    public ResponseEntity<?> cancelarClase(@PathVariable Integer id,
+            @RequestBody(required = false) com.sportify.backend.dtos.CancelarClaseRequest request) {
         try {
-            ClaseCancelacionResponse respuesta = claseService.cancelarClaseConDetalle(id);
+            String motivo = request != null ? request.getMotivo() : null;
+            ClaseCancelacionResponse respuesta = claseService.cancelarClaseConDetalle(id, motivo);
             return ResponseEntity.ok(respuesta);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());

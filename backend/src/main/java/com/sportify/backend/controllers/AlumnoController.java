@@ -64,6 +64,7 @@ public class AlumnoController {
         return alumnoService.listarHistorialAsistencias(id);
     }
     // Inasistencias del mes actual del alumno (para el menú "inasistencias restantes")
+
     @GetMapping("/{id}/inasistencias")
     public ResponseEntity<?> obtenerInasistencias(@PathVariable Integer id) {
         try {
