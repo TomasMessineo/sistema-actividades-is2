@@ -1,19 +1,21 @@
 import { Fragment } from 'react';
 import '../styles/AvailableClassesCalendar.css';
 
-const weekDays = [
-  { key: 'monday', label: 'Lunes' },
-  { key: 'tuesday', label: 'Martes' },
-  { key: 'wednesday', label: 'Miércoles' },
-  { key: 'thursday', label: 'Jueves' },
-  { key: 'friday', label: 'Viernes' },
-];
-
 const getDayDate = (weekStart, index) => {
   if (!weekStart) return null;
   const date = new Date(weekStart);
   date.setDate(date.getDate() + index);
   return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}`;
+};
+
+const esHoy = (weekStart, index) => {
+  if (!weekStart) return false;
+  const date = new Date(weekStart);
+  date.setDate(date.getDate() + index);
+  const hoy = new Date();
+  return date.getFullYear() === hoy.getFullYear()
+    && date.getMonth() === hoy.getMonth()
+    && date.getDate() === hoy.getDate();
 };
 
 const hours = Array.from({ length: 13 }, (_, index) => index + 8);
@@ -47,63 +49,93 @@ const getClassesAtSlot = (classes, dayKey, hour) => {
   return classes.filter((item) => item.day === dayKey && item.hour === hour);
 };
 
+const weekendClosedLabel = { saturday: 'sábados', sunday: 'domingos' };
+
+const isWeekendDay = (day) => Boolean(weekendClosedLabel[day.key]);
+
 const formatHourRange = (hour) => `${String(hour).padStart(2, '0')}:00 - ${String(hour + 1).padStart(2, '0')}:00`;
 
 const formatCapacity = (inscritos, cupo) => `${inscritos ?? 0}/${cupo ?? 0}`;
 
 function AvailableClassesCalendar({
-  weekLabel,
   weekStart = null,
-  onPreviousWeek,
-  onNextWeek,
+  days,
   classes = [],
   showCapacity = false,
   showFullBadge = false,
   showCancelledState = false,
-  headerAction = null,
+  showDayDates = true,
+  showHoyBadge = true,
+  headerLeft = null,
+  headerCenter = null,
+  headerRight = null,
   onClassClick = null,
 }) {
   return (
     <section className="available-classes-calendar" aria-label="Calendario de clases disponibles">
       <div className="calendar-intro">
-        {headerAction || (
-          <div>
-            <p className="calendar-kicker">Disponibilidad semanal</p>
-            <h2>Clases por día y hora</h2>
-          </div>
-        )}
-        <div className="calendar-week-controls" aria-label="Navegación de semana">
-          <button type="button" className="calendar-week-button" onClick={onPreviousWeek} aria-label="Semana anterior">
-            &lt;
-          </button>
-          <span className="calendar-week-label">{weekLabel}</span>
-          <button type="button" className="calendar-week-button" onClick={onNextWeek} aria-label="Semana siguiente">
-            &gt;
-          </button>
+        <div className="calendar-intro-left">
+          {headerLeft || (
+            <div>
+              <p className="calendar-kicker">Disponibilidad semanal</p>
+              <h2>Clases por día y hora</h2>
+            </div>
+          )}
         </div>
+        <div className="calendar-intro-center">{headerCenter}</div>
+        <div className="calendar-intro-right">{headerRight}</div>
       </div>
 
       <div className="calendar-grid" role="table" aria-label="Matriz de horarios de clases">
-        <div className="calendar-corner" aria-hidden="true">Hora</div>
-        {weekDays.map((day, index) => (
-          <div key={day.key} className="calendar-day-header" role="columnheader">
+        <div className="calendar-corner" aria-hidden="true" style={{ gridColumn: 1, gridRow: 1 }}>Hora</div>
+        {days.map((day, index) => (
+          <div
+            key={day.key}
+            className={`calendar-day-header${showHoyBadge && esHoy(weekStart, index) ? ' calendar-day-header--hoy' : ''}`}
+            role="columnheader"
+            style={{ gridColumn: index + 2, gridRow: 1 }}
+          >
             <span className="calendar-day-name">{day.label}</span>
-            {getDayDate(weekStart, index) && (
+            {showDayDates && getDayDate(weekStart, index) && (
               <span className="calendar-day-date">{getDayDate(weekStart, index)}</span>
             )}
+            {showHoyBadge && esHoy(weekStart, index) && <span className="calendar-day-today-badge">Hoy</span>}
           </div>
         ))}
 
-        {hours.map((hour) => (
+        {days.map((day, index) => (
+          isWeekendDay(day) && (
+            <div
+              key={`closed-${day.key}`}
+              className="calendar-slot calendar-closed-slot"
+              role="cell"
+              style={{ gridColumn: index + 2, gridRow: `2 / span ${hours.length}` }}
+            >
+              <div className="calendar-closed-card">
+                El gimnasio está cerrado los {weekendClosedLabel[day.key]}
+              </div>
+            </div>
+          )
+        ))}
+
+        {hours.map((hour, hourIndex) => (
           <Fragment key={hour}>
-            <div key={`hour-${hour}`} className="calendar-hour-label" role="rowheader">
+            <div key={`hour-${hour}`} className="calendar-hour-label" role="rowheader" style={{ gridColumn: 1, gridRow: hourIndex + 2 }}>
               {String(hour).padStart(2, '0')}:00
             </div>
-            {weekDays.map((day) => {
+            {days.map((day, dayIndex) => {
+              if (isWeekendDay(day)) return null;
+
               const slotClasses = getClassesAtSlot(classes, day.key, hour);
 
               return (
-                <div key={`${day.key}-${hour}`} className="calendar-slot" data-count={slotClasses.length} role="cell">
+                <div
+                  key={`${day.key}-${hour}`}
+                  className="calendar-slot"
+                  data-count={slotClasses.length}
+                  role="cell"
+                  style={{ gridColumn: dayIndex + 2, gridRow: hourIndex + 2 }}
+                >
                   {slotClasses.map((classItem, index) => (
                     <article
                       key={classItem.id}
@@ -114,15 +146,37 @@ function AvailableClassesCalendar({
                       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClassClick?.(classItem) }}
                       style={{ cursor: onClassClick ? 'pointer' : 'default' }}
                     >
-                      {showFullBadge && Number(classItem.inscritos) >= Number(classItem.cupo) && (
+                      {/* El "!" de clase completa no aplica cuando el motivo es un
+                          choque de horario del alumno: el cupo puede estar libre. */}
+                      {showFullBadge && !classItem.tieneReserva && classItem.motivoAbono !== 'CONFLICTO_HORARIO' && (
+                        typeof classItem.abonoDisponible === 'boolean'
+                          ? classItem.abonoDisponible === false
+                          : Number(classItem.inscritos) >= Number(classItem.cupo)
+                      ) && (
                         <span className="calendar-class-full-badge" aria-label="Clase completa" title="Clase completa">
                           !
                         </span>
                       )}
                       <span className="calendar-class-time">{formatHourRange(hour)}</span>
                       <strong>{normalizeActivityName(classItem.activity)}</strong>
-                      {showCapacity && (
-                        <span className="calendar-class-capacity">{formatCapacity(classItem.inscritos, classItem.cupo)}</span>
+                      {/* Renovación: el alumno tiene su cupo guardado. Chip de una
+                          línea en tarjetas normales; en slots compactos (2+ clases)
+                          el CSS lo cambia por el circulito ✓ de la esquina. */}
+                      {classItem.tieneReserva && (
+                        <span className="calendar-class-reserved-dot" title="Tenés tu lugar reservado, renová tu abono" aria-label="Lugar reservado">
+                          ✓
+                        </span>
+                      )}
+                      {classItem.tieneReserva ? (
+                        <span className="calendar-class-reserved" title="Tenés tu lugar reservado, renová tu abono">
+                          ✓ Lugar reservado
+                        </span>
+                      ) : showCapacity && (
+                        <span className="calendar-class-capacity">
+                          {classItem.abonoDisponible === false && classItem.motivoAbono !== 'CONFLICTO_HORARIO'
+                            ? 'Lleno este mes'
+                            : formatCapacity(classItem.inscritos, classItem.cupo)}
+                        </span>
                       )}
                     </article>
                   ))}

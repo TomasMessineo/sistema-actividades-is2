@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import com.sportify.backend.dtos.AbonoPreviewDTO;
 
 @Service
 public class InscripcionService {
@@ -23,13 +24,15 @@ public class InscripcionService {
     private final PagoRepository pagoRepository;
     private final InscripcionValidator inscripcionValidator;
     private final PagoService pagoService;
+    private final ClaseService claseService;
 
-    public InscripcionService(AlumnoRepository alumnoRepository, ClaseRepository claseRepository, PagoRepository pagoRepository, InscripcionValidator inscripcionValidator, PagoService pagoService) {
+    public InscripcionService(AlumnoRepository alumnoRepository, ClaseRepository claseRepository, PagoRepository pagoRepository, InscripcionValidator inscripcionValidator, PagoService pagoService, ClaseService claseService) {
         this.alumnoRepository = alumnoRepository;
         this.claseRepository = claseRepository;
         this.pagoRepository = pagoRepository;
         this.inscripcionValidator = inscripcionValidator;
         this.pagoService = pagoService;
+        this.claseService = claseService;
     }
 
     @Transactional
@@ -65,7 +68,50 @@ public class InscripcionService {
                         alumno.getCreditos());
             }
 
-            pago.setValor(clase.getPrecio());
+            double precio = (clase.getActividad() != null && clase.getActividad().getPrecio() != null && clase.getActividad().getPrecio() > 0)
+                    ? clase.getActividad().getPrecio() : (clase.getPrecio() != null ? clase.getPrecio() : 0.0);
+            if (pago.getTipo() == Pago.TipoClase.ABONADO) {
+                long cantidadClases = 1;
+                java.util.List<AbonoPreviewDTO> preview = java.util.List.of();
+                if (clase.getPlantilla() != null) {
+                    preview = claseService.previewAbono(clase.getIdClase(), alumno.getId());
+                    cantidadClases = preview.stream().filter(AbonoPreviewDTO::isDisponible).count();
+                }
+                if (cantidadClases == 0) {
+                    // Si todas las clases restantes del mes chocan con la agenda
+                    // del alumno, el problema es su horario, no el cupo.
+                    boolean horarioOcupado = !preview.isEmpty() && preview.stream()
+                            .allMatch(p -> p.getMotivo() == AbonoPreviewDTO.Motivo.CONFLICTO_HORARIO);
+                    if (horarioOcupado) {
+                        throw new RuntimeException("Error de inscripción: Inscripción fallida, el horario ya está ocupado por otra reserva.");
+                    }
+                    throw new RuntimeException("Error de inscripción: No hay clases disponibles en este mes para el abono seleccionado.");
+                }
+                double totalSinDescuento = precio * cantidadClases;
+
+                double factor = 1.0;
+                int inasistencias = alumno.getInasistencias() == null ? 0 : alumno.getInasistencias();
+                int strikes = alumno.getStrikes() == null ? 0 : alumno.getStrikes();
+
+                if (inasistencias >= 3) {
+                    factor = 1.2;
+                } else if (strikes < 3) {
+                    if (cantidadClases >= 4) {
+                        factor = 0.8;
+                    } else if (cantidadClases == 3) {
+                        factor = 0.85;
+                    } else if (cantidadClases == 2) {
+                        factor = 0.9;
+                    } else {
+                        factor = 1.0;
+                    }
+                } else {
+                    factor = 1.0;
+                }
+
+                precio = totalSinDescuento * factor;
+            }
+            pago.setValor(precio);
             pago.setEstado(Pago.EstadoPago.PENDIENTE);
             Pago pagoGuardado = pagoRepository.save(pago);
 
@@ -76,7 +122,11 @@ public class InscripcionService {
                     pagoGuardado.getValor(),
                     null);
         } catch (Exception e) {
-            throw new RuntimeException("Error de Inscripcion: " + e.getMessage());
+            String message = e.getMessage();
+            if (message != null && (message.startsWith("Error de inscripción:") || message.startsWith("Error de Inscripcion:"))) {
+                throw new RuntimeException(message);
+            }
+            throw new RuntimeException("Error de Inscripcion: " + message);
         }
     }
 }

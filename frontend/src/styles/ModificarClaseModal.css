@@ -12,7 +12,7 @@
 
 .modificar-clase-modal {
   position: relative;
-  width: min(900px, 100%);
+  width: min(560px, 100%);
   max-height: calc(100vh - 48px);
   overflow-y: auto;
   background: var(--bg-card);
@@ -51,7 +51,7 @@
 
 .modificar-clase-modal__label {
   margin: 0 0 8px;
-  color: var(--primary);
+  color: var(--text-muted);
   font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -175,7 +175,7 @@
 
 .modificar-clase-modal__button {
   min-width: 132px;
-  padding: 13px 18px;
+  padding: 11px 18px;
   border-radius: var(--radius-md);
   cursor: pointer;
   font: inherit;
@@ -232,8 +232,99 @@
   border-color: rgba(255, 80, 80, 0.55);
 }
 
+/* Vista expandida (cambio de profesor): mismo ancho que el modal de cancelar. */
+.modificar-clase-modal--amplio {
+  width: min(900px, 100%);
+}
+
+.modificar-clase-modal__opciones {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 6px;
+}
+
+.modificar-clase-modal__opcion {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: border-color var(--transition-normal), background var(--transition-normal);
+}
+
+.modificar-clase-modal__opcion:has(input:checked) {
+  border-color: var(--primary);
+  background: var(--primary-subtle, rgba(62, 207, 42, 0.1));
+}
+
+.modificar-clase-modal__opcion input[type='radio'] {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.modificar-clase-modal__opcion-contenido {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex: 1;
+}
+
+.modificar-clase-modal__opcion-titulo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.modificar-clase-modal__opcion-titulo input[type='date'] {
+  padding: 8px 10px;
+  color: var(--text-primary);
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  outline: none;
+  font: inherit;
+  font-weight: 600;
+  color-scheme: dark;
+  transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+.modificar-clase-modal__opcion-titulo input[type='date']:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-subtle, rgba(62, 207, 42, 0.14));
+}
+
+.modificar-clase-modal__opcion-titulo input[type='date']:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Los botones "Cambiar" de cada fila mantienen el mismo tamaño entre sí. */
+.modificar-clase-modal__opcion-contenido .modificar-clase-modal__button {
+  flex-shrink: 0;
+}
+
+/* En la vista expandida, el botón suelto (Volver) queda a la derecha,
+   igual que el botón de cierre del modal de cancelar. */
+.modificar-clase-modal__actions > .modificar-clase-modal__button {
+  margin-left: auto;
+}
+
 .modificar-clase-modal__summary {
   padding: 22px;
+  margin-bottom: 22px;
   background: rgba(255, 255, 255, 0.035);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);

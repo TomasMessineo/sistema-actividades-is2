@@ -94,7 +94,11 @@ public class AuthController {
 
             if ("ALUMNO".equals(rol)) {
                 alumnoRepository.findById(usuario.getId())
-                        .ifPresent(alumno -> respuesta.put("creditos", alumno.getCreditos()));
+                        .ifPresent(alumno -> {
+                            respuesta.put("creditos", alumno.getCreditos());
+                            respuesta.put("strikes", alumno.getStrikes());
+                            respuesta.put("inasistencias", alumno.getInasistencias());
+                        });
             }
 
             return ResponseEntity.ok(respuesta);

@@ -9,4 +9,10 @@ public interface ProfesorRepository extends JpaRepository<Profesor,Integer> {
 
     List<Profesor> findByActividad_IdActividad(Integer idActividad);
 
+    List<Profesor> findByActivoTrue();
+
+    List<Profesor> findByActivoFalse();
+
+    List<Profesor> findByActividad_IdActividadAndActivoTrue(Integer idActividad);
+
 }

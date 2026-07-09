@@ -24,6 +24,7 @@ public class InscripcionValidator {
     public void InscripcionValidatorAll (InscripcionRequest request){
         this.alumnoExiste(request);
         this.claseExiste(request);
+        this.claseNoPasada(request);
         this.aptoMedicoValido(request);
         this.horarioOcupado(request);
         this.cupoDisponible(request);//como aclare antes no es necesario
@@ -47,13 +48,42 @@ public class InscripcionValidator {
         }
     }
 
+    // Nadie puede inscribirse a una clase que ya empezó o terminó. Solo aplica
+    // a inscripciones INDIVIDUALES: en el abono la clase elegida es solo la
+    // representante de la serie, y las instancias pasadas ya se excluyen del
+    // preview (ver ClaseService.previewAbono).
+    public void claseNoPasada(InscripcionRequest request) {
+        if (request.getTipoClase() == com.sportify.backend.entities.Pago.TipoClase.ABONADO) {
+            return;
+        }
+
+        Clase clase = claseRepository.findById(request.getIdClase())
+                .orElseThrow(() -> new RuntimeException("La clase no existe"));
+
+        if (clase.getFecha() == null || clase.getHora() == null) {
+            return;
+        }
+
+        java.time.LocalDateTime inicio = clase.getFecha().atTime(clase.getHora(), 0);
+        if (!inicio.isAfter(java.time.LocalDateTime.now(java.time.ZoneId.of("America/Argentina/Buenos_Aires")))) {
+            throw new RuntimeException("Error de inscripción: No podés anotarte a una clase que ya ocurrió o está en curso.");
+        }
+    }
+
     public void aptoMedicoValido(InscripcionRequest request) {
         if (!aptoMedicoRepository.tieneAptoMedicoValido(request.getIdAlumno(), claseRepository.findById(request.getIdClase()).get().getFecha())) {
-            throw new RuntimeException("El alumno no posee un apto medico valido");
+            throw new RuntimeException("Error de inscripción: Su apto médico se encuentra vencido. Por favor, intente subirlo nuevamente desde su perfil de alumno.");
         }
     }
 
     public void horarioOcupado(InscripcionRequest request) {
+        // En el abono mensual la clase clickeada es solo la representante de la
+        // serie: los choques de horario se evalúan clase por clase en el preview
+        // (las que chocan se excluyen del abono, no bloquean la inscripción).
+        if (request.getTipoClase() == com.sportify.backend.entities.Pago.TipoClase.ABONADO) {
+            return;
+        }
+
         Clase clase = claseRepository.findById(request.getIdClase())
                 .orElseThrow(() -> new RuntimeException("La clase no existe"));
 
@@ -64,10 +94,14 @@ public class InscripcionValidator {
                 .filter(c -> !Boolean.TRUE.equals(c.getCancelada()))
                 .filter(c -> c.getFecha().equals(clase.getFecha()) && c.getHora().equals(clase.getHora()))
                 .findFirst()
-                .ifPresent(c -> { throw new RuntimeException("El alumno ya tiene una clase en ese horario"); });
+                .ifPresent(c -> { throw new RuntimeException("Ya tenés una inscripción realizada en este horario"); });
     }
 
     public void cupoDisponible(InscripcionRequest request) {///  lo valida por las dudas no es necesario
+        if (request.getTipoClase() == com.sportify.backend.entities.Pago.TipoClase.ABONADO) {
+            return;
+        }
+
         Clase clase = claseRepository.findById(request.getIdClase())
                 .orElseThrow(() -> new RuntimeException("La clase no existe"));
 

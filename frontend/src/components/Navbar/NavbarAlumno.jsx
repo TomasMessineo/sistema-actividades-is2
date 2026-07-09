@@ -50,12 +50,12 @@ function NavbarAlumno() {
 
         <ul className={`navbar__links ${menuOpen ? 'navbar__links--open' : ''}`} id="navbar-links">
           <li>
-            <Link to="/misClases" className="navbar__link" id="nav-mis-clases">
+            <Link to="/alumno/misClases" className="navbar__link" id="nav-mis-clases">
               Mis Clases
             </Link>
           </li>
           <li>
-            <Link to="/clasesDisponibles" className="navbar__link" id="nav-clases-disponibles">
+            <Link to="/alumno/clasesDisponibles" className="navbar__link" id="nav-clases-disponibles">
               Clases Disponibles
             </Link>
           </li>
@@ -106,6 +106,7 @@ function NavbarAlumno() {
         </button>
 
       </div>
+
     </nav>
   );
 }

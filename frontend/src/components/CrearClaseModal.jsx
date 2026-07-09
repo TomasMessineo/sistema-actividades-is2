@@ -1,14 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import '../styles/CrearClaseModal.css'
 import { crearSerieClase } from '../services/claseService'
-
-const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8080/api').replace(/\/$/, '')
-
-const ACTIVIDADES = [
-  { id: 1, nombre: 'Yoga' },
-  { id: 2, nombre: 'Pilates' },
-  { id: 3, nombre: 'Funcional' }
-]
+import { apiFetch } from '../services/apiClient'
 
 const TODAS_LAS_HORAS = Array.from({ length: 13 }, (_, i) => i + 8)
 
@@ -40,6 +33,23 @@ function CrearClaseModal({
   const [error, setError] = useState('')
   const [claseCreada, setClaseCreada] = useState(null)
   const [mostrarExito, setMostrarExito] = useState(false)
+  const [actividades, setActividades] = useState([])
+
+  useEffect(() => {
+    if (abierto) {
+      const cargarActividades = async () => {
+        try {
+          const data = await apiFetch('/actividades')
+          if (Array.isArray(data)) {
+            setActividades(data)
+          }
+        } catch (err) {
+          console.error('Error cargando actividades:', err)
+        }
+      }
+      cargarActividades()
+    }
+  }, [abierto])
 
   const horasDisponibles = useMemo(() => getHorasDisponibles(), [])
 
@@ -118,16 +128,7 @@ function CrearClaseModal({
     setCargandoProfesores(true)
 
     try {
-      const response = await fetch(`${API_BASE_URL}/profesores/actividad/${actividadId}`, {
-        method: 'GET'
-      })
-
-      const data = await leerRespuesta(response)
-
-      if (!response.ok) {
-        throw new Error(obtenerMensajeError(data, 'No se pudieron cargar los profesores.'))
-      }
-
+      const data = await apiFetch(`/profesores/actividad/${actividadId}`)
       setProfesores(Array.isArray(data) ? data : [])
     } catch (err) {
       setError(err.message || 'Ocurrió un error al cargar los profesores.')
@@ -197,8 +198,8 @@ function CrearClaseModal({
   }
 
   const obtenerNombreActividad = () => {
-    const actividad = ACTIVIDADES.find((item) => item.id === Number(form.actividadId))
-    return actividad ? actividad.nombre : 'Sin seleccionar'
+    const actividad = actividades.find((item) => Number(item.idActividad) === Number(form.actividadId))
+    return actividad ? actividad.tipo : 'Sin seleccionar'
   }
 
   const obtenerNombreDia = (dia) => {
@@ -363,9 +364,9 @@ function CrearClaseModal({
                 required
               >
                 <option value="">Seleccionar actividad</option>
-                {ACTIVIDADES.map((actividad) => (
-                  <option key={actividad.id} value={actividad.id}>
-                    {actividad.nombre}
+                {actividades.map((actividad) => (
+                  <option key={actividad.idActividad} value={actividad.idActividad}>
+                    {actividad.tipo}
                   </option>
                 ))}
               </select>
