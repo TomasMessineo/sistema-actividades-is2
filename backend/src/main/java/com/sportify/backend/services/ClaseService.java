@@ -23,7 +23,6 @@ import com.sportify.backend.repositories.ActividadRepository;
 import com.sportify.backend.repositories.AlumnoRepository;
 import com.sportify.backend.repositories.ClasePlantillaRepository;
 import com.sportify.backend.repositories.ClaseRepository;
-import com.sportify.backend.repositories.LicenciaProfesorRepository;
 import com.sportify.backend.entities.ReservaCupo;
 import com.sportify.backend.repositories.PagoRepository;
 import com.sportify.backend.repositories.ListaAsistenciaRepository;
@@ -81,6 +80,8 @@ public class ClaseService {
 
     @Autowired
     private EmailService emailService;
+
+    @Autowired
     private ReservaCupoRepository reservaCupoRepository;
 
     // 1. LISTAR
@@ -1353,6 +1354,8 @@ public class ClaseService {
             // futuras.
             LocalDate hoy = LocalDate.now(BUENOS_AIRES_ZONE);
             materializarRango(hoy, hoy.plusMonths(2));
+
+            LocalDate desde = request.getDesde() != null ? request.getDesde() : (clase.getFecha() != null ? clase.getFecha() : hoy);
 
             List<Clase> futuras = claseRepository.findByPlantilla_IdPlantilla(plantilla.getIdPlantilla()).stream()
                     .filter(c -> !Boolean.TRUE.equals(c.getCancelada()))
