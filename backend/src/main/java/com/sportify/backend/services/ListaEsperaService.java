@@ -75,6 +75,13 @@ public class ListaEsperaService {
         Clase clase = claseRepository.findById(request.getIdClase())
                 .orElseThrow(() -> new RuntimeException("La clase no existe"));
 
+        // Nadie puede anotarse en la espera de una clase que ya empezó o terminó.
+        if (clase.getFecha() != null && clase.getHora() != null
+                && !clase.getFecha().atTime(clase.getHora(), 0)
+                        .isAfter(LocalDateTime.now(java.time.ZoneId.of("America/Argentina/Buenos_Aires")))) {
+            throw new RuntimeException("No podés anotarte a una clase que ya ocurrió o está en curso.");
+        }
+
         if (!aptoMedicoRepository.tieneAptoMedicoValido(request.getIdAlumno(), clase.getFecha())) {
             throw new RuntimeException("Tu certificado médico no es válido para la fecha de la clase");
         }

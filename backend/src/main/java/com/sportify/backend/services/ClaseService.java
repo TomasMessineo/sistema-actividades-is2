@@ -25,10 +25,12 @@ import com.sportify.backend.repositories.AlumnoRepository;
 import com.sportify.backend.repositories.ClasePlantillaRepository;
 import com.sportify.backend.repositories.ClaseRepository;
 import com.sportify.backend.repositories.LicenciaProfesorRepository;
+import com.sportify.backend.entities.ReservaCupo;
 import com.sportify.backend.repositories.PagoRepository;
 import com.sportify.backend.repositories.ListaAsistenciaRepository;
 import com.sportify.backend.repositories.ProfesorRepository;
 import com.sportify.backend.repositories.RegistroAsistenciaRepository;
+import com.sportify.backend.repositories.ReservaCupoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -83,6 +85,7 @@ public class ClaseService {
 
     @Autowired
     private EmailService emailService;
+    private ReservaCupoRepository reservaCupoRepository;
 
     // 1. LISTAR
     public List<Clase> listarClases() {
@@ -177,6 +180,20 @@ public class ClaseService {
             boolean abonoDisponible = preview.stream().anyMatch(AbonoPreviewDTO::isDisponible);
             dto.setAbonoDisponible(abonoDisponible);
 
+            // Distinguir "no hay cupo" de "el alumno ya tiene clase en ese
+            // horario": si todas las clases restantes chocan con su agenda, el
+            // cupo puede estar libre y no corresponde mostrar la serie llena.
+            if (!abonoDisponible) {
+                boolean todoConflicto = !preview.isEmpty() && preview.stream()
+                        .allMatch(p -> p.getMotivo() == AbonoPreviewDTO.Motivo.CONFLICTO_HORARIO);
+                dto.setMotivoAbonoNoDisponible(todoConflicto ? "CONFLICTO_HORARIO" : "LLENA");
+            }
+
+            // El contador refleja la ocupación real: inscriptos + lugares
+            // guardados por renovación (sin contar la reserva del propio alumno).
+            dto.setInscritos(ocupacion(representativa, alumnoId));
+            dto.setTieneReserva(alumnoTieneReservaPendiente(representativa, alumnoId));
+
             resultado.add(dto);
         }
         return resultado;
@@ -235,13 +252,83 @@ public class ClaseService {
                 .anyMatch(id -> java.util.Objects.equals(id, alumnoId));
     }
 
-    // HELPER — true si la clase ya alcanzó su cupo.
+    // HELPER — true si la clase ya empezó (o terminó) según el reloj de Buenos
+    // Aires. Nadie puede inscribirse ni anotarse en espera a una clase pasada.
+    public boolean claseYaComenzo(Clase clase) {
+        if (clase.getFecha() == null || clase.getHora() == null) {
+            return false;
+        }
+        return !clase.getFecha().atTime(clase.getHora(), 0)
+                .isAfter(LocalDateTime.now(BUENOS_AIRES_ZONE));
+    }
+
+    // HELPER — true si la clase ya alcanzó su cupo, contando la ocupación real
+    // (inscriptos + reservas de renovación pendientes). Para un alumno nuevo.
     private boolean claseLlena(Clase clase) {
-        int inscritos = (clase.getListaAsistencia() != null && clase.getListaAsistencia().getAlumnos() != null)
-                ? clase.getListaAsistencia().getAlumnos().size()
-                : 0;
+        return claseLlenaParaAlumno(clase, null);
+    }
+
+    // HELPER — igual que claseLlena pero para un alumno concreto. Quien tiene
+    // reserva pendiente de esta serie/mes solo compite contra los inscriptos
+    // reales: su lugar está garantizado y el de los demás reservados también
+    // (con datos consistentes reservas <= cupo). Además evita el bloqueo mutuo
+    // si hubiera más reservas que cupo: gana el primero que paga.
+    private boolean claseLlenaParaAlumno(Clase clase, Integer alumnoId) {
         int cupo = clase.getCupo() != null ? clase.getCupo() : 0;
-        return inscritos >= cupo;
+        if (alumnoTieneReservaPendiente(clase, alumnoId)) {
+            return idsInscriptos(clase).size() >= cupo;
+        }
+        return ocupacion(clase, alumnoId) >= cupo;
+    }
+
+    // HELPER — ocupación de una clase: cantidad de lugares tomados = alumnos
+    // inscriptos + alumnos con reserva de renovación PENDIENTE para la serie y
+    // el mes de esta clase (que todavía no están inscriptos). Si se pasa
+    // alumnoExcluir, no se cuenta su reserva (para no bloquearlo a él mismo).
+    private int ocupacion(Clase clase, Integer alumnoExcluir) {
+        Set<Integer> inscriptos = idsInscriptos(clase);
+        int reservados = (int) reservasPendientes(clase).stream()
+                .map(r -> r.getAlumno() != null ? r.getAlumno().getId() : null)
+                .filter(java.util.Objects::nonNull)
+                .filter(id -> !inscriptos.contains(id))          // ya contado como inscripto
+                .filter(id -> !java.util.Objects.equals(id, alumnoExcluir))
+                .distinct()
+                .count();
+        return inscriptos.size() + reservados;
+    }
+
+    private Set<Integer> idsInscriptos(Clase clase) {
+        if (clase.getListaAsistencia() == null || clase.getListaAsistencia().getAlumnos() == null) {
+            return new HashSet<>();
+        }
+        return clase.getListaAsistencia().getAlumnos().stream()
+                .map(Alumno::getId)
+                .collect(Collectors.toCollection(HashSet::new));
+    }
+
+    // HELPER — true si el alumno tiene su cupo guardado (ReservaCupo PENDIENTE)
+    // para la serie y el mes de esta clase.
+    private boolean alumnoTieneReservaPendiente(Clase clase, Integer alumnoId) {
+        if (alumnoId == null) {
+            return false;
+        }
+        return reservasPendientes(clase).stream()
+                .anyMatch(r -> r.getAlumno() != null
+                        && java.util.Objects.equals(r.getAlumno().getId(), alumnoId));
+    }
+
+    // Reservas de renovación PENDIENTES que aplican al cupo de esta clase: las de
+    // su misma serie (plantilla) en su mismo mes. Las clases sueltas (sin serie)
+    // no participan de la renovación.
+    private List<ReservaCupo> reservasPendientes(Clase clase) {
+        if (clase.getPlantilla() == null || clase.getFecha() == null) {
+            return List.of();
+        }
+        return reservaCupoRepository.findByPlantilla_IdPlantillaAndAnioAndMesAndEstado(
+                clase.getPlantilla().getIdPlantilla(),
+                clase.getFecha().getYear(),
+                clase.getFecha().getMonthValue(),
+                ReservaCupo.EstadoReserva.PENDIENTE);
     }
 
     // HELPER — true si el alumno ya está inscripto en OTRA clase en la misma fecha
@@ -308,6 +395,12 @@ public class ClaseService {
 
         List<AbonoPreviewDTO> preview = new ArrayList<>();
         for (Clase clase : instancias) {
+            // La clase de hoy que ya empezó/terminó no forma parte del abono:
+            // ni aparece en la lista ni se cobra.
+            if (claseYaComenzo(clase)) {
+                continue;
+            }
+
             boolean disponible = true;
             AbonoPreviewDTO.Motivo motivo = null;
 
@@ -320,7 +413,7 @@ public class ClaseService {
             } else if (alumnoTieneOtraClaseEnHorario(idAlumno, clase)) {
                 disponible = false;
                 motivo = AbonoPreviewDTO.Motivo.CONFLICTO_HORARIO;
-            } else if (claseLlena(clase)) {
+            } else if (claseLlenaParaAlumno(clase, idAlumno)) {
                 disponible = false;
                 motivo = AbonoPreviewDTO.Motivo.LLENA;
             }
@@ -647,6 +740,56 @@ public class ClaseService {
             marcarAusentesSinEscanear(clase);
             clase.setAsistenciaFinalizada(true);
             claseRepository.save(clase);
+        }
+    }
+
+    // Corre todos los días a las 00:05: garantiza que, para el MES ACTUAL, cada
+    // alumno que tuvo un abono COMPLETADO de una serie el MES ANTERIOR tenga su
+    // reserva de cupo (prioridad de renovación). Es idempotente: si la reserva
+    // ya existe no la duplica, así que correrlo a diario es seguro y cubre el
+    // arranque de cada mes. Ver ReservaCupo.
+    @Scheduled(cron = "0 5 0 * * *", zone = "America/Argentina/Buenos_Aires")
+    @Transactional
+    public void generarReservasDeRenovacion() {
+        LocalDate hoy = LocalDate.now(BUENOS_AIRES_ZONE);
+        YearMonth mesActual = YearMonth.from(hoy);
+        YearMonth mesAnterior = mesActual.minusMonths(1);
+
+        // Aseguramos que existan las clases del mes actual: las reservas guardan
+        // el cupo de esas instancias.
+        materializarRango(hoy.withDayOfMonth(1), hoy.withDayOfMonth(hoy.lengthOfMonth()));
+
+        List<Pago> abonos = pagoRepository.findByEstadoAndTipo(
+                Pago.EstadoPago.COMPLETADO, Pago.TipoClase.ABONADO);
+
+        for (Pago pago : abonos) {
+            Clase clase = pago.getClase();
+            Alumno alumno = pago.getAlumno();
+            if (clase == null || alumno == null
+                    || clase.getPlantilla() == null || clase.getFecha() == null) {
+                continue;
+            }
+            // Solo abonos del mes anterior.
+            if (!YearMonth.from(clase.getFecha()).equals(mesAnterior)) {
+                continue;
+            }
+
+            ClasePlantilla plantilla = clase.getPlantilla();
+            boolean yaExiste = reservaCupoRepository
+                    .existsByAlumno_IdAndPlantilla_IdPlantillaAndAnioAndMes(
+                            alumno.getId(), plantilla.getIdPlantilla(),
+                            mesActual.getYear(), mesActual.getMonthValue());
+            if (yaExiste) {
+                continue;
+            }
+
+            ReservaCupo reserva = new ReservaCupo();
+            reserva.setAlumno(alumno);
+            reserva.setPlantilla(plantilla);
+            reserva.setAnio(mesActual.getYear());
+            reserva.setMes(mesActual.getMonthValue());
+            reserva.setEstado(ReservaCupo.EstadoReserva.PENDIENTE);
+            reservaCupoRepository.save(reserva);
         }
     }
 
