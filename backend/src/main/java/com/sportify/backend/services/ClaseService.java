@@ -1303,6 +1303,21 @@ public class ClaseService {
                 plantillaGuardada.getIdPlantilla(),
                 creadas,
                 errores.size(),
+                errores
+        );
+    }
+
+    // HELPER — true si la clase todavía no se impartió (fecha y hora futuras).
+    private boolean claseAunNoImpartida(Clase clase) {
+        if (clase.getFecha() == null) {
+            return false;
+        }
+        int hora = clase.getHora() != null ? clase.getHora() : 0;
+        return clase.getFecha().atTime(hora, 0).isAfter(LocalDateTime.now());
+    }
+
+    /**
+     * Cambia el profesor de una clase individual (alcance INDIVIDUAL) o de toda la
                 errores);
     }
 
