@@ -31,4 +31,14 @@ public class EmailService {
                 + "contactate con la administración del gimnasio.", nombreAlumno, descripcionClase);
         log.info("===============================================================");
     }
+
+    public void notificarClaseCancelada(String emailDestino, String nombreAlumno, String descripcionClase, String motivo) {
+        log.info("========================= [MOCK EMAIL] =========================");
+        log.info("Para: {}", emailDestino);
+        log.info("Asunto: Tu clase fue cancelada");
+        log.info("Hola {}, lamentamos informarte que la clase \"{}\" fue cancelada. Motivo: {}. "
+                + "Se te acreditó 1 crédito para que puedas inscribirte a otra clase.",
+                nombreAlumno, descripcionClase, motivo);
+        log.info("===============================================================");
+    }
 }

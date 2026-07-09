@@ -15,14 +15,27 @@ export const listarClasesDelAlumno = (alumnoId) => {
   return apiFetch(`/alumnos/${alumnoId}/clases`);
 };
 
+// Vista semanal por plantilla (lunes-domingo), para inscripción mensual/abono.
+// Muestra un slot por serie; solo oculta las series ya abonadas por el alumno este mes.
+export const listarSemanaPlantilla = (alumnoId, desde, hasta) => {
+  const params = new URLSearchParams();
+  if (alumnoId) params.set('alumnoId', alumnoId);
+  if (desde) params.set('desde', desde);
+  if (hasta) params.set('hasta', hasta);
+  const query = params.toString();
+  return apiFetch(`/clases/semana-plantilla${query ? `?${query}` : ''}`);
+};
+
 // Todas las clases (pasadas y futuras) asignadas a un profesor.
 export const listarClasesDelProfesor = (profesorId) => {
   return apiFetch(`/profesores/${profesorId}/clases`);
 };
 
-export const cancelarClase = (idClase) => {
+// El motivo es obligatorio si la clase tiene alumnos inscriptos (se les avisa por mail).
+export const cancelarClase = (idClase, motivo) => {
   return apiFetch(`/clases/${idClase}/cancelar`, {
     method: 'PATCH',
+    body: JSON.stringify({ motivo: motivo || null }),
   });
 };
 
@@ -54,7 +67,7 @@ export const listarAlumnosDeClase = (idClase) => {
   return apiFetch(`/clases/${idClase}/alumnos`);
 };
 
-// Marca a un alumno como presente en una clase a partir de su QR escaneado.
+// Marca a un alumno como presente en una clase a partir del QR de la clase.
 export const registrarAsistenciaEscaneada = (idClase, idAlumno) => {
   return apiFetch(`/clases/${idClase}/asistencia/escanear`, {
     method: 'POST',
@@ -63,19 +76,19 @@ export const registrarAsistenciaEscaneada = (idClase, idAlumno) => {
 };
 // Cancela todas las instancias de una serie dentro de un rango de fechas
 // (el backend materializa las que falten antes de cancelarlas).
-export const cancelarRangoSerie = (idPlantilla, desde, hasta) => {
+export const cancelarRangoSerie = (idPlantilla, desde, hasta, motivo) => {
   return apiFetch(`/clases/plantilla/${idPlantilla}/cancelar-rango`, {
     method: 'PATCH',
-    body: JSON.stringify({ desde, hasta }),
+    body: JSON.stringify({ desde, hasta, motivo: motivo || null }),
   });
 };
 
 // Corta la vigencia de una serie a partir de una fecha y cancela las
 // instancias ya materializadas en o después de esa fecha.
-export const cancelarDesdeSerie = (idPlantilla, desde) => {
+export const cancelarDesdeSerie = (idPlantilla, desde, motivo) => {
   return apiFetch(`/clases/plantilla/${idPlantilla}/cancelar-desde`, {
     method: 'PATCH',
-    body: JSON.stringify({ desde }),
+    body: JSON.stringify({ desde, motivo: motivo || null }),
   });
 };
 

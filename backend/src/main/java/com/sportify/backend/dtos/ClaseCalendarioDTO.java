@@ -55,6 +55,15 @@ public class ClaseCalendarioDTO {
     private boolean cancelada;
     private ProfesorDTO profesor;
     private Integer idPlantilla;
+    private Boolean abonoDisponible;
+    // Cuando abonoDisponible es false, indica el motivo dominante:
+    // "CONFLICTO_HORARIO" si todas las clases restantes chocan con otra clase
+    // del alumno (no es que falte cupo), o "LLENA" en el resto de los casos.
+    private String motivoAbonoNoDisponible;
+    // True si el alumno que consulta tiene su cupo guardado por renovación
+    // (ReservaCupo PENDIENTE) para esta serie este mes.
+    private Boolean tieneReserva;
+
 
     public ClaseCalendarioDTO() {
     }
@@ -86,6 +95,10 @@ public class ClaseCalendarioDTO {
                     clase.getProfesor().getApellido());
         }
 
+        double precio = (clase.getActividad() != null && clase.getActividad().getPrecio() != null && clase.getActividad().getPrecio() > 0)
+                ? clase.getActividad().getPrecio()
+                : clase.getPrecio();
+
         return new ClaseCalendarioDTO(
                 clase.getIdClase(),
                 clase.getFecha(),
@@ -95,7 +108,7 @@ public class ClaseCalendarioDTO {
                         ? clase.getListaAsistencia().getAlumnos().size()
                         : 0,
                 clase.getCupo(),
-                clase.getPrecio(),
+                precio,
                 clase.getCancelada(),
                 profesorDTO,
                 clase.getPlantilla() != null ? clase.getPlantilla().getIdPlantilla() : null);
@@ -179,5 +192,29 @@ public class ClaseCalendarioDTO {
 
     public void setIdPlantilla(Integer idPlantilla) {
         this.idPlantilla = idPlantilla;
+    }
+
+    public Boolean getAbonoDisponible() {
+        return abonoDisponible;
+    }
+
+    public void setAbonoDisponible(Boolean abonoDisponible) {
+        this.abonoDisponible = abonoDisponible;
+    }
+
+    public Boolean getTieneReserva() {
+        return tieneReserva;
+    }
+
+    public void setTieneReserva(Boolean tieneReserva) {
+        this.tieneReserva = tieneReserva;
+    }
+
+    public String getMotivoAbonoNoDisponible() {
+        return motivoAbonoNoDisponible;
+    }
+
+    public void setMotivoAbonoNoDisponible(String motivoAbonoNoDisponible) {
+        this.motivoAbonoNoDisponible = motivoAbonoNoDisponible;
     }
 }

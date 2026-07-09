@@ -68,12 +68,24 @@ public class InscripcionService {
                         alumno.getCreditos());
             }
 
-            double precio = clase.getPrecio() != null ? clase.getPrecio() : 0.0;
+            double precio = (clase.getActividad() != null && clase.getActividad().getPrecio() != null && clase.getActividad().getPrecio() > 0)
+                    ? clase.getActividad().getPrecio() : (clase.getPrecio() != null ? clase.getPrecio() : 0.0);
             if (pago.getTipo() == Pago.TipoClase.ABONADO) {
                 long cantidadClases = 1;
+                java.util.List<AbonoPreviewDTO> preview = java.util.List.of();
                 if (clase.getPlantilla() != null) {
-                    java.util.List<AbonoPreviewDTO> preview = claseService.previewAbono(clase.getIdClase(), alumno.getId());
+                    preview = claseService.previewAbono(clase.getIdClase(), alumno.getId());
                     cantidadClases = preview.stream().filter(AbonoPreviewDTO::isDisponible).count();
+                }
+                if (cantidadClases == 0) {
+                    // Si todas las clases restantes del mes chocan con la agenda
+                    // del alumno, el problema es su horario, no el cupo.
+                    boolean horarioOcupado = !preview.isEmpty() && preview.stream()
+                            .allMatch(p -> p.getMotivo() == AbonoPreviewDTO.Motivo.CONFLICTO_HORARIO);
+                    if (horarioOcupado) {
+                        throw new RuntimeException("Error de inscripción: Inscripción fallida, el horario ya está ocupado por otra reserva.");
+                    }
+                    throw new RuntimeException("Error de inscripción: No hay clases disponibles en este mes para el abono seleccionado.");
                 }
                 double totalSinDescuento = precio * cantidadClases;
 
@@ -110,7 +122,11 @@ public class InscripcionService {
                     pagoGuardado.getValor(),
                     null);
         } catch (Exception e) {
-            throw new RuntimeException("Error de Inscripcion: " + e.getMessage());
+            String message = e.getMessage();
+            if (message != null && (message.startsWith("Error de inscripción:") || message.startsWith("Error de Inscripcion:"))) {
+                throw new RuntimeException(message);
+            }
+            throw new RuntimeException("Error de Inscripcion: " + message);
         }
     }
 }

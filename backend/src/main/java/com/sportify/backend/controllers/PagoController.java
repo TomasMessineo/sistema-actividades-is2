@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.sportify.backend.dtos.HistorialPagoDTO;
 import com.sportify.backend.dtos.PagoRequest;
 import com.sportify.backend.dtos.PagoResponse;
 import com.sportify.backend.entities.Pago;
@@ -85,8 +86,8 @@ public class PagoController {
     @GetMapping("/alumno/{idAlumno}")
     public ResponseEntity<?> obtenerPagosPorAlumno(@PathVariable int idAlumno) {
         try {
-            List<Pago> pagos = pagoService.obtenerPagosPorAlumno(idAlumno);
-            return ResponseEntity.ok(pagos);
+            List<HistorialPagoDTO> historial = pagoService.obtenerHistorialPorAlumno(idAlumno);
+            return ResponseEntity.ok(historial);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
