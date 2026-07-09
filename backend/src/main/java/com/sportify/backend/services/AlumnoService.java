@@ -19,6 +19,7 @@ import com.sportify.backend.repositories.ListaAsistenciaRepository;
 import com.sportify.backend.repositories.ListaEsperaRepository;
 import com.sportify.backend.repositories.EsperaAlumnoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -132,6 +133,24 @@ public class AlumnoService {
 
     public void eliminarAlumno(Integer id) {
         desactivar(id);
+    }
+
+    // Corre el primer día de cada mes a las 00:10: los strikes (por faltar o
+    // por cancelar tarde) se acumulan solo dentro del mes en curso.
+    @Scheduled(cron = "0 10 0 1 * *", zone = "America/Argentina/Buenos_Aires")
+    @Transactional
+    public void reiniciarStrikesMensuales() {
+        List<Alumno> aActualizar = new java.util.ArrayList<>();
+        for (Alumno alumno : alumnoRepository.findAll()) {
+            if (alumno.getStrikes() != null && alumno.getStrikes() != 0) {
+                alumno.setStrikes(0);
+                aActualizar.add(alumno);
+            }
+        }
+
+        if (!aActualizar.isEmpty()) {
+            alumnoRepository.saveAll(aActualizar);
+        }
     }
 
     public void restaurar(Integer id) {

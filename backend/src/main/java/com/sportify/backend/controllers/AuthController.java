@@ -97,7 +97,6 @@ public class AuthController {
                         .ifPresent(alumno -> {
                             respuesta.put("creditos", alumno.getCreditos());
                             respuesta.put("strikes", alumno.getStrikes());
-                            respuesta.put("inasistencias", alumno.getInasistencias());
                         });
             }
 

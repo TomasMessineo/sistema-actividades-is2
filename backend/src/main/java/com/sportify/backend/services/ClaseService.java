@@ -791,8 +791,8 @@ public class ClaseService {
     }
 
     // HELPER — a cada alumno anotado en la clase que todavía no tiene un
-    // registro de asistencia, se le crea uno con falto=true y se le suma
-    // una falta.
+    // registro de asistencia, se le crea uno con falto=true y se le suma un
+    // strike (mismo contador que usan las cancelaciones tardías).
     private void marcarAusentesSinEscanear(Clase clase) {
         if (clase.getListaAsistencia() == null || clase.getListaAsistencia().getAlumnos() == null) {
             return;
@@ -814,8 +814,8 @@ public class ClaseService {
                     registroAusente.setFalto(true);
                     registroAsistenciaRepository.save(registroAusente);
 
-                    int faltadasActuales = alumno.getClasesFaltadas() == null ? 0 : alumno.getClasesFaltadas();
-                    alumno.setClasesFaltadas(faltadasActuales + 1);
+                    int strikesActuales = alumno.getStrikes() == null ? 0 : alumno.getStrikes();
+                    alumno.setStrikes(strikesActuales + 1);
                     alumnoRepository.save(alumno);
                 });
     }

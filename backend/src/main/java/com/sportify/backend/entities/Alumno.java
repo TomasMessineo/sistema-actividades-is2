@@ -25,15 +25,12 @@ public class Alumno extends com.sportify.backend.entities.Usuario {
     @Column(name = "creditos")
     private Integer creditos = 0;
 
-    @Column(name = "clases_faltadas")
-    private Integer clasesFaltadas = 0;
-    // Strikes del mes por cancelar tarde. A los 3 pierde el 20% de descuento del mes siguiente.
+    // Strikes del mes: se suman tanto por faltar sin avisar como por cancelar
+    // tarde (mismo contador para ambos motivos). A los 3 pierde el 20% de
+    // descuento del mes siguiente. Se reinicia el primer día de cada mes
+    // (ver AlumnoService.reiniciarStrikesMensuales).
     @Column(name = "strikes")
     private Integer strikes = 0;
-
-    // Inasistencias del mes (faltar sin avisar). A las 3 recibe penalización del 20%.
-    @Column(name = "inasistencias")
-    private Integer inasistencias = 0;
 
     @JsonIgnore
     @ManyToMany(mappedBy = "alumnos")
@@ -58,14 +55,8 @@ public class Alumno extends com.sportify.backend.entities.Usuario {
         if (creditos == null) {
             creditos = 0;
         }
-        if (clasesFaltadas == null) {
-            clasesFaltadas = 0;
-        }
         if (strikes == null) {
             strikes = 0;
-        }
-        if (inasistencias == null) {
-            inasistencias = 0;
         }
     }
 

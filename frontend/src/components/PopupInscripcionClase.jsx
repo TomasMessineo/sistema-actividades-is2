@@ -58,13 +58,13 @@ const PopupInscripcionClase = ({
 }) => {
     const [previewAbono, setPreviewAbono] = useState([])
     const [cargandoPreview, setCargandoPreview] = useState(false)
-    const [alumnoDetalle, setAlumnoDetalle] = useState({ strikes: 0, inasistencias: 0 })
+    const [alumnoDetalle, setAlumnoDetalle] = useState({ strikes: 0 })
     const [sinClasesMes, setSinClasesMes] = useState(false)
 
     useEffect(() => {
         if (!isOpen || !idClase || tipoForzado === 'individual') {
             setPreviewAbono(prev => prev.length === 0 ? prev : [])
-            setAlumnoDetalle(prev => (prev.strikes === 0 && prev.inasistencias === 0) ? prev : { strikes: 0, inasistencias: 0 })
+            setAlumnoDetalle(prev => (prev.strikes === 0) ? prev : { strikes: 0 })
             setSinClasesMes(prev => !prev ? prev : false)
             return
         }
@@ -95,8 +95,7 @@ const PopupInscripcionClase = ({
                     if (respAlumno.ok) {
                         const datAlumno = await respAlumno.json()
                         setAlumnoDetalle({
-                            strikes: datAlumno.strikes ?? 0,
-                            inasistencias: datAlumno.inasistencias ?? 0
+                            strikes: datAlumno.strikes ?? 0
                         })
                     }
                 }
@@ -133,11 +132,7 @@ const PopupInscripcionClase = ({
     let discountLabel
     let discountColor
 
-    if (alumnoDetalle.inasistencias >= 3) {
-        factor = 1.2
-        discountLabel = 'Recargo de 20% por inasistencias'
-        discountColor = '#e55353'
-    } else if (alumnoDetalle.strikes < 3) {
+    if (alumnoDetalle.strikes < 3) {
         if (clasesDisponibles.length >= 4) {
             factor = 0.8;
             discountLabel = '20% desc. aplicado (Abono completo)'

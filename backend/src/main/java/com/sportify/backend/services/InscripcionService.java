@@ -90,12 +90,9 @@ public class InscripcionService {
                 double totalSinDescuento = precio * cantidadClases;
 
                 double factor = 1.0;
-                int inasistencias = alumno.getInasistencias() == null ? 0 : alumno.getInasistencias();
                 int strikes = alumno.getStrikes() == null ? 0 : alumno.getStrikes();
 
-                if (inasistencias >= 3) {
-                    factor = 1.2;
-                } else if (strikes < 3) {
+                if (strikes < 3) {
                     if (cantidadClases >= 4) {
                         factor = 0.8;
                     } else if (cantidadClases == 3) {
@@ -106,6 +103,8 @@ public class InscripcionService {
                         factor = 1.0;
                     }
                 } else {
+                    // 3 strikes o más (por faltar y/o cancelar tarde): se pierde el
+                    // descuento por volumen, sin recargo adicional.
                     factor = 1.0;
                 }
 

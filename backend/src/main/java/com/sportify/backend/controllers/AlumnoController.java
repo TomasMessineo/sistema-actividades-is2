@@ -63,15 +63,16 @@ public class AlumnoController {
     public List<RegistroAsistenciaDTO> listarHistorialAsistencias(@PathVariable Integer id) {
         return alumnoService.listarHistorialAsistencias(id);
     }
-    // Inasistencias del mes actual del alumno (para el menú "inasistencias restantes")
+    // Strikes del mes actual del alumno (para el menú "strikes restantes").
+    // Un mismo contador para faltar sin avisar y para cancelar tarde.
 
-    @GetMapping("/{id}/inasistencias")
-    public ResponseEntity<?> obtenerInasistencias(@PathVariable Integer id) {
+    @GetMapping("/{id}/strikes")
+    public ResponseEntity<?> obtenerStrikes(@PathVariable Integer id) {
         try {
             Alumno alumno = alumnoService.buscarPorId(id);
-            int inasistencias = alumno.getInasistencias() == null ? 0 : alumno.getInasistencias();
+            int strikes = alumno.getStrikes() == null ? 0 : alumno.getStrikes();
             return ResponseEntity.ok(java.util.Map.of(
-                    "inasistencias", inasistencias,
+                    "strikes", strikes,
                     "limite", 3
             ));
         } catch (Exception e) {

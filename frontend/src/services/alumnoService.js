@@ -40,7 +40,8 @@ export const listarAlumnosDelProfesor = (profesorId) => {
 export const listarHistorialAsistencias = (idAlumno) => {
   return apiFetch(`/alumnos/${idAlumno}/asistencias`);
 };
-// Inasistencias del mes actual del alumno → { inasistencias, limite }
-export const obtenerInasistenciasAlumno = (id) => {
-  return apiFetch(`/alumnos/${id}/inasistencias`);
+// Strikes del mes actual del alumno → { strikes, limite }. Un mismo contador
+// para faltar sin avisar y para cancelar tarde.
+export const obtenerStrikesAlumno = (id) => {
+  return apiFetch(`/alumnos/${id}/strikes`);
 };
