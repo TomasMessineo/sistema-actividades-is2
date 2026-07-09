@@ -64,10 +64,13 @@ const PopupInscripcionClase = ({
                     data = await respuesta.json()
                 }
                 const preview = Array.isArray(data) ? data : []
-                setPreviewAbono(preview)
-
+                setPreviewAbono(preview)// Si TODO el "no disponible" es porque el alumno ya tiene otra
+                // clase en ese horario, el popup se muestra normal: el error de
+                // horario ocupado lo tira el backend recién al presionar
+                // "Inscripción Mensual" (Escenario 4).
                 const paraCalculo = preview.filter(c => c.disponible)
-                if (paraCalculo.length === 0) {
+                const soloConflicto = preview.length > 0 && preview.every(c => c.motivo === 'CONFLICTO_HORARIO')
+                if (paraCalculo.length === 0 && !soloConflicto) {
                     setSinClasesMes(true)
                 }
 
@@ -96,9 +99,18 @@ const PopupInscripcionClase = ({
         : 'Inscripción'
 
     const diariaUsaCredito = creditos > 0
-    const clasesDisponibles = previewAbono.filter((c) => c.disponible)
+    // Conflicto de horario puro: las clases se muestran como inscribibles y el
+    // rechazo ("horario ya ocupado") lo da el backend al intentar inscribirse.
+    const soloConflictos = previewAbono.length > 0 && previewAbono.every((c) => c.motivo === 'CONFLICTO_HORARIO')
+    const clasesDisponibles = soloConflictos ? previewAbono : previewAbono.filter((c) => c.disponible)
     const mensualHabilitado = !cargandoPreview && clasesDisponibles.length > 0 && tipoForzado !== 'individual'
-    const clasesLlenas = previewAbono.filter((c) => !c.disponible)
+    const clasesLlenas = soloConflictos ? [] : previewAbono.filter((c) => !c.disponible)
+    // Sin cupos para el abono: como no hay lista de espera mensual, se oculta
+    // el botón de inscripción y solo queda el aviso.
+    const sinCupos = !cargandoPreview && sinClasesMes && tipoForzado === 'mensual'
+    // Mientras se carga el preview del abono no se muestra el botón ni el
+    // detalle, para evitar el "flash" de contenido que aparece y desaparece.
+    const cargandoMensual = cargandoPreview && tipoForzado !== 'individual'
 
     const baseMensual = clasesDisponibles.reduce((sum, c) => sum + (c.precio || precioDiario || 0), 0)
     let factor
@@ -168,14 +180,27 @@ const PopupInscripcionClase = ({
                 )}
 
                 {!cargandoPreview && sinClasesMes && tipoForzado !== 'individual' && (
-                    <div className="popup-error" role="alert">No quedan clases disponibles para inscribirse en este mes.</div>
+                    <div className="popup-error popup-error--centrado" role="alert">No hay más cupos disponibles para este mes.</div>
                 )}
 
-                <p className="popup-prompt-chic">
-                    {tipoForzado === 'individual' && 'Confirmá tu inscripción individual.'}
-                    {tipoForzado === 'mensual' && 'Confirmá tu inscripción mensual.'}
-                    {!tipoForzado && 'Elegí tu modalidad de inscripción.'}
-                </p>
+                {/* Renovación: el alumno tiene su cupo guardado para esta serie */}
+                {claseInfo?.tieneReserva && (
+                    <div className="popup-reserva-banner" title="Tu lugar está guardado para este mes; al pagar el abono queda tuyo">
+                        ✓ Tenés tu lugar reservado este mes
+                    </div>
+                )}
+
+                {!sinCupos && !cargandoMensual && (
+                    <p className="popup-prompt-chic">
+                        {tipoForzado === 'individual' && 'Confirmá tu inscripción individual.'}
+                        {tipoForzado === 'mensual' && 'Confirmá tu inscripción mensual.'}
+                        {!tipoForzado && 'Elegí tu modalidad de inscripción.'}
+                    </p>
+                )}
+
+                {cargandoMensual && (
+                    <div className="popup-cargando">Cargando clases del mes…</div>
+                )}
 
                 <div className="popup-actions-chic">
                     {tipoForzado !== 'mensual' && (
@@ -198,7 +223,7 @@ const PopupInscripcionClase = ({
                         </button>
                     )}
 
-                    {tipoForzado !== 'individual' && (
+                    {tipoForzado !== 'individual' && !sinCupos && !cargandoMensual && (
                         <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
                             <button
                                 className="btn-opt-primary-chic"

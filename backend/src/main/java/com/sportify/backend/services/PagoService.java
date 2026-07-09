@@ -6,11 +6,13 @@ import com.sportify.backend.entities.Alumno;
 import com.sportify.backend.entities.Clase;
 import com.sportify.backend.entities.ListaAsistencia;
 import com.sportify.backend.entities.Pago;
+import com.sportify.backend.entities.ReservaCupo;
 import com.sportify.backend.repositories.EsperaAlumnoRepository;
 import com.sportify.backend.repositories.ListaAsistenciaRepository;
 import com.sportify.backend.repositories.PagoRepository;
 import com.sportify.backend.repositories.AlumnoRepository;
 import com.sportify.backend.repositories.ClaseRepository;
+import com.sportify.backend.repositories.ReservaCupoRepository;
 import com.sportify.backend.dtos.PagoRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
@@ -41,6 +43,9 @@ public class PagoService {
 
     @Autowired
     private EsperaAlumnoRepository esperaAlumnoRepository;
+
+    @Autowired
+    private ReservaCupoRepository reservaCupoRepository;
 
     @Autowired
     @Lazy
@@ -118,6 +123,29 @@ public class PagoService {
 
             inscribirEnClase(clase, pago.getAlumno());
         }
+
+        confirmarReservaSiExiste(pago.getClase(), pago.getAlumno());
+    }
+
+    // Si el alumno tenía su cupo guardado por renovación (ReservaCupo PENDIENTE
+    // de la serie de la clase pagada, en el mes del abono), al pagar pasa a
+    // CONFIRMADA: ya está inscripto y su lugar deja de contar como "reservado".
+    private void confirmarReservaSiExiste(Clase claseElegida, Alumno alumno) {
+        if (claseElegida.getPlantilla() == null) {
+            return;
+        }
+        // El abono siempre cubre el mes actual (ver previewAbono).
+        YearMonth mes = YearMonth.now();
+        reservaCupoRepository
+                .findByAlumno_IdAndPlantilla_IdPlantillaAndAnioAndMesAndEstado(
+                        alumno.getId(),
+                        claseElegida.getPlantilla().getIdPlantilla(),
+                        mes.getYear(), mes.getMonthValue(),
+                        ReservaCupo.EstadoReserva.PENDIENTE)
+                .ifPresent(reserva -> {
+                    reserva.setEstado(ReservaCupo.EstadoReserva.CONFIRMADA);
+                    reservaCupoRepository.save(reserva);
+                });
     }
 
     private void inscribirEnClase(Clase clase, Alumno alumno) {
@@ -142,9 +170,13 @@ public class PagoService {
             return;
         }
 
-        // Validar cupo antes de insertar (defensa contra race conditions / dobles llamadas)
+        // Validar cupo antes de insertar (defensa contra race conditions / dobles
+        // llamadas). La ocupación cuenta también los lugares guardados por
+        // renovación (reservas PENDIENTES de otros alumnos): un alumno nuevo no
+        // puede tomar un lugar reservado, pero el dueño de la reserva sí entra.
         int cupo = clase.getCupo() == null ? 0 : clase.getCupo();
-        if (lista.getAlumnos().size() >= cupo) {
+        int reservadosAjenos = contarReservasPendientesAjenas(clase, lista, alumno);
+        if (lista.getAlumnos().size() + reservadosAjenos >= cupo) {
             return;
         }
 
@@ -157,6 +189,41 @@ public class PagoService {
                         && ea.getListaEspera().getClase() != null
                         && ea.getListaEspera().getClase().getIdClase() == clase.getIdClase())
                 .forEach(esperaAlumnoRepository::delete);
+    }
+
+    // Lugares guardados por renovación que ocupan cupo de esta clase para el
+    // alumno que se está inscribiendo. Si el alumno tiene SU PROPIA reserva
+    // pendiente, no le cuentan las reservas (ni la suya ni las ajenas): su
+    // lugar está garantizado y solo compite contra inscriptos reales (evita
+    // el bloqueo mutuo si hubiera más reservas que cupo). Si no tiene reserva,
+    // le cuentan todas las pendientes de alumnos aún no inscriptos.
+    private int contarReservasPendientesAjenas(Clase clase, ListaAsistencia lista, Alumno alumno) {
+        if (clase.getPlantilla() == null || clase.getFecha() == null) {
+            return 0;
+        }
+        List<ReservaCupo> pendientes = reservaCupoRepository
+                .findByPlantilla_IdPlantillaAndAnioAndMesAndEstado(
+                        clase.getPlantilla().getIdPlantilla(),
+                        clase.getFecha().getYear(),
+                        clase.getFecha().getMonthValue(),
+                        ReservaCupo.EstadoReserva.PENDIENTE);
+
+        boolean tieneReservaPropia = pendientes.stream()
+                .anyMatch(r -> r.getAlumno() != null
+                        && java.util.Objects.equals(r.getAlumno().getId(), alumno.getId()));
+        if (tieneReservaPropia) {
+            return 0;
+        }
+
+        List<Integer> idsInscriptos = lista.getAlumnos().stream()
+                .map(Alumno::getId)
+                .collect(java.util.stream.Collectors.toList());
+        return (int) pendientes.stream()
+                .map(r -> r.getAlumno() != null ? r.getAlumno().getId() : null)
+                .filter(java.util.Objects::nonNull)
+                .filter(id -> !idsInscriptos.contains(id))
+                .distinct()
+                .count();
     }
 
     public Pago actualizarEstado(int idPago, Pago.EstadoPago estado) {
