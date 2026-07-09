@@ -48,11 +48,12 @@ export const crearSerieClase = (payload) => {
   });
 };
 
-// Cambia el profesor de una clase. alcance: 'INDIVIDUAL' | 'SERIE'
-export const cambiarProfesorClase = (idClase, profesorId, alcance) => {
+// Cambia el profesor de una clase. alcance: 'INDIVIDUAL' | 'RANGO' | 'SERIE'.
+// Para RANGO, desde/hasta (YYYY-MM-DD) delimitan las clases de la serie a cambiar.
+export const cambiarProfesorClase = (idClase, profesorId, alcance, desde, hasta) => {
   return apiFetch(`/clases/${idClase}/profesor`, {
     method: 'PUT',
-    body: JSON.stringify({ profesorId, alcance }),
+    body: JSON.stringify({ profesorId, alcance, desde, hasta }),
   });
 };
 

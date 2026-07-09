@@ -15,7 +15,6 @@ import com.sportify.backend.entities.Actividad;
 import com.sportify.backend.entities.Alumno;
 import com.sportify.backend.entities.Clase;
 import com.sportify.backend.entities.ClasePlantilla;
-import com.sportify.backend.entities.LicenciaProfesor;
 import com.sportify.backend.entities.ListaAsistencia;
 import com.sportify.backend.entities.Pago;
 import com.sportify.backend.entities.Profesor;
@@ -70,9 +69,6 @@ public class ClaseService {
 
     @Autowired
     private ProfesorRepository profesorRepository;
-
-    @Autowired
-    private LicenciaProfesorRepository licenciaProfesorRepository;
 
     @Autowired
     private ActividadRepository actividadRepository;
@@ -1310,36 +1306,13 @@ public class ClaseService {
                 errores);
     }
 
-    // HELPER — true si el profesor está de licencia (no disponible) en esa fecha.
-    private boolean profesorEnLicencia(Integer profesorId, LocalDate fecha) {
-        if (profesorId == null || fecha == null) {
-            return false;
-        }
-        return licenciaProfesorRepository.findByProfesor_Id(profesorId).stream()
-                .anyMatch(l -> l.getDesde() != null && l.getHasta() != null
-                        && !fecha.isBefore(l.getDesde())
-                        && !fecha.isAfter(l.getHasta()));
-    }
-
-    // HELPER — true si el profesor está disponible para dar clase en esa
-    // fecha/hora:
-    // ni de licencia, ni ya dictando otra clase en ese mismo turno.
-    private boolean profesorDisponible(Integer profesorId, LocalDate fecha, int hora, int idClaseExcluir) {
-        if (profesorEnLicencia(profesorId, fecha)) {
-            return false;
-        }
-        return !profesorOcupadoExcluyendo(fecha, hora, profesorId, idClaseExcluir);
-    }
-
-    // HELPER — true si la clase todavía no se impartió (fecha y hora futuras).
-    private boolean claseAunNoImpartida(Clase clase) {
-        if (clase.getFecha() == null) {
-            return false;
-        }
-        int hora = clase.getHora() != null ? clase.getHora() : 0;
-        return clase.getFecha().atTime(hora, 0).isAfter(LocalDateTime.now());
-    }
-
+    /**
+     * Cambia el profesor de una clase individual (alcance INDIVIDUAL), de las
+     * clases de la serie dentro de un rango de fechas (alcance RANGO) o de toda la
+     * serie de aquí en adelante (alcance SERIE). Solo tiene escenario de éxito: la
+     * elección de profesores válidos (misma disciplina) se resuelve en el front,
+     * que no ofrece en el selector a los profesores que no corresponden.
+     */
     @Transactional
     public ClaseCalendarioDTO cambiarProfesor(Integer idClase, CambiarProfesorRequest request) {
         if (request.getProfesorId() == null || request.getProfesorId() <= 0) {
@@ -1351,9 +1324,6 @@ public class ClaseService {
 
         Profesor profesor = profesorRepository.findById(request.getProfesorId())
                 .orElseThrow(() -> new RuntimeException("El profesor seleccionado no existe."));
-
-        // El profesor debe dictar la disciplina de la clase.
-        validarActividadDelProfesor(clase.getActividad(), profesor.getId());
 
         String alcance = request.getAlcance() == null ? "INDIVIDUAL" : request.getAlcance().toUpperCase();
 
@@ -1369,20 +1339,10 @@ public class ClaseService {
             LocalDate hoy = LocalDate.now(BUENOS_AIRES_ZONE);
             materializarRango(hoy, hoy.plusMonths(2));
 
-            // Todas las clases de la serie aún no impartidas (futuras, no canceladas).
             List<Clase> futuras = claseRepository.findByPlantilla_IdPlantilla(plantilla.getIdPlantilla()).stream()
                     .filter(c -> !Boolean.TRUE.equals(c.getCancelada()))
-                    .filter(this::claseAunNoImpartida)
+                    .filter(c -> c.getFecha() != null && !c.getFecha().isBefore(desde))
                     .collect(Collectors.toList());
-
-            // El profesor debe estar disponible en TODO el período; si falla en alguna, no
-            // se cambia nada.
-            boolean noDisponibleEnAlguna = futuras.stream()
-                    .anyMatch(c -> !profesorDisponible(profesor.getId(), c.getFecha(), c.getHora(), c.getIdClase()));
-            if (noDisponibleEnAlguna) {
-                throw new RuntimeException(
-                        "El cambio de profesor no pudo realizarse debido a que el profesor seleccionado no se encuentra disponible para todo o una parte del período seleccionado.");
-            }
 
             plantilla.setProfesor(profesor);
             clasePlantillaRepository.save(plantilla);
@@ -1392,12 +1352,39 @@ public class ClaseService {
             return ClaseCalendarioDTO.fromEntity(clase);
         }
 
-        // INDIVIDUAL — solo esta clase.
-        if (!profesorDisponible(profesor.getId(), clase.getFecha(), clase.getHora(), clase.getIdClase())) {
-            throw new RuntimeException(
-                    "El cambio de profesor no pudo realizarse debido a que el profesor seleccionado no se encuentra disponible para dar clases en el día y horario seleccionados.");
+        if ("RANGO".equals(alcance)) {
+            ClasePlantilla plantilla = clase.getPlantilla();
+            if (plantilla == null) {
+                throw new RuntimeException(
+                        "Esta clase no pertenece a una serie, no se puede cambiar el profesor por rango de fechas.");
+            }
+
+            LocalDate desde = request.getDesde();
+            LocalDate hasta = request.getHasta();
+            if (desde == null || hasta == null) {
+                throw new RuntimeException("Debe indicar ambas fechas del rango.");
+            }
+            if (desde.isAfter(hasta)) {
+                throw new RuntimeException("La fecha \"desde\" no puede ser posterior a la fecha \"hasta\".");
+            }
+
+            // Materializamos el rango para que existan todas las instancias a modificar.
+            // La plantilla NO se toca: fuera del rango sigue el profesor original.
+            materializarRango(desde, hasta);
+
+            List<Clase> delRango = claseRepository.findByPlantilla_IdPlantilla(plantilla.getIdPlantilla()).stream()
+                    .filter(c -> !Boolean.TRUE.equals(c.getCancelada()))
+                    .filter(c -> c.getFecha() != null
+                            && !c.getFecha().isBefore(desde)
+                            && !c.getFecha().isAfter(hasta))
+                    .collect(Collectors.toList());
+
+            delRango.forEach(c -> c.setProfesor(profesor));
+            claseRepository.saveAll(delRango);
+            return ClaseCalendarioDTO.fromEntity(clase);
         }
 
+        // INDIVIDUAL — solo esta clase.
         clase.setProfesor(profesor);
         return ClaseCalendarioDTO.fromEntity(claseRepository.save(clase));
     }
