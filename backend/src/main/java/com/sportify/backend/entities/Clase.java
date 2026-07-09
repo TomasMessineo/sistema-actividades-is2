@@ -69,6 +69,10 @@ public class Clase {
     @Column(nullable = false)
     private Boolean cancelada = false;
 
+    // Motivo que carga el administrador al cancelar una clase con alumnos
+    // inscriptos; se les comunica por mail. Null si se canceló sin inscriptos.
+    private String motivoCancelacion;
+
     // True una vez que se barrieron los alumnos sin escanear y se les marcó
     // falto=true al terminar la clase. Evita reprocesar la misma clase en
     // cada corrida del scheduler. Sin nullable=false a nivel de columna: las

@@ -11,6 +11,7 @@ services:
       POSTGRES_DB: sportify_db
       POSTGRES_USER: root
       POSTGRES_PASSWORD: root
+      TZ: America/Argentina/Buenos_Aires
     volumes:
       - ./postgres_data:/var/lib/postgresql/data
 
@@ -29,6 +30,8 @@ services:
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=root
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - TZ=America/Argentina/Buenos_Aires
+      - JAVA_TOOL_OPTIONS=-Duser.timezone=America/Argentina/Buenos_Aires
     volumes:
       - ./backend:/app
       - ~/.m2:/root/.m2 # Caché de dependencias Maven

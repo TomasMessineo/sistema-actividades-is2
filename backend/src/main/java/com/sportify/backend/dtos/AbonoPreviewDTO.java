@@ -17,16 +17,18 @@ public class AbonoPreviewDTO {
     private String actividad;
     private boolean disponible;
     private Motivo motivo;
+    private double precio;
 
     public AbonoPreviewDTO() {}
 
-    public AbonoPreviewDTO(int idClase, LocalDate fecha, int hora, String actividad, boolean disponible, Motivo motivo) {
+    public AbonoPreviewDTO(int idClase, LocalDate fecha, int hora, String actividad, boolean disponible, Motivo motivo, double precio) {
         this.idClase = idClase;
         this.fecha = fecha;
         this.hora = hora;
         this.actividad = actividad;
         this.disponible = disponible;
         this.motivo = motivo;
+        this.precio = precio;
     }
 
     public int getIdClase() { return idClase; }
@@ -46,4 +48,7 @@ public class AbonoPreviewDTO {
 
     public Motivo getMotivo() { return motivo; }
     public void setMotivo(Motivo motivo) { this.motivo = motivo; }
+
+    public double getPrecio() { return precio; }
+    public void setPrecio(double precio) { this.precio = precio; }
 }

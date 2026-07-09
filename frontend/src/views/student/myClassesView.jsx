@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '../../components/Navbar/NavbarAlumno.jsx'
+import PasarAsistenciaModal from '../../components/PasarAsistenciaModal.jsx'
+import ConfirmarCancelacionModal from '../../components/ConfirmarCancelacionModal.jsx'
 import { useAuth } from '../../context/AuthContext'
 import {
   listarClasesDelAlumno,
@@ -10,6 +12,7 @@ import {
 } from '../../services/claseService'
 import { apiFetch } from '../../services/apiClient'
 import { obtenerInasistenciasAlumno } from '../../services/alumnoService'
+import { isClassInBuenosAiresCurrentHour } from '../../utils/buenosAiresTime'
 import '../../styles/AvailableClasses.css'
 import '../../styles/MyClasses.css'
 
@@ -26,6 +29,27 @@ const monthDayFormatter = new Intl.DateTimeFormat('es-AR', { day: 'numeric' })
 const monthWeekdayHeaders = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 
 const getClassDateTime = (item) => new Date(`${item.fecha}T${String(item.hora).padStart(2, '0')}:00:00`)
+
+const normalizarNombreActividad = (actividad) => {
+  if (!actividad) return 'Clase'
+
+  const formateado = actividad
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/_/g, ' ')
+
+  if (!formateado) return 'Clase'
+  return formateado.charAt(0).toUpperCase() + formateado.slice(1)
+}
+
+const claseEnCurso = (clase) => {
+  if (clase.cancelada) {
+    return false
+  }
+
+  return isClassInBuenosAiresCurrentHour(clase?.fecha, Number(clase?.hora))
+}
 
 const toDateOnly = (value) => new Date(`${value}T00:00:00`)
 
@@ -107,6 +131,8 @@ function MyClassesView() {
   const [isMonthModalOpen, setIsMonthModalOpen] = useState(false)
   const [isEsperaModalOpen, setIsEsperaModalOpen] = useState(false)
   const [isInasistenciasModalOpen, setIsInasistenciasModalOpen] = useState(false)
+  const [isAsistenciaModalOpen, setIsAsistenciaModalOpen] = useState(false)
+  const [claseACancelar, setClaseACancelar] = useState(null)
   const [inasistencias, setInasistencias] = useState(null) // { inasistencias, limite }
   const [activeMonth, setActiveMonth] = useState(() => new Date())
   const [feedback, setFeedback] = useState(null) // { tipo: 'ok'|'error', texto }
@@ -142,10 +168,12 @@ function MyClassesView() {
       const enrolledClasses = Array.isArray(response) ? response : []
       setAllClasses(enrolledClasses)
 
+      const ahora = Date.now()
       const upcomingClasses = enrolledClasses
         .filter((item) => item?.fecha && typeof item.hora === 'number')
+        .filter((item) => getClassDateTime(item).getTime() >= ahora)
         .sort((left, right) => getClassDateTime(left) - getClassDateTime(right))
-        .slice(0, 3)
+        .slice(0, 6)
 
       setClasses(upcomingClasses)
       setClasesEnEspera(Array.isArray(espera) ? espera : [])
@@ -232,27 +260,28 @@ function MyClassesView() {
       }
       setFeedback({ tipo: 'ok', texto: mensaje })
       await loadClasses()
+      setClaseACancelar(null)
     } catch (err) {
       setFeedback({ tipo: 'error', texto: err.message || 'No se pudo cancelar la asistencia.' })
+      setClaseACancelar(null)
     } finally {
       setAccionEnCurso(null)
     }
   }
 
   useEffect(() => {
-    if (!isMonthModalOpen) {
-      return undefined
-    }
-
     const handleKeyDown = (event) => {
       if (event.key === 'Escape') {
         setIsMonthModalOpen(false)
+        setIsEsperaModalOpen(false)
+        setIsInasistenciasModalOpen(false)
+        setClaseACancelar(null)
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isMonthModalOpen])
+  }, [])
 
   const renderedClasses = useMemo(() => {
     return classes.map((item) => ({
@@ -263,6 +292,10 @@ function MyClassesView() {
   }, [classes])
 
   const renderedMonthDays = useMemo(() => buildMonthGrid(activeMonth, allClasses), [activeMonth, allClasses])
+  const claseEnCursoActual = useMemo(
+    () => allClasses.find((clase) => claseEnCurso(clase)) || null,
+    [allClasses]
+  )
 
   const openMonthModal = () => {
     setActiveMonth(new Date())
@@ -297,7 +330,7 @@ function MyClassesView() {
         {!loading && !error && (
           <section className="my-classes-layout">
             <div className="my-classes-panel">
-              <p className="my-classes-kicker">Esta semana</p>
+              <p className="my-classes-kicker">Próximamente</p>
               <h1 className="my-classes-title">Tus próximas clases</h1>
 
               {hasClasses ? (
@@ -311,7 +344,7 @@ function MyClassesView() {
                       <button
                         type="button"
                         className="my-class-cancel-btn"
-                        onClick={() => cancelarAsistencia(classItem.id)}
+                        onClick={() => setClaseACancelar(classItem)}
                         disabled={accionEnCurso === `cancelar-${classItem.id}`}
                       >
                         {accionEnCurso === `cancelar-${classItem.id}` ? 'Cancelando...' : 'Cancelar asistencia'}
@@ -329,25 +362,45 @@ function MyClassesView() {
             </div>
 
             <aside className="my-classes-cta">
-              <div>
-                <p className="my-classes-kicker">Nueva clase</p>
-                <h2 className="my-classes-title">Encontrá una clase nueva para sumarte</h2>
-              </div>
-              <Link to="/alumno/clasesDisponibles" className="my-classes-button">Buscas clases nuevas</Link>
-              <button
-                type="button"
-                className="my-classes-button my-classes-button--secondary"
-                onClick={() => setIsEsperaModalOpen(true)}
-              >
-                Lista de espera
-              </button>
-              <button
-                type="button"
-                className="my-classes-button my-classes-button--secondary"
-                onClick={abrirInasistencias}
-              >
-                Inasistencias
-              </button>
+              {claseEnCursoActual ? (
+                <>
+                  <div>
+                    <p className="my-classes-kicker">Clase en curso</p>
+                    <h2 className="my-classes-title">
+                      Tenes una clase de {normalizarNombreActividad(claseEnCursoActual.actividad)} en curso
+                    </h2>
+                  </div>
+                  <button
+                    type="button"
+                    className="my-classes-button"
+                    onClick={() => setIsAsistenciaModalOpen(true)}
+                  >
+                    Abrir cámara
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <p className="my-classes-kicker">Nueva clase</p>
+                    <h2 className="my-classes-title">Encontrá una clase nueva para sumarte</h2>
+                  </div>
+                  <Link to="/alumno/clasesDisponibles" className="my-classes-button">Buscas clases nuevas</Link>
+                  <button
+                    type="button"
+                    className="my-classes-button my-classes-button--secondary"
+                    onClick={() => setIsEsperaModalOpen(true)}
+                  >
+                    Lista de espera
+                  </button>
+                  <button
+                    type="button"
+                    className="my-classes-button my-classes-button--secondary"
+                    onClick={abrirInasistencias}
+                  >
+                    Inasistencias
+                  </button>
+                </>
+              )}
             </aside>
           </section>
         )}
@@ -446,8 +499,8 @@ function MyClassesView() {
                   <p className="my-classes-modal__kicker">Calendario mensual</p>
                   <h2>{monthTitleFormatter.format(activeMonth)}</h2>
                 </div>
-                <button type="button" className="my-classes-modal__close" onClick={closeMonthModal} aria-label="Cerrar calendario mensual">
-                  ×
+                <button type="button" className="my-classes-modal__back" onClick={closeMonthModal} aria-label="Volver a próximas clases">
+                  ← Volver
                 </button>
               </div>
 
@@ -489,6 +542,21 @@ function MyClassesView() {
             </div>
           </div>
         )}
+
+        <PasarAsistenciaModal
+          abierto={isAsistenciaModalOpen}
+          onCerrar={() => setIsAsistenciaModalOpen(false)}
+          clase={claseEnCursoActual}
+          alumnoId={user?.id}
+        />
+
+        <ConfirmarCancelacionModal
+          abierto={!!claseACancelar}
+          onCerrar={() => setClaseACancelar(null)}
+          onConfirmar={() => claseACancelar && cancelarAsistencia(claseACancelar.id)}
+          clase={claseACancelar}
+          cargando={accionEnCurso === `cancelar-${claseACancelar?.id}`}
+        />
       </main>
     </div>
   )

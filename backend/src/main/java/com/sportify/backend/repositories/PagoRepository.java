@@ -17,6 +17,8 @@ public interface PagoRepository extends JpaRepository<Pago, Integer> {
 
     List<Pago> findByEstado(Pago.EstadoPago estado);
 
+    List<Pago> findByEstadoAndTipo(Pago.EstadoPago estado, Pago.TipoClase tipo);
+
     Pago findByIdTransaccion(String idTransaccion);
 
     boolean existsByAlumnoIdAndEstadoAndClaseCanceladaFalseAndClaseFechaGreaterThanEqual(

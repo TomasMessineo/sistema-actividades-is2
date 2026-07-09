@@ -5,7 +5,20 @@ import '../styles/PasarAsistenciaModal.css'
 
 const RESULTADO_VISIBLE_MS = 1800
 
-function PasarAsistenciaModal({ abierto, onCerrar, clase }) {
+const normalizarNombreActividad = (actividad) => {
+  if (!actividad) return 'Clase'
+
+  const formateado = actividad
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/_/g, ' ')
+
+  if (!formateado) return 'Clase'
+  return formateado.charAt(0).toUpperCase() + formateado.slice(1)
+}
+
+function PasarAsistenciaModal({ abierto, onCerrar, clase, alumnoId }) {
   const videoRef = useRef(null)
   const scannerRef = useRef(null)
   const procesandoRef = useRef(false)
@@ -24,24 +37,39 @@ function PasarAsistenciaModal({ abierto, onCerrar, clase }) {
     setErrorCamara('')
 
     const manejarEscaneo = async (resultadoEscaneo) => {
-      if (procesandoRef.current || !clase?.idClase) {
+      if (procesandoRef.current || !clase?.idClase || !alumnoId) {
         return
       }
 
       const texto = typeof resultadoEscaneo === 'string' ? resultadoEscaneo : resultadoEscaneo?.data
-      const idAlumno = Number(texto)
+      const prefijo = 'sportify-'
 
-      if (!Number.isInteger(idAlumno) || idAlumno <= 0) {
+      if (!texto?.startsWith(prefijo)) {
+        mostrarResultado('error', 'El Codigo QR no es valido')
+        return
+      }
+
+      const idClase = Number(texto.slice(prefijo.length))
+
+      if (!Number.isInteger(idClase) || idClase <= 0) {
+        mostrarResultado('error', 'El Codigo QR no es valido')
         return
       }
 
       procesandoRef.current = true
 
       try {
-        const alumno = await registrarAsistenciaEscaneada(clase.idClase, idAlumno)
-        mostrarResultado('exito', `Se anotó al alumno ${alumno.nombre} ${alumno.apellido}`)
+        await registrarAsistenciaEscaneada(idClase, alumnoId)
+        mostrarResultado('exito', 'Se registró tu asistencia.')
       } catch (err) {
-        mostrarResultado('error', err.message || 'No se pudo registrar la asistencia.')
+        const mensaje = err.message || ''
+
+        if (mensaje.includes('no está anotado en esta clase')) {
+          mostrarResultado('error', 'No estas inscripto a esa clase')
+          return
+        }
+
+        mostrarResultado('error', mensaje || 'No se pudo registrar la asistencia.')
       }
     }
 
@@ -97,9 +125,12 @@ function PasarAsistenciaModal({ abierto, onCerrar, clase }) {
         </button>
 
         <div className="pasar-asistencia-modal__header">
-          <p className="pasar-asistencia-modal__label">Panel del profesor</p>
-          <h2>Pasar asistencia</h2>
-          <p>Apuntá la cámara al código QR del alumno.</p>
+          <p className="pasar-asistencia-modal__label">Panel del alumno</p>
+          <h2>Registrar asistencia</h2>
+          <p>Apuntá la cámara al código QR de la clase.</p>
+          {clase && (
+            <p>{normalizarNombreActividad(clase.actividad)} · {String(clase.hora).padStart(2, '0')}:00</p>
+          )}
         </div>
 
         <div className="pasar-asistencia-modal__camara">
