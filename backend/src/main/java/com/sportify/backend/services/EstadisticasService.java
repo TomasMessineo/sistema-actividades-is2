@@ -1,17 +1,25 @@
 package com.sportify.backend.services;
 
 import com.sportify.backend.dtos.EstadisticasIngresosDTO;
+import com.sportify.backend.dtos.EstadisticasIngresosDTO.AsistenciaDiaDTO;
 import com.sportify.backend.dtos.EstadisticasIngresosDTO.DisciplinaDTO;
+import com.sportify.backend.dtos.EstadisticasIngresosDTO.InscripcionesDisciplinaDTO;
 import com.sportify.backend.dtos.EstadisticasIngresosDTO.MesDTO;
 import com.sportify.backend.entities.Actividad;
+import com.sportify.backend.entities.ListaAsistencia;
 import com.sportify.backend.entities.Pago;
-import com.sportify.backend.repositories.PagoRepository;
+import com.sportify.backend.entities.RegistroAsistencia;
 import com.sportify.backend.repositories.ActividadRepository;
+import com.sportify.backend.repositories.ListaAsistenciaRepository;
+import com.sportify.backend.repositories.PagoRepository;
+import com.sportify.backend.repositories.RegistroAsistenciaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
@@ -26,12 +34,32 @@ public class EstadisticasService {
             "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
     };
 
+    // El gimnasio solo opera de lunes a viernes (ver ClaseService.validarDiaHabil).
+    private static final DayOfWeek[] DIAS_HABILES = {
+            DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY
+    };
+    private static final String[] NOMBRES_DIAS_HABILES = { "Lunes", "Martes", "Miércoles", "Jueves", "Viernes" };
+
+    // Cuántos años hacia atrás y hacia adelante del actual se ofrecen siempre en
+    // el selector, aunque no tengan pagos cargados (para poder demostrar los dos
+    // escenarios "sin datos": un año que ya pasó y uno que todavía no llegó).
+    private static final int VENTANA_ANIOS_ATRAS = 3;
+    private static final int VENTANA_ANIOS_ADELANTE = 1;
+
     private final PagoRepository pagoRepository;
     private final ActividadRepository actividadRepository;
+    private final ListaAsistenciaRepository listaAsistenciaRepository;
+    private final RegistroAsistenciaRepository registroAsistenciaRepository;
 
-    public EstadisticasService(PagoRepository pagoRepository, ActividadRepository actividadRepository) {
+    public EstadisticasService(
+            PagoRepository pagoRepository,
+            ActividadRepository actividadRepository,
+            ListaAsistenciaRepository listaAsistenciaRepository,
+            RegistroAsistenciaRepository registroAsistenciaRepository) {
         this.pagoRepository = pagoRepository;
         this.actividadRepository = actividadRepository;
+        this.listaAsistenciaRepository = listaAsistenciaRepository;
+        this.registroAsistenciaRepository = registroAsistenciaRepository;
     }
 
     // Disciplina (TipoActividad) de un pago, vía su clase. Null si no aplica.
@@ -70,17 +98,34 @@ public class EstadisticasService {
                 .filter(p -> p.getFecha().getYear() == anio)
                 .collect(Collectors.toList());
 
+        int anioActual = LocalDate.now().getYear();
+
         EstadisticasIngresosDTO dto = new EstadisticasIngresosDTO();
         dto.setAnio(anio);
         dto.setDisciplina(disciplina);
-        // "Sin datos" es a nivel año (escenario 2 de la HU), independiente del filtro
-        // de disciplina.
+        // "Sin datos" es a nivel año (escenario 2/3 de la HU), independiente del
+        // filtro de disciplina.
         dto.setHayDatos(!delAnio.isEmpty());
+        // Distingue el mensaje de "sin datos": un año futuro todavía no tuvo actividad
+        // ("aún no hay datos"), mientras que uno pasado o el actual sin pagos
+        // simplemente no tiene estadísticas registradas ("no se cuenta con...").
+        dto.setAnioEsFuturo(anio > anioActual);
 
-        // El selector ofrece los años con pagos + el año actual + el seleccionado.
+        // El selector ofrece una ventana fija de años (actual - VENTANA_ANIOS_ATRAS ..
+        // actual + VENTANA_ANIOS_ADELANTE), ampliada si hay pagos fuera de esa ventana.
+        // Así se pueden elegir años SIN pagos (p.ej. para comprobar los escenarios "sin
+        // datos"), no solo los años con datos cargados.
+        int minRango = anioActual - VENTANA_ANIOS_ATRAS;
+        int maxRango = anioActual + VENTANA_ANIOS_ADELANTE;
+        if (!aniosConPagos.isEmpty()) {
+            minRango = Math.min(minRango, Collections.min(aniosConPagos));
+            maxRango = Math.max(maxRango, Collections.max(aniosConPagos));
+        }
+
         Set<Integer> anios = new TreeSet<>(Comparator.reverseOrder());
-        anios.addAll(aniosConPagos);
-        anios.add(LocalDate.now().getYear());
+        for (int y = minRango; y <= maxRango; y++) {
+            anios.add(y);
+        }
         anios.add(anio);
         dto.setAniosDisponibles(new ArrayList<>(anios));
 
@@ -146,6 +191,52 @@ public class EstadisticasService {
         dto.setPorMes(porMes);
         dto.setMejorMesNombre(mejorMes >= 0 ? MESES[mejorMes] : "—");
         dto.setMejorMesMonto(mejorMonto);
+
+        // Inscripciones por disciplina del año (comparación entre las tres; no se
+        // filtra por disciplina, igual que porDisciplina) — responde "a qué tipo de
+        // clases se inscribe más la gente".
+        List<ListaAsistencia> listas = listaAsistenciaRepository.findAll();
+        List<InscripcionesDisciplinaDTO> inscripcionesPorDisciplina = new ArrayList<>();
+        for (String tipo : tipos) {
+            int cantidad = listas.stream()
+                    .filter(la -> la.getClase() != null
+                            && la.getClase().getFecha() != null
+                            && la.getClase().getFecha().getYear() == anio
+                            && la.getClase().getActividad() != null
+                            && tipo.equals(la.getClase().getActividad().getTipo()))
+                    .mapToInt(la -> la.getAlumnos() == null ? 0 : la.getAlumnos().size())
+                    .sum();
+            inscripcionesPorDisciplina.add(new InscripcionesDisciplinaDTO(tipo, cantidad));
+        }
+        dto.setInscripcionesPorDisciplina(inscripcionesPorDisciplina);
+
+        // Asistencia real (check-in) por día de la semana — responde "en qué días
+        // asiste más o menos la gente". Respeta el filtro de disciplina, a diferencia
+        // de la comparación de arriba.
+        List<RegistroAsistencia> registrosDelAnio = registroAsistenciaRepository.findAll().stream()
+                .filter(r -> r.getClase() != null
+                        && r.getClase().getFecha() != null
+                        && r.getClase().getFecha().getYear() == anio
+                        && !Boolean.TRUE.equals(r.getClase().getCancelada()))
+                .filter(r -> disciplina == null
+                        || (r.getClase().getActividad() != null && disciplina.equals(r.getClase().getActividad().getTipo())))
+                .collect(Collectors.toList());
+
+        List<AsistenciaDiaDTO> asistenciaPorDia = new ArrayList<>();
+        for (int i = 0; i < DIAS_HABILES.length; i++) {
+            DayOfWeek dia = DIAS_HABILES[i];
+            List<RegistroAsistencia> delDia = registrosDelAnio.stream()
+                    .filter(r -> r.getClase().getFecha().getDayOfWeek() == dia)
+                    .collect(Collectors.toList());
+
+            int asistieron = (int) delDia.stream().filter(r -> !Boolean.TRUE.equals(r.getFalto())).count();
+            int faltaron = (int) delDia.stream().filter(r -> Boolean.TRUE.equals(r.getFalto())).count();
+            int totalRegistros = asistieron + faltaron;
+            double porcentaje = totalRegistros == 0 ? 0.0 : (asistieron * 100.0 / totalRegistros);
+
+            asistenciaPorDia.add(new AsistenciaDiaDTO(NOMBRES_DIAS_HABILES[i], asistieron, faltaron, porcentaje));
+        }
+        dto.setAsistenciaPorDia(asistenciaPorDia);
 
         return dto;
     }

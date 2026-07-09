@@ -661,6 +661,10 @@ DROP SEQUENCE IF EXISTS lista_asistencia_seq;
 CREATE SEQUENCE lista_asistencia_seq INCREMENT BY 1 START WITH 1;
 SELECT setval('lista_asistencia_seq', COALESCE((SELECT MAX(id_lista_asistencia) FROM lista_asistencia), 0) + 1, false);
 
+DROP SEQUENCE IF EXISTS registro_asistencia_seq;
+CREATE SEQUENCE registro_asistencia_seq INCREMENT BY 1 START WITH 1;
+SELECT setval('registro_asistencia_seq', COALESCE((SELECT MAX(id_registro_asistencia) FROM registro_asistencia), 0) + 1, false);
+
 DROP SEQUENCE IF EXISTS lista_espera_seq;
 CREATE SEQUENCE lista_espera_seq INCREMENT BY 1 START WITH 1;
 SELECT setval('lista_espera_seq', COALESCE((SELECT MAX(id_lista_espera) FROM lista_espera), 0) + 1, false);
