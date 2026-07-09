@@ -103,6 +103,53 @@
   background: var(--primary-subtle, rgba(62, 207, 42, 0.1));
 }
 
+/* Al pasar el cursor la opción se selecciona sola (ver onMouseEnter en el
+   componente); este resaltado acompaña ese comportamiento. */
+.cancelar-clase-modal__opcion:hover {
+  border-color: var(--primary);
+  background: var(--primary-subtle, rgba(62, 207, 42, 0.1));
+}
+
+/* Campo de motivo de la cancelación */
+.cancelar-clase-modal__motivo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.cancelar-clase-modal__motivo-titulo {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary, #e8e8ec);
+}
+
+.cancelar-clase-modal__motivo textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 52px;
+  padding: 10px 12px;
+  border-radius: var(--radius-lg, 12px);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--text-primary, #e8e8ec);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.cancelar-clase-modal__motivo textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.cancelar-clase-modal__motivo-nota {
+  font-size: 11px;
+  color: var(--text-secondary, #8a93a2);
+  line-height: 1.4;
+}
+
 .cancelar-clase-modal__opcion input[type='radio'] {
   width: 18px;
   height: 18px;

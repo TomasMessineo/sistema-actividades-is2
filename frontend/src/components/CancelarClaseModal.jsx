@@ -55,6 +55,7 @@ function CancelarClaseModal({
   const [fechaDesde, setFechaDesde] = useState('')
   const [fechaHasta, setFechaHasta] = useState('')
   const [fechaApartirDe, setFechaApartirDe] = useState('')
+  const [motivo, setMotivo] = useState('')
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState('')
   const [mostrarExito, setMostrarExito] = useState(false)
@@ -66,6 +67,7 @@ function CancelarClaseModal({
       setFechaDesde('')
       setFechaHasta('')
       setFechaApartirDe('')
+      setMotivo('')
       setError('')
       setCargando(false)
       setMostrarExito(false)
@@ -102,6 +104,35 @@ function CancelarClaseModal({
     return isClassOnOrBeforeBuenosAiresNow(fechaHoraClase.fecha, fechaHoraClase.hora)
   }
 
+  // Cantidad de inscriptos de la clase clickeada. Cubre tanto el DTO del
+  // calendario (inscritos) como la entidad cruda de /clases (listaAsistencia).
+  const inscriptosConocidos = Number(
+    claseSeleccionada?.inscritos
+    ?? claseSeleccionada?.inscriptos
+    ?? claseSeleccionada?.listaAsistencia?.alumnos?.length
+    ?? 0
+  )
+
+  // El campo de motivo solo aparece cuando hay alumnos inscriptos. Para
+  // rango/serie no se conocen los inscriptos de las otras clases: si el
+  // backend exige motivo, su error lo menciona y el campo se muestra.
+  const mostrarMotivo = inscriptosConocidos > 0
+    || (error && error.toLowerCase().includes('motivo'))
+
+  // El motivo es obligatorio cuando hay alumnos inscriptos: se les avisa por
+  // mail el porqué de la cancelación. Para rango/serie el backend también lo
+  // exige si alguna de las clases tiene inscriptos.
+  const validarMotivo = (requeridoSeguro) => {
+    if (motivo.trim()) {
+      return true
+    }
+    if (requeridoSeguro) {
+      setError('Debe indicar el motivo de la cancelación ya que hay alumnos inscriptos en la clase')
+      return false
+    }
+    return true
+  }
+
   const finalizarConExito = (resultado) => {
     setResultadoExito(resultado)
     setMostrarExito(true)
@@ -130,10 +161,14 @@ function CancelarClaseModal({
       return
     }
 
+    if (!validarMotivo(inscriptosConocidos > 0)) {
+      return
+    }
+
     setCargando(true)
 
     try {
-      const resultado = await cancelarClaseApi(idClase)
+      const resultado = await cancelarClaseApi(idClase, motivo.trim())
       finalizarConExito(resultado)
     } catch (err) {
       setError(err.message || 'Ocurrió un error al cancelar la clase.')
@@ -170,7 +205,7 @@ function CancelarClaseModal({
     setCargando(true)
 
     try {
-      const resultado = await cancelarRangoSerieApi(idPlantilla, fechaDesde, fechaHasta)
+      const resultado = await cancelarRangoSerieApi(idPlantilla, fechaDesde, fechaHasta, motivo.trim())
       finalizarConExito(resultado)
     } catch (err) {
       setError(err.message || 'Ocurrió un error al cancelar las clases del rango.')
@@ -202,7 +237,7 @@ function CancelarClaseModal({
     setCargando(true)
 
     try {
-      const resultado = await cancelarDesdeSerieApi(idPlantilla, fechaApartirDe)
+      const resultado = await cancelarDesdeSerieApi(idPlantilla, fechaApartirDe, motivo.trim())
       finalizarConExito(resultado)
     } catch (err) {
       setError(err.message || 'Ocurrió un error al cancelar la serie.')
@@ -234,8 +269,24 @@ function CancelarClaseModal({
           </div>
         )}
 
+        {mostrarMotivo && (
+          <label className="cancelar-clase-modal__motivo">
+            <span className="cancelar-clase-modal__motivo-titulo">Motivo de la cancelación</span>
+            <textarea
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              placeholder="Ej: el profesor no puede asistir, mantenimiento de la sala..."
+              rows={2}
+              disabled={cargando}
+            />
+            <span className="cancelar-clase-modal__motivo-nota">
+              La clase tiene alumnos inscriptos: se les avisará por mail junto con su crédito.
+            </span>
+          </label>
+        )}
+
         <div className="cancelar-clase-modal__opciones" role="radiogroup" aria-label="Alcance de la cancelación">
-          <label className="cancelar-clase-modal__opcion">
+          <label className="cancelar-clase-modal__opcion" onMouseEnter={() => !cargando && setModo(MODO_UNICA)}>
             <input
               type="radio"
               name="modoCancelacion"
@@ -257,7 +308,7 @@ function CancelarClaseModal({
             </div>
           </label>
 
-          <label className="cancelar-clase-modal__opcion">
+          <label className="cancelar-clase-modal__opcion" onMouseEnter={() => !cargando && setModo(MODO_RANGO)}>
             <input
               type="radio"
               name="modoCancelacion"
@@ -296,7 +347,7 @@ function CancelarClaseModal({
             </div>
           </label>
 
-          <label className="cancelar-clase-modal__opcion">
+          <label className="cancelar-clase-modal__opcion" onMouseEnter={() => !cargando && setModo(MODO_DESDE)}>
             <input
               type="radio"
               name="modoCancelacion"

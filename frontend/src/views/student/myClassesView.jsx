@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '../../components/Navbar/NavbarAlumno.jsx'
 import PasarAsistenciaModal from '../../components/PasarAsistenciaModal.jsx'
+import ConfirmarCancelacionModal from '../../components/ConfirmarCancelacionModal.jsx'
 import { useAuth } from '../../context/AuthContext'
 import {
   listarClasesDelAlumno,
@@ -131,6 +132,7 @@ function MyClassesView() {
   const [isEsperaModalOpen, setIsEsperaModalOpen] = useState(false)
   const [isInasistenciasModalOpen, setIsInasistenciasModalOpen] = useState(false)
   const [isAsistenciaModalOpen, setIsAsistenciaModalOpen] = useState(false)
+  const [claseACancelar, setClaseACancelar] = useState(null)
   const [inasistencias, setInasistencias] = useState(null) // { inasistencias, limite }
   const [activeMonth, setActiveMonth] = useState(() => new Date())
   const [feedback, setFeedback] = useState(null) // { tipo: 'ok'|'error', texto }
@@ -258,27 +260,28 @@ function MyClassesView() {
       }
       setFeedback({ tipo: 'ok', texto: mensaje })
       await loadClasses()
+      setClaseACancelar(null)
     } catch (err) {
       setFeedback({ tipo: 'error', texto: err.message || 'No se pudo cancelar la asistencia.' })
+      setClaseACancelar(null)
     } finally {
       setAccionEnCurso(null)
     }
   }
 
   useEffect(() => {
-    if (!isMonthModalOpen) {
-      return undefined
-    }
-
     const handleKeyDown = (event) => {
       if (event.key === 'Escape') {
         setIsMonthModalOpen(false)
+        setIsEsperaModalOpen(false)
+        setIsInasistenciasModalOpen(false)
+        setClaseACancelar(null)
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isMonthModalOpen])
+  }, [])
 
   const renderedClasses = useMemo(() => {
     return classes.map((item) => ({
@@ -341,7 +344,7 @@ function MyClassesView() {
                       <button
                         type="button"
                         className="my-class-cancel-btn"
-                        onClick={() => cancelarAsistencia(classItem.id)}
+                        onClick={() => setClaseACancelar(classItem)}
                         disabled={accionEnCurso === `cancelar-${classItem.id}`}
                       >
                         {accionEnCurso === `cancelar-${classItem.id}` ? 'Cancelando...' : 'Cancelar asistencia'}
@@ -545,6 +548,14 @@ function MyClassesView() {
           onCerrar={() => setIsAsistenciaModalOpen(false)}
           clase={claseEnCursoActual}
           alumnoId={user?.id}
+        />
+
+        <ConfirmarCancelacionModal
+          abierto={!!claseACancelar}
+          onCerrar={() => setClaseACancelar(null)}
+          onConfirmar={() => claseACancelar && cancelarAsistencia(claseACancelar.id)}
+          clase={claseACancelar}
+          cargando={accionEnCurso === `cancelar-${claseACancelar?.id}`}
         />
       </main>
     </div>

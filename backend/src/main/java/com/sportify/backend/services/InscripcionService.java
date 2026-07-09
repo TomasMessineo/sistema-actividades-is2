@@ -72,11 +72,19 @@ public class InscripcionService {
                     ? clase.getActividad().getPrecio() : (clase.getPrecio() != null ? clase.getPrecio() : 0.0);
             if (pago.getTipo() == Pago.TipoClase.ABONADO) {
                 long cantidadClases = 1;
+                java.util.List<AbonoPreviewDTO> preview = java.util.List.of();
                 if (clase.getPlantilla() != null) {
-                    java.util.List<AbonoPreviewDTO> preview = claseService.previewAbono(clase.getIdClase(), alumno.getId());
+                    preview = claseService.previewAbono(clase.getIdClase(), alumno.getId());
                     cantidadClases = preview.stream().filter(AbonoPreviewDTO::isDisponible).count();
                 }
                 if (cantidadClases == 0) {
+                    // Si todas las clases restantes del mes chocan con la agenda
+                    // del alumno, el problema es su horario, no el cupo.
+                    boolean horarioOcupado = !preview.isEmpty() && preview.stream()
+                            .allMatch(p -> p.getMotivo() == AbonoPreviewDTO.Motivo.CONFLICTO_HORARIO);
+                    if (horarioOcupado) {
+                        throw new RuntimeException("Error de inscripción: Inscripción fallida, el horario ya está ocupado por otra reserva.");
+                    }
                     throw new RuntimeException("Error de inscripción: No hay clases disponibles en este mes para el abono seleccionado.");
                 }
                 double totalSinDescuento = precio * cantidadClases;

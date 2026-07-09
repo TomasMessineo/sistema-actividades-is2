@@ -31,9 +31,11 @@ export const listarClasesDelProfesor = (profesorId) => {
   return apiFetch(`/profesores/${profesorId}/clases`);
 };
 
-export const cancelarClase = (idClase) => {
+// El motivo es obligatorio si la clase tiene alumnos inscriptos (se les avisa por mail).
+export const cancelarClase = (idClase, motivo) => {
   return apiFetch(`/clases/${idClase}/cancelar`, {
     method: 'PATCH',
+    body: JSON.stringify({ motivo: motivo || null }),
   });
 };
 
@@ -46,11 +48,12 @@ export const crearSerieClase = (payload) => {
   });
 };
 
-// Cambia el profesor de una clase. alcance: 'INDIVIDUAL' | 'SERIE'
-export const cambiarProfesorClase = (idClase, profesorId, alcance) => {
+// Cambia el profesor de una clase. alcance: 'INDIVIDUAL' | 'RANGO' | 'SERIE'.
+// Para RANGO, desde/hasta (YYYY-MM-DD) delimitan las clases de la serie a cambiar.
+export const cambiarProfesorClase = (idClase, profesorId, alcance, desde, hasta) => {
   return apiFetch(`/clases/${idClase}/profesor`, {
     method: 'PUT',
-    body: JSON.stringify({ profesorId, alcance }),
+    body: JSON.stringify({ profesorId, alcance, desde, hasta }),
   });
 };
 
@@ -74,19 +77,19 @@ export const registrarAsistenciaEscaneada = (idClase, idAlumno) => {
 };
 // Cancela todas las instancias de una serie dentro de un rango de fechas
 // (el backend materializa las que falten antes de cancelarlas).
-export const cancelarRangoSerie = (idPlantilla, desde, hasta) => {
+export const cancelarRangoSerie = (idPlantilla, desde, hasta, motivo) => {
   return apiFetch(`/clases/plantilla/${idPlantilla}/cancelar-rango`, {
     method: 'PATCH',
-    body: JSON.stringify({ desde, hasta }),
+    body: JSON.stringify({ desde, hasta, motivo: motivo || null }),
   });
 };
 
 // Corta la vigencia de una serie a partir de una fecha y cancela las
 // instancias ya materializadas en o después de esa fecha.
-export const cancelarDesdeSerie = (idPlantilla, desde) => {
+export const cancelarDesdeSerie = (idPlantilla, desde, motivo) => {
   return apiFetch(`/clases/plantilla/${idPlantilla}/cancelar-desde`, {
     method: 'PATCH',
-    body: JSON.stringify({ desde }),
+    body: JSON.stringify({ desde, motivo: motivo || null }),
   });
 };
 

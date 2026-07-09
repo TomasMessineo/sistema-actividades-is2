@@ -146,7 +146,9 @@ function AvailableClassesCalendar({
                       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClassClick?.(classItem) }}
                       style={{ cursor: onClassClick ? 'pointer' : 'default' }}
                     >
-                      {showFullBadge && (
+                      {/* El "!" de clase completa no aplica cuando el motivo es un
+                          choque de horario del alumno: el cupo puede estar libre. */}
+                      {showFullBadge && !classItem.tieneReserva && classItem.motivoAbono !== 'CONFLICTO_HORARIO' && (
                         typeof classItem.abonoDisponible === 'boolean'
                           ? classItem.abonoDisponible === false
                           : Number(classItem.inscritos) >= Number(classItem.cupo)
@@ -157,9 +159,23 @@ function AvailableClassesCalendar({
                       )}
                       <span className="calendar-class-time">{formatHourRange(hour)}</span>
                       <strong>{normalizeActivityName(classItem.activity)}</strong>
-                      {showCapacity && (
+                      {/* Renovación: el alumno tiene su cupo guardado. Chip de una
+                          línea en tarjetas normales; en slots compactos (2+ clases)
+                          el CSS lo cambia por el circulito ✓ de la esquina. */}
+                      {classItem.tieneReserva && (
+                        <span className="calendar-class-reserved-dot" title="Tenés tu lugar reservado, renová tu abono" aria-label="Lugar reservado">
+                          ✓
+                        </span>
+                      )}
+                      {classItem.tieneReserva ? (
+                        <span className="calendar-class-reserved" title="Tenés tu lugar reservado, renová tu abono">
+                          ✓ Lugar reservado
+                        </span>
+                      ) : showCapacity && (
                         <span className="calendar-class-capacity">
-                          {classItem.abonoDisponible === false ? 'Lleno este mes' : formatCapacity(classItem.inscritos, classItem.cupo)}
+                          {classItem.abonoDisponible === false && classItem.motivoAbono !== 'CONFLICTO_HORARIO'
+                            ? 'Lleno este mes'
+                            : formatCapacity(classItem.inscritos, classItem.cupo)}
                         </span>
                       )}
                     </article>

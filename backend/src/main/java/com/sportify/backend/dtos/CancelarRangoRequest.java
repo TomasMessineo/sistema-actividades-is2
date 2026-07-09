@@ -16,4 +16,10 @@ public class CancelarRangoRequest {
 
     public LocalDate getHasta() { return hasta; }
     public void setHasta(LocalDate hasta) { this.hasta = hasta; }
+
+    // Motivo de la cancelación (obligatorio si hay alumnos inscriptos).
+    private String motivo;
+
+    public String getMotivo() { return motivo; }
+    public void setMotivo(String motivo) { this.motivo = motivo; }
 }

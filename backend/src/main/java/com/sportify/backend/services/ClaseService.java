@@ -15,7 +15,6 @@ import com.sportify.backend.entities.Actividad;
 import com.sportify.backend.entities.Alumno;
 import com.sportify.backend.entities.Clase;
 import com.sportify.backend.entities.ClasePlantilla;
-import com.sportify.backend.entities.LicenciaProfesor;
 import com.sportify.backend.entities.ListaAsistencia;
 import com.sportify.backend.entities.Pago;
 import com.sportify.backend.entities.Profesor;
@@ -24,11 +23,12 @@ import com.sportify.backend.repositories.ActividadRepository;
 import com.sportify.backend.repositories.AlumnoRepository;
 import com.sportify.backend.repositories.ClasePlantillaRepository;
 import com.sportify.backend.repositories.ClaseRepository;
-import com.sportify.backend.repositories.LicenciaProfesorRepository;
+import com.sportify.backend.entities.ReservaCupo;
 import com.sportify.backend.repositories.PagoRepository;
 import com.sportify.backend.repositories.ListaAsistenciaRepository;
 import com.sportify.backend.repositories.ProfesorRepository;
 import com.sportify.backend.repositories.RegistroAsistenciaRepository;
+import com.sportify.backend.repositories.ReservaCupoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -70,9 +70,6 @@ public class ClaseService {
     private ProfesorRepository profesorRepository;
 
     @Autowired
-    private LicenciaProfesorRepository licenciaProfesorRepository;
-
-    @Autowired
     private ActividadRepository actividadRepository;
 
     @Autowired
@@ -80,6 +77,12 @@ public class ClaseService {
 
     @Autowired
     private ListaAsistenciaRepository listaAsistenciaRepository;
+
+    @Autowired
+    private EmailService emailService;
+
+    @Autowired
+    private ReservaCupoRepository reservaCupoRepository;
 
     // 1. LISTAR
     public List<Clase> listarClases() {
@@ -174,6 +177,20 @@ public class ClaseService {
             boolean abonoDisponible = preview.stream().anyMatch(AbonoPreviewDTO::isDisponible);
             dto.setAbonoDisponible(abonoDisponible);
 
+            // Distinguir "no hay cupo" de "el alumno ya tiene clase en ese
+            // horario": si todas las clases restantes chocan con su agenda, el
+            // cupo puede estar libre y no corresponde mostrar la serie llena.
+            if (!abonoDisponible) {
+                boolean todoConflicto = !preview.isEmpty() && preview.stream()
+                        .allMatch(p -> p.getMotivo() == AbonoPreviewDTO.Motivo.CONFLICTO_HORARIO);
+                dto.setMotivoAbonoNoDisponible(todoConflicto ? "CONFLICTO_HORARIO" : "LLENA");
+            }
+
+            // El contador refleja la ocupación real: inscriptos + lugares
+            // guardados por renovación (sin contar la reserva del propio alumno).
+            dto.setInscritos(ocupacion(representativa, alumnoId));
+            dto.setTieneReserva(alumnoTieneReservaPendiente(representativa, alumnoId));
+
             resultado.add(dto);
         }
         return resultado;
@@ -232,13 +249,83 @@ public class ClaseService {
                 .anyMatch(id -> java.util.Objects.equals(id, alumnoId));
     }
 
-    // HELPER — true si la clase ya alcanzó su cupo.
+    // HELPER — true si la clase ya empezó (o terminó) según el reloj de Buenos
+    // Aires. Nadie puede inscribirse ni anotarse en espera a una clase pasada.
+    public boolean claseYaComenzo(Clase clase) {
+        if (clase.getFecha() == null || clase.getHora() == null) {
+            return false;
+        }
+        return !clase.getFecha().atTime(clase.getHora(), 0)
+                .isAfter(LocalDateTime.now(BUENOS_AIRES_ZONE));
+    }
+
+    // HELPER — true si la clase ya alcanzó su cupo, contando la ocupación real
+    // (inscriptos + reservas de renovación pendientes). Para un alumno nuevo.
     private boolean claseLlena(Clase clase) {
-        int inscritos = (clase.getListaAsistencia() != null && clase.getListaAsistencia().getAlumnos() != null)
-                ? clase.getListaAsistencia().getAlumnos().size()
-                : 0;
+        return claseLlenaParaAlumno(clase, null);
+    }
+
+    // HELPER — igual que claseLlena pero para un alumno concreto. Quien tiene
+    // reserva pendiente de esta serie/mes solo compite contra los inscriptos
+    // reales: su lugar está garantizado y el de los demás reservados también
+    // (con datos consistentes reservas <= cupo). Además evita el bloqueo mutuo
+    // si hubiera más reservas que cupo: gana el primero que paga.
+    private boolean claseLlenaParaAlumno(Clase clase, Integer alumnoId) {
         int cupo = clase.getCupo() != null ? clase.getCupo() : 0;
-        return inscritos >= cupo;
+        if (alumnoTieneReservaPendiente(clase, alumnoId)) {
+            return idsInscriptos(clase).size() >= cupo;
+        }
+        return ocupacion(clase, alumnoId) >= cupo;
+    }
+
+    // HELPER — ocupación de una clase: cantidad de lugares tomados = alumnos
+    // inscriptos + alumnos con reserva de renovación PENDIENTE para la serie y
+    // el mes de esta clase (que todavía no están inscriptos). Si se pasa
+    // alumnoExcluir, no se cuenta su reserva (para no bloquearlo a él mismo).
+    private int ocupacion(Clase clase, Integer alumnoExcluir) {
+        Set<Integer> inscriptos = idsInscriptos(clase);
+        int reservados = (int) reservasPendientes(clase).stream()
+                .map(r -> r.getAlumno() != null ? r.getAlumno().getId() : null)
+                .filter(java.util.Objects::nonNull)
+                .filter(id -> !inscriptos.contains(id))          // ya contado como inscripto
+                .filter(id -> !java.util.Objects.equals(id, alumnoExcluir))
+                .distinct()
+                .count();
+        return inscriptos.size() + reservados;
+    }
+
+    private Set<Integer> idsInscriptos(Clase clase) {
+        if (clase.getListaAsistencia() == null || clase.getListaAsistencia().getAlumnos() == null) {
+            return new HashSet<>();
+        }
+        return clase.getListaAsistencia().getAlumnos().stream()
+                .map(Alumno::getId)
+                .collect(Collectors.toCollection(HashSet::new));
+    }
+
+    // HELPER — true si el alumno tiene su cupo guardado (ReservaCupo PENDIENTE)
+    // para la serie y el mes de esta clase.
+    private boolean alumnoTieneReservaPendiente(Clase clase, Integer alumnoId) {
+        if (alumnoId == null) {
+            return false;
+        }
+        return reservasPendientes(clase).stream()
+                .anyMatch(r -> r.getAlumno() != null
+                        && java.util.Objects.equals(r.getAlumno().getId(), alumnoId));
+    }
+
+    // Reservas de renovación PENDIENTES que aplican al cupo de esta clase: las de
+    // su misma serie (plantilla) en su mismo mes. Las clases sueltas (sin serie)
+    // no participan de la renovación.
+    private List<ReservaCupo> reservasPendientes(Clase clase) {
+        if (clase.getPlantilla() == null || clase.getFecha() == null) {
+            return List.of();
+        }
+        return reservaCupoRepository.findByPlantilla_IdPlantillaAndAnioAndMesAndEstado(
+                clase.getPlantilla().getIdPlantilla(),
+                clase.getFecha().getYear(),
+                clase.getFecha().getMonthValue(),
+                ReservaCupo.EstadoReserva.PENDIENTE);
     }
 
     // HELPER — true si el alumno ya está inscripto en OTRA clase en la misma fecha
@@ -305,6 +392,12 @@ public class ClaseService {
 
         List<AbonoPreviewDTO> preview = new ArrayList<>();
         for (Clase clase : instancias) {
+            // La clase de hoy que ya empezó/terminó no forma parte del abono:
+            // ni aparece en la lista ni se cobra.
+            if (claseYaComenzo(clase)) {
+                continue;
+            }
+
             boolean disponible = true;
             AbonoPreviewDTO.Motivo motivo = null;
 
@@ -317,7 +410,7 @@ public class ClaseService {
             } else if (alumnoTieneOtraClaseEnHorario(idAlumno, clase)) {
                 disponible = false;
                 motivo = AbonoPreviewDTO.Motivo.CONFLICTO_HORARIO;
-            } else if (claseLlena(clase)) {
+            } else if (claseLlenaParaAlumno(clase, idAlumno)) {
                 disponible = false;
                 motivo = AbonoPreviewDTO.Motivo.LLENA;
             }
@@ -647,6 +740,56 @@ public class ClaseService {
         }
     }
 
+    // Corre todos los días a las 00:05: garantiza que, para el MES ACTUAL, cada
+    // alumno que tuvo un abono COMPLETADO de una serie el MES ANTERIOR tenga su
+    // reserva de cupo (prioridad de renovación). Es idempotente: si la reserva
+    // ya existe no la duplica, así que correrlo a diario es seguro y cubre el
+    // arranque de cada mes. Ver ReservaCupo.
+    @Scheduled(cron = "0 5 0 * * *", zone = "America/Argentina/Buenos_Aires")
+    @Transactional
+    public void generarReservasDeRenovacion() {
+        LocalDate hoy = LocalDate.now(BUENOS_AIRES_ZONE);
+        YearMonth mesActual = YearMonth.from(hoy);
+        YearMonth mesAnterior = mesActual.minusMonths(1);
+
+        // Aseguramos que existan las clases del mes actual: las reservas guardan
+        // el cupo de esas instancias.
+        materializarRango(hoy.withDayOfMonth(1), hoy.withDayOfMonth(hoy.lengthOfMonth()));
+
+        List<Pago> abonos = pagoRepository.findByEstadoAndTipo(
+                Pago.EstadoPago.COMPLETADO, Pago.TipoClase.ABONADO);
+
+        for (Pago pago : abonos) {
+            Clase clase = pago.getClase();
+            Alumno alumno = pago.getAlumno();
+            if (clase == null || alumno == null
+                    || clase.getPlantilla() == null || clase.getFecha() == null) {
+                continue;
+            }
+            // Solo abonos del mes anterior.
+            if (!YearMonth.from(clase.getFecha()).equals(mesAnterior)) {
+                continue;
+            }
+
+            ClasePlantilla plantilla = clase.getPlantilla();
+            boolean yaExiste = reservaCupoRepository
+                    .existsByAlumno_IdAndPlantilla_IdPlantillaAndAnioAndMes(
+                            alumno.getId(), plantilla.getIdPlantilla(),
+                            mesActual.getYear(), mesActual.getMonthValue());
+            if (yaExiste) {
+                continue;
+            }
+
+            ReservaCupo reserva = new ReservaCupo();
+            reserva.setAlumno(alumno);
+            reserva.setPlantilla(plantilla);
+            reserva.setAnio(mesActual.getYear());
+            reserva.setMes(mesActual.getMonthValue());
+            reserva.setEstado(ReservaCupo.EstadoReserva.PENDIENTE);
+            reservaCupoRepository.save(reserva);
+        }
+    }
+
     // HELPER — a cada alumno anotado en la clase que todavía no tiene un
     // registro de asistencia, se le crea uno con falto=true y se le suma
     // una falta.
@@ -758,7 +901,7 @@ public class ClaseService {
     }
 
     @Transactional
-    public Clase cancelarClase(Integer id) {
+    public Clase cancelarClase(Integer id, String motivo) {
         Clase claseExistente = claseRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Clase no encontrada"));
 
@@ -766,25 +909,54 @@ public class ClaseService {
             throw new RuntimeException("La clase ya se encuentra cancelada");
         }
 
+        boolean hayInscriptos = contarAlumnosInscriptos(claseExistente) > 0;
+        boolean motivoVacio = motivo == null || motivo.trim().isEmpty();
+
+        // Con alumnos inscriptos el motivo es obligatorio: hay que avisarles
+        // por qué se cancela la clase (se les comunica por mail).
+        if (hayInscriptos && motivoVacio) {
+            throw new RuntimeException(
+                    "Debe indicar el motivo de la cancelación ya que hay alumnos inscriptos en la clase");
+        }
+
         ListaAsistencia listaAsistencia = claseExistente.getListaAsistencia();
-        if (listaAsistencia != null && listaAsistencia.getAlumnos() != null
-                && !listaAsistencia.getAlumnos().isEmpty()) {
-            listaAsistencia.getAlumnos().forEach(alumno -> {
+        if (hayInscriptos) {
+            String descripcionClase = descripcionDeClase(claseExistente);
+            // Deduplicar por id: si la lista tuviera al mismo alumno repetido,
+            // igual recibe UN crédito y UN mail (mismo patrón que el scheduler
+            // de asistencias).
+            java.util.Collection<Alumno> alumnosUnicos = listaAsistencia.getAlumnos().stream()
+                    .collect(Collectors.toMap(Alumno::getId, a -> a, (existente, duplicado) -> existente, LinkedHashMap::new))
+                    .values();
+
+            alumnosUnicos.forEach(alumno -> {
                 Integer creditosActuales = alumno.getCreditos() == null ? 0 : alumno.getCreditos();
                 alumno.setCreditos(creditosActuales + 1);
+                emailService.notificarClaseCancelada(
+                        alumno.getEmail(), alumno.getNombre(), descripcionClase, motivo.trim());
             });
 
-            alumnoRepository.saveAll(listaAsistencia.getAlumnos());
+            alumnoRepository.saveAll(new ArrayList<>(alumnosUnicos));
         }
 
         claseExistente.setCancelada(true);
+        claseExistente.setMotivoCancelacion(motivoVacio ? null : motivo.trim());
         return claseRepository.save(claseExistente);
+    }
+
+    // HELPER — descripción legible de la clase para los avisos por mail.
+    private String descripcionDeClase(Clase clase) {
+        String actividad = (clase.getActividad() != null && clase.getActividad().getTipo() != null)
+                ? clase.getActividad().getTipo()
+                : "Clase";
+        String hora = clase.getHora() != null ? clase.getHora() + ":00 hs" : "";
+        return (actividad + " del " + clase.getFecha() + " " + hora).trim();
     }
 
     // Cancela una clase individual y reporta a cuántos alumnos se les
     // acreditó un crédito (para mostrarlo en el panel administrativo).
     @Transactional
-    public ClaseCancelacionResponse cancelarClaseConDetalle(Integer id) {
+    public ClaseCancelacionResponse cancelarClaseConDetalle(Integer id, String motivo) {
         Clase clase = claseRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Clase no encontrada"));
 
@@ -793,7 +965,7 @@ public class ClaseService {
         }
 
         int alumnosAcreditados = contarAlumnosInscriptos(clase);
-        cancelarClase(id);
+        cancelarClase(id, motivo);
 
         return new ClaseCancelacionResponse(1, 1, alumnosAcreditados);
     }
@@ -808,8 +980,9 @@ public class ClaseService {
     }
 
     // HELPER — cancela (idempotente sobre las ya canceladas) una lista de
-    // instancias reusando cancelarClase, que ya maneja el reembolso de créditos.
-    private ClaseCancelacionResponse cancelarInstancias(List<Clase> instancias) {
+    // instancias reusando cancelarClase, que ya maneja el reembolso de créditos,
+    // la exigencia de motivo cuando hay inscriptos y el aviso por mail.
+    private ClaseCancelacionResponse cancelarInstancias(List<Clase> instancias, String motivo) {
         int canceladas = 0;
         int alumnosAcreditados = 0;
 
@@ -818,7 +991,7 @@ public class ClaseService {
                 continue;
             }
             alumnosAcreditados += contarAlumnosInscriptos(clase);
-            cancelarClase(clase.getIdClase());
+            cancelarClase(clase.getIdClase(), motivo);
             canceladas++;
         }
 
@@ -845,7 +1018,7 @@ public class ClaseService {
                 .filter(c -> c.getFecha() != null && !c.getFecha().isBefore(desde) && !c.getFecha().isAfter(hasta))
                 .toList();
 
-        ClaseCancelacionResponse resultado = cancelarInstancias(instancias);
+        ClaseCancelacionResponse resultado = cancelarInstancias(instancias, request.getMotivo());
         resultado.setTotalEnRango(instancias.size());
         return resultado;
     }
@@ -871,7 +1044,7 @@ public class ClaseService {
                 .filter(c -> c.getFecha() != null && !c.getFecha().isBefore(desde))
                 .toList();
 
-        ClaseCancelacionResponse resultado = cancelarInstancias(instanciasFuturas);
+        ClaseCancelacionResponse resultado = cancelarInstancias(instanciasFuturas, request.getMotivo());
         resultado.setTotalEnRango(instanciasFuturas.size());
         return resultado;
     }
@@ -1131,28 +1304,8 @@ public class ClaseService {
                 plantillaGuardada.getIdPlantilla(),
                 creadas,
                 errores.size(),
-                errores);
-    }
-
-    // HELPER — true si el profesor está de licencia (no disponible) en esa fecha.
-    private boolean profesorEnLicencia(Integer profesorId, LocalDate fecha) {
-        if (profesorId == null || fecha == null) {
-            return false;
-        }
-        return licenciaProfesorRepository.findByProfesor_Id(profesorId).stream()
-                .anyMatch(l -> l.getDesde() != null && l.getHasta() != null
-                        && !fecha.isBefore(l.getDesde())
-                        && !fecha.isAfter(l.getHasta()));
-    }
-
-    // HELPER — true si el profesor está disponible para dar clase en esa
-    // fecha/hora:
-    // ni de licencia, ni ya dictando otra clase en ese mismo turno.
-    private boolean profesorDisponible(Integer profesorId, LocalDate fecha, int hora, int idClaseExcluir) {
-        if (profesorEnLicencia(profesorId, fecha)) {
-            return false;
-        }
-        return !profesorOcupadoExcluyendo(fecha, hora, profesorId, idClaseExcluir);
+                errores
+        );
     }
 
     // HELPER — true si la clase todavía no se impartió (fecha y hora futuras).
@@ -1164,6 +1317,18 @@ public class ClaseService {
         return clase.getFecha().atTime(hora, 0).isAfter(LocalDateTime.now());
     }
 
+    /**
+     * Cambia el profesor de una clase individual (alcance INDIVIDUAL) o de toda la
+                errores);
+    }
+
+    /**
+     * Cambia el profesor de una clase individual (alcance INDIVIDUAL), de las
+     * clases de la serie dentro de un rango de fechas (alcance RANGO) o de toda la
+     * serie de aquí en adelante (alcance SERIE). Solo tiene escenario de éxito: la
+     * elección de profesores válidos (misma disciplina) se resuelve en el front,
+     * que no ofrece en el selector a los profesores que no corresponden.
+     */
     @Transactional
     public ClaseCalendarioDTO cambiarProfesor(Integer idClase, CambiarProfesorRequest request) {
         if (request.getProfesorId() == null || request.getProfesorId() <= 0) {
@@ -1175,9 +1340,6 @@ public class ClaseService {
 
         Profesor profesor = profesorRepository.findById(request.getProfesorId())
                 .orElseThrow(() -> new RuntimeException("El profesor seleccionado no existe."));
-
-        // El profesor debe dictar la disciplina de la clase.
-        validarActividadDelProfesor(clase.getActividad(), profesor.getId());
 
         String alcance = request.getAlcance() == null ? "INDIVIDUAL" : request.getAlcance().toUpperCase();
 
@@ -1193,20 +1355,12 @@ public class ClaseService {
             LocalDate hoy = LocalDate.now(BUENOS_AIRES_ZONE);
             materializarRango(hoy, hoy.plusMonths(2));
 
-            // Todas las clases de la serie aún no impartidas (futuras, no canceladas).
+            LocalDate desde = request.getDesde() != null ? request.getDesde() : (clase.getFecha() != null ? clase.getFecha() : hoy);
+
             List<Clase> futuras = claseRepository.findByPlantilla_IdPlantilla(plantilla.getIdPlantilla()).stream()
                     .filter(c -> !Boolean.TRUE.equals(c.getCancelada()))
-                    .filter(this::claseAunNoImpartida)
+                    .filter(c -> c.getFecha() != null && !c.getFecha().isBefore(desde))
                     .collect(Collectors.toList());
-
-            // El profesor debe estar disponible en TODO el período; si falla en alguna, no
-            // se cambia nada.
-            boolean noDisponibleEnAlguna = futuras.stream()
-                    .anyMatch(c -> !profesorDisponible(profesor.getId(), c.getFecha(), c.getHora(), c.getIdClase()));
-            if (noDisponibleEnAlguna) {
-                throw new RuntimeException(
-                        "El cambio de profesor no pudo realizarse debido a que el profesor seleccionado no se encuentra disponible para todo o una parte del período seleccionado.");
-            }
 
             plantilla.setProfesor(profesor);
             clasePlantillaRepository.save(plantilla);
@@ -1216,12 +1370,39 @@ public class ClaseService {
             return ClaseCalendarioDTO.fromEntity(clase);
         }
 
-        // INDIVIDUAL — solo esta clase.
-        if (!profesorDisponible(profesor.getId(), clase.getFecha(), clase.getHora(), clase.getIdClase())) {
-            throw new RuntimeException(
-                    "El cambio de profesor no pudo realizarse debido a que el profesor seleccionado no se encuentra disponible para dar clases en el día y horario seleccionados.");
+        if ("RANGO".equals(alcance)) {
+            ClasePlantilla plantilla = clase.getPlantilla();
+            if (plantilla == null) {
+                throw new RuntimeException(
+                        "Esta clase no pertenece a una serie, no se puede cambiar el profesor por rango de fechas.");
+            }
+
+            LocalDate desde = request.getDesde();
+            LocalDate hasta = request.getHasta();
+            if (desde == null || hasta == null) {
+                throw new RuntimeException("Debe indicar ambas fechas del rango.");
+            }
+            if (desde.isAfter(hasta)) {
+                throw new RuntimeException("La fecha \"desde\" no puede ser posterior a la fecha \"hasta\".");
+            }
+
+            // Materializamos el rango para que existan todas las instancias a modificar.
+            // La plantilla NO se toca: fuera del rango sigue el profesor original.
+            materializarRango(desde, hasta);
+
+            List<Clase> delRango = claseRepository.findByPlantilla_IdPlantilla(plantilla.getIdPlantilla()).stream()
+                    .filter(c -> !Boolean.TRUE.equals(c.getCancelada()))
+                    .filter(c -> c.getFecha() != null
+                            && !c.getFecha().isBefore(desde)
+                            && !c.getFecha().isAfter(hasta))
+                    .collect(Collectors.toList());
+
+            delRango.forEach(c -> c.setProfesor(profesor));
+            claseRepository.saveAll(delRango);
+            return ClaseCalendarioDTO.fromEntity(clase);
         }
 
+        // INDIVIDUAL — solo esta clase.
         clase.setProfesor(profesor);
         return ClaseCalendarioDTO.fromEntity(claseRepository.save(clase));
     }

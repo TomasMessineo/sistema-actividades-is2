@@ -16,6 +16,8 @@ const formatoMoneda = new Intl.NumberFormat('es-AR', {
 
 const COLOR_INDIVIDUAL = '#3ecf2a'
 const COLOR_ABONO = '#5b9dff'
+const COLOR_ASISTIO = '#3ecf2a'
+const COLOR_FALTO = '#ff5c5c'
 
 const DISCIPLINAS = ['TODAS', 'YOGA', 'PILATES', 'FUNCIONAL']
 const NOMBRE_DISCIPLINA = { TODAS: 'Todas', YOGA: 'Yoga', PILATES: 'Pilates', FUNCIONAL: 'Funcional' }
@@ -28,6 +30,21 @@ const tooltipStyle = {
   border: '1px solid rgba(255,255,255,0.12)',
   borderRadius: 12,
   color: '#fff'
+}
+
+const AsistenciaTooltip = ({ active, payload, label }) => {
+  if (!active || !payload || payload.length === 0) return null
+  const item = payload[0]?.payload
+  if (!item) return null
+
+  return (
+    <div style={{ ...tooltipStyle, padding: '10px 14px', lineHeight: 1.6 }}>
+      <strong>{label}</strong>
+      <div style={{ color: COLOR_ASISTIO }}>Asistieron: {item.Asistieron}</div>
+      <div style={{ color: COLOR_FALTO }}>Faltaron: {item.Faltaron}</div>
+      <div style={{ color: '#a1a1aa' }}>Asistencia: {item.porcentaje.toFixed(0)}%</div>
+    </div>
+  )
 }
 
 function IngresosStatsView() {
@@ -82,6 +99,19 @@ function IngresosStatsView() {
     Abono: m.abono
   }))
 
+  const datosInscripciones = (data?.inscripcionesPorDisciplina || []).map((d) => ({
+    key: d.disciplina,
+    nombre: NOMBRE_DISCIPLINA[d.disciplina] || d.disciplina,
+    cantidad: d.cantidad
+  }))
+
+  const datosAsistencia = (data?.asistenciaPorDia || []).map((d) => ({
+    dia: d.dia,
+    Asistieron: d.asistieron,
+    Faltaron: d.faltaron,
+    porcentaje: d.porcentajeAsistencia
+  }))
+
   const seleccionVacia = data && data.hayDatos && data.ingresoTotal === 0
 
   return (
@@ -131,7 +161,9 @@ function IngresosStatsView() {
 
         {!cargando && !error && data && !data.hayDatos && (
           <div className="ingresos-alerta">
-            Aún no hay datos de ingresos cargados para {anio}.
+            {data.anioEsFuturo
+              ? `Aún no hay datos de ingresos cargados para ${anio}.`
+              : `No se cuenta con estadísticas sobre el año ${anio}.`}
           </div>
         )}
 
@@ -246,6 +278,53 @@ function IngresosStatsView() {
                 </LineChart>
               </ResponsiveContainer>
             </section>
+
+            <div className="ingresos-charts">
+              <section className="ingresos-grafico">
+                <h2>Inscripciones por disciplina</h2>
+                <p className="ingresos-grafico__sub">A qué tipo de clases se inscribe más la gente en {anio}. Tocá una barra para filtrar todo el tablero.</p>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={datosInscripciones}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+                    <XAxis dataKey="nombre" stroke="#a1a1aa" tickLine={false} />
+                    <YAxis stroke="#a1a1aa" tickLine={false} width={40} allowDecimals={false} />
+                    <Tooltip
+                      formatter={(value) => [value, 'Inscripciones']}
+                      contentStyle={tooltipStyle}
+                      cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+                    />
+                    <Bar dataKey="cantidad" radius={[6, 6, 0, 0]} onClick={(d) => toggleDisciplina(d.key)} cursor="pointer">
+                      {datosInscripciones.map((entry) => {
+                        const activa = disciplina === 'TODAS' || disciplina === entry.key
+                        return (
+                          <Cell
+                            key={entry.key}
+                            fill={COLOR_DISCIPLINA[entry.key] || '#888'}
+                            fillOpacity={activa ? 1 : 0.28}
+                          />
+                        )
+                      })}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </section>
+
+              <section className="ingresos-grafico">
+                <h2>Asistencia por día de la semana{sufijoDisc}</h2>
+                <p className="ingresos-grafico__sub">En qué días asiste más o menos la gente (según el check-in de clase) en {anio}.</p>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={datosAsistencia}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+                    <XAxis dataKey="dia" stroke="#a1a1aa" tickLine={false} />
+                    <YAxis stroke="#a1a1aa" tickLine={false} width={40} allowDecimals={false} />
+                    <Tooltip content={<AsistenciaTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+                    <Legend iconType="circle" wrapperStyle={{ color: '#a1a1aa', fontSize: 14 }} />
+                    <Bar dataKey="Asistieron" stackId="asistencia" fill={COLOR_ASISTIO} radius={[0, 0, 0, 0]} />
+                    <Bar dataKey="Faltaron" stackId="asistencia" fill={COLOR_FALTO} radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </section>
+            </div>
           </>
         )}
       </main>

@@ -220,12 +220,34 @@ VALUES (11, 3)
         SET actividad_id = EXCLUDED.actividad_id;
 
 
+INSERT INTO usuario (id, activo, apellido, dni, email, nombre, password)
+VALUES (12, true, 'Paredes', '41000111', 'profesor5@sportify.com', 'Ana', 'profesor123')
+    ON CONFLICT (id) DO UPDATE
+                            SET activo = EXCLUDED.activo,
+                            apellido = EXCLUDED.apellido,
+                            dni = EXCLUDED.dni,
+                            email = EXCLUDED.email,
+                            nombre = EXCLUDED.nombre,
+                            password = EXCLUDED.password;
+
+-- Segunda profesora de YOGA: permite demostrar el cambio de profesor en esa
+-- disciplina (p.ej. una clase de Ana puede pasar a Juan Luis, y viceversa).
+INSERT INTO profesor (id, actividad_id)
+VALUES (12, 1)
+    ON CONFLICT (id) DO UPDATE
+        SET actividad_id = EXCLUDED.actividad_id;
+
+
 -- =========================
 -- PLANTILLAS (series perpetuas)
 -- =========================
 -- Cada plantilla representa una "clase en general" (día + hora fijos). Las
 -- clases con fecha de más abajo son sus instancias (clase_id -> plantilla_id).
 
+-- Cada profesor dicta UNA sola disciplina, y las series deben respetarla:
+-- YOGA (1) -> Juan Luis Guerra (8) y Ana Paredes (12)
+-- PILATES (2) -> Carlos Ruiz (10)
+-- FUNCIONAL (3) -> Marcelo Mendoza (9) y Lucía Torres (11)
 INSERT INTO clase_plantilla (id_plantilla, dia_semana, hora, cupo, precio, activa, vigencia_desde, vigencia_hasta, actividad_id, profesor_id) VALUES
   (1, 'MONDAY',    9,  1,  3000.0, true, '2026-06-01', NULL, 1, 9),
   (2, 'WEDNESDAY', 9,  10, 3000.0, true, '2026-06-03', NULL, 1, 9),
@@ -252,7 +274,7 @@ INSERT INTO clase_plantilla (id_plantilla, dia_semana, hora, cupo, precio, activ
             profesor_id = EXCLUDED.profesor_id;
 
 -- =========================
--- CLASES YOGA
+-- CLASES YOGA (lunes: profesora 12 - Ana Paredes / miércoles: profesor 8 - Juan Luis Guerra)
 -- =========================
 
 INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, cancelada, hora, plantilla_id) VALUES
@@ -277,7 +299,7 @@ INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, can
             plantilla_id = EXCLUDED.plantilla_id;
 
 -- =========================
--- CLASES FUNCIONAL (profesor 9 - Marcelo Mendoza y profesor 11 - Lucía Torres)
+-- CLASES PILATES (profesor 10 - Carlos Ruiz)
 -- =========================
 INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, cancelada, hora, plantilla_id) VALUES
   (21, 15, '2026-06-03', 2000.0, 2, 8, false, 13, 3),
@@ -301,7 +323,7 @@ INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, can
             plantilla_id = EXCLUDED.plantilla_id;
 
 -- =========================
--- CLASES PILATES (profesor 10 - Carlos Ruiz)
+-- CLASES FUNCIONAL (profesor 9 - Marcelo Mendoza y profesor 11 - Lucía Torres)
 -- =========================
 INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, cancelada, hora, plantilla_id) VALUES
   (11, 1, '2026-06-02', 3000.0, 3, 8, false, 13, 5),
@@ -343,20 +365,6 @@ INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, can
             cancelada = EXCLUDED.cancelada,
             hora = EXCLUDED.hora,
             plantilla_id = EXCLUDED.plantilla_id;
-
--- =========================
--- LICENCIAS DE PROFESOR (prueba)
--- =========================
--- Marcelo Mendoza (9) de vacaciones: queda NO disponible para cambios de
--- profesor en ese rango (sirve para probar el escenario 2 de las HU).
-
-INSERT INTO licencia_profesor (id_licencia, profesor_id, desde, hasta, motivo)
-VALUES (1, 9, '2026-06-01', '2026-12-31', 'Vacaciones')
-    ON CONFLICT (id_licencia) DO UPDATE
-        SET profesor_id = EXCLUDED.profesor_id,
-            desde = EXCLUDED.desde,
-            hasta = EXCLUDED.hasta,
-            motivo = EXCLUDED.motivo;
 
 -- =========================
 -- CREDITOS (prueba)
@@ -546,31 +554,31 @@ INSERT INTO pago (id_pago, alumno_id, clase_id, valor, fecha, fecha_creacion, fe
 -- =========================
 
 INSERT INTO apto_medico (id_apto_medico, fecha_de_vencimiento, url, alumno_id)
-VALUES (1, '2099-12-31', 'http://prueba/apto1.pdf', 3)
+VALUES (1, (CURRENT_DATE + INTERVAL '1 year')::date, 'http://prueba/apto1.pdf', 3)
     ON CONFLICT (id_apto_medico) DO UPDATE
         SET fecha_de_vencimiento = EXCLUDED.fecha_de_vencimiento,
             alumno_id = EXCLUDED.alumno_id;
 
 INSERT INTO apto_medico (id_apto_medico, fecha_de_vencimiento, url, alumno_id)
-VALUES (2, '2099-12-31', 'http://prueba/apto2.pdf', 4)
+VALUES (2, (CURRENT_DATE + INTERVAL '1 year')::date, 'http://prueba/apto2.pdf', 4)
     ON CONFLICT (id_apto_medico) DO UPDATE
         SET fecha_de_vencimiento = EXCLUDED.fecha_de_vencimiento,
             alumno_id = EXCLUDED.alumno_id;
 
 INSERT INTO apto_medico (id_apto_medico, fecha_de_vencimiento, url, alumno_id)
-VALUES (3, '2099-12-31', 'http://prueba/apto3.pdf', 5)
+VALUES (3, (CURRENT_DATE + INTERVAL '1 year')::date, 'http://prueba/apto3.pdf', 5)
     ON CONFLICT (id_apto_medico) DO UPDATE
         SET fecha_de_vencimiento = EXCLUDED.fecha_de_vencimiento,
             alumno_id = EXCLUDED.alumno_id;
 
 INSERT INTO apto_medico (id_apto_medico, fecha_de_vencimiento, url, alumno_id)
-VALUES (4, '2099-12-31', 'http://prueba/apto4.pdf', 6)
+VALUES (4, (CURRENT_DATE + INTERVAL '1 year')::date, 'http://prueba/apto4.pdf', 6)
     ON CONFLICT (id_apto_medico) DO UPDATE
         SET fecha_de_vencimiento = EXCLUDED.fecha_de_vencimiento,
             alumno_id = EXCLUDED.alumno_id;
 
 INSERT INTO apto_medico (id_apto_medico, fecha_de_vencimiento, url, alumno_id)
-VALUES (5, '2099-12-31', 'http://prueba/apto5.pdf', 7)
+VALUES (5, (CURRENT_DATE + INTERVAL '1 year')::date, 'http://prueba/apto5.pdf', 7)
     ON CONFLICT (id_apto_medico) DO UPDATE
         SET fecha_de_vencimiento = EXCLUDED.fecha_de_vencimiento,
             alumno_id = EXCLUDED.alumno_id;
@@ -637,13 +645,9 @@ DROP SEQUENCE IF EXISTS clase_plantilla_seq;
 CREATE SEQUENCE clase_plantilla_seq INCREMENT BY 1 START WITH 1;
 SELECT setval('clase_plantilla_seq', GREATEST(COALESCE((SELECT MAX(id_plantilla) FROM clase_plantilla), 0), 6) + 1, false);
 
-DROP SEQUENCE IF EXISTS licencia_profesor_seq;
-CREATE SEQUENCE licencia_profesor_seq INCREMENT BY 1 START WITH 1;
-SELECT setval('licencia_profesor_seq', COALESCE((SELECT MAX(id_licencia) FROM licencia_profesor), 0) + 1, false);
-
 DROP SEQUENCE IF EXISTS usuario_seq;
 CREATE SEQUENCE usuario_seq INCREMENT BY 1 START WITH 1;
-SELECT setval('usuario_seq', GREATEST(COALESCE((SELECT MAX(id) FROM usuario), 0), 11) + 1, false);
+SELECT setval('usuario_seq', GREATEST(COALESCE((SELECT MAX(id) FROM usuario), 0), 12) + 1, false);
 
 DROP SEQUENCE IF EXISTS actividad_seq;
 CREATE SEQUENCE actividad_seq INCREMENT BY 1 START WITH 1;
@@ -660,6 +664,10 @@ SELECT setval('pago_seq', COALESCE((SELECT MAX(id_pago) FROM pago), 0) + 1, fals
 DROP SEQUENCE IF EXISTS lista_asistencia_seq;
 CREATE SEQUENCE lista_asistencia_seq INCREMENT BY 1 START WITH 1;
 SELECT setval('lista_asistencia_seq', COALESCE((SELECT MAX(id_lista_asistencia) FROM lista_asistencia), 0) + 1, false);
+
+DROP SEQUENCE IF EXISTS registro_asistencia_seq;
+CREATE SEQUENCE registro_asistencia_seq INCREMENT BY 1 START WITH 1;
+SELECT setval('registro_asistencia_seq', COALESCE((SELECT MAX(id_registro_asistencia) FROM registro_asistencia), 0) + 1, false);
 
 DROP SEQUENCE IF EXISTS lista_espera_seq;
 CREATE SEQUENCE lista_espera_seq INCREMENT BY 1 START WITH 1;
