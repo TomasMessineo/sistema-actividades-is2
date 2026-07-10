@@ -6,6 +6,7 @@ import {
 } from 'recharts'
 import Navbar from '../../components/Navbar/NavbarAdmin.jsx'
 import { getEstadisticasIngresos } from '../../services/estadisticasService'
+import { apiFetch } from '../../services/apiClient'
 import '../../styles/ingresosStats.css'
 
 const formatoMoneda = new Intl.NumberFormat('es-AR', {
@@ -19,9 +20,31 @@ const COLOR_ABONO = '#5b9dff'
 const COLOR_ASISTIO = '#3ecf2a'
 const COLOR_FALTO = '#ff5c5c'
 
-const DISCIPLINAS = ['TODAS', 'YOGA', 'PILATES', 'FUNCIONAL']
-const NOMBRE_DISCIPLINA = { TODAS: 'Todas', YOGA: 'Yoga', PILATES: 'Pilates', FUNCIONAL: 'Funcional' }
-const COLOR_DISCIPLINA = { YOGA: '#3ecf2a', PILATES: '#5b9dff', FUNCIONAL: '#f5a623' }
+const formatearNombreDisciplina = (name) => {
+  if (!name) return ''
+  if (name === 'TODAS') return 'Todas'
+  return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase()
+}
+
+const PRESET_COLORS = {
+  YOGA: '#3ecf2a',
+  PILATES: '#5b9dff',
+  FUNCIONAL: '#f5a623'
+}
+
+const PALETTE = ['#ec4899', '#a855f7', '#06b6d4', '#f43f5e', '#10b981', '#fb7185', '#38bdf8']
+
+const obtenerColorDisciplina = (name) => {
+  if (!name) return '#888'
+  const upper = name.toUpperCase()
+  if (PRESET_COLORS[upper]) return PRESET_COLORS[upper]
+  let hash = 0
+  for (let i = 0; i < upper.length; i++) {
+    hash = upper.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  const colorIndex = Math.abs(hash) % PALETTE.length
+  return PALETTE[colorIndex]
+}
 
 const ejeMoneda = (v) => (v >= 1000 ? `$${Math.round(v / 1000)}k` : `$${v}`)
 
@@ -53,6 +76,7 @@ function IngresosStatsView() {
   const [disciplina, setDisciplina] = useState('TODAS')
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState('')
+  const [disciplinas, setDisciplinas] = useState(['TODAS'])
 
   const cargar = async (anioElegido, discElegida) => {
     setCargando(true)
@@ -62,6 +86,14 @@ function IngresosStatsView() {
       setData(respuesta)
       setAnio(respuesta.anio)
       setDisciplina(discElegida || 'TODAS')
+
+      if (respuesta.porDisciplina) {
+        const nombresData = respuesta.porDisciplina.map(d => d.disciplina.toUpperCase())
+        setDisciplinas(prev => {
+          const set = new Set([...prev, ...nombresData])
+          return Array.from(set)
+        })
+      }
     } catch {
       setError('No se pudieron cargar las estadísticas de ingresos.')
     } finally {
@@ -70,14 +102,26 @@ function IngresosStatsView() {
   }
 
   useEffect(() => {
-    cargar(undefined, 'TODAS')
+    const cargarInicial = async () => {
+      try {
+        const actividades = await apiFetch('/actividades')
+        if (Array.isArray(actividades)) {
+          const nombres = actividades.map(a => a.tipo.toUpperCase())
+          setDisciplinas(['TODAS', ...nombres])
+        }
+      } catch (err) {
+        console.error('Error al cargar disciplinas:', err)
+      }
+      cargar(undefined, 'TODAS')
+    }
+    cargarInicial()
   }, [])
 
   const cambiarAnio = (nuevoAnio) => cargar(nuevoAnio, disciplina)
   const cambiarDisciplina = (nuevaDisc) => cargar(anio, nuevaDisc)
   const toggleDisciplina = (key) => cambiarDisciplina(disciplina === key ? 'TODAS' : key)
 
-  const sufijoDisc = disciplina !== 'TODAS' ? ` · ${NOMBRE_DISCIPLINA[disciplina]}` : ''
+  const sufijoDisc = disciplina !== 'TODAS' ? ` · ${formatearNombreDisciplina(disciplina)}` : ''
 
   const datosDona = data
     ? [
@@ -88,7 +132,7 @@ function IngresosStatsView() {
 
   const datosDisciplina = (data?.porDisciplina || []).map((d) => ({
     key: d.disciplina,
-    nombre: NOMBRE_DISCIPLINA[d.disciplina] || d.disciplina,
+    nombre: formatearNombreDisciplina(d.disciplina),
     total: d.total
   }))
 
@@ -101,7 +145,7 @@ function IngresosStatsView() {
 
   const datosInscripciones = (data?.inscripcionesPorDisciplina || []).map((d) => ({
     key: d.disciplina,
-    nombre: NOMBRE_DISCIPLINA[d.disciplina] || d.disciplina,
+    nombre: formatearNombreDisciplina(d.disciplina),
     cantidad: d.cantidad
   }))
 
@@ -148,8 +192,8 @@ function IngresosStatsView() {
                 onChange={(e) => cambiarDisciplina(e.target.value)}
                 disabled={cargando}
               >
-                {DISCIPLINAS.map((d) => (
-                  <option key={d} value={d}>{NOMBRE_DISCIPLINA[d]}</option>
+                {disciplinas.map((d) => (
+                  <option key={d} value={d}>{formatearNombreDisciplina(d)}</option>
                 ))}
               </select>
             </label>
@@ -171,7 +215,7 @@ function IngresosStatsView() {
           <>
             {seleccionVacia && (
               <div className="ingresos-alerta ingresos-alerta--info">
-                No hay ingresos de {NOMBRE_DISCIPLINA[disciplina]} en {anio}.
+                No hay ingresos de {formatearNombreDisciplina(disciplina)} en {anio}.
               </div>
             )}
 
@@ -251,7 +295,7 @@ function IngresosStatsView() {
                         return (
                           <Cell
                             key={entry.key}
-                            fill={COLOR_DISCIPLINA[entry.key] || '#888'}
+                            fill={obtenerColorDisciplina(entry.key)}
                             fillOpacity={activa ? 1 : 0.28}
                           />
                         )
@@ -299,7 +343,7 @@ function IngresosStatsView() {
                         return (
                           <Cell
                             key={entry.key}
-                            fill={COLOR_DISCIPLINA[entry.key] || '#888'}
+                            fill={obtenerColorDisciplina(entry.key)}
                             fillOpacity={activa ? 1 : 0.28}
                           />
                         )

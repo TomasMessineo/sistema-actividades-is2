@@ -4,10 +4,12 @@ import Navbar from '../../components/Navbar/NavbarAdmin.jsx'
 import api from '../../services/api.js'
 import '../../styles/studentStats.css'
 
-const ACTIVIDAD_LABEL = {
-  YOGA: 'Yoga',
-  PILATES: 'Pilates',
-  FUNCIONAL: 'Funcional'
+const formatearNombreDisciplina = (name) => {
+  if (!name) return ''
+  const upper = name.toUpperCase()
+  const PRESET = { YOGA: 'Yoga', PILATES: 'Pilates', FUNCIONAL: 'Funcional' }
+  if (PRESET[upper]) return PRESET[upper]
+  return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase()
 }
 
 const formatearFecha = (fechaStr) => {
@@ -92,7 +94,7 @@ function TeacherStatsView() {
               {profesor.nombre} {profesor.apellido}
               {actividad && (
                 <span className="profesor-actividad-badge">
-                  {ACTIVIDAD_LABEL[actividad] || actividad}
+                  {formatearNombreDisciplina(actividad)}
                 </span>
               )}
             </p>
@@ -229,7 +231,7 @@ function TeacherStatsView() {
                     <span>{String(c.hora).padStart(2, '0')}:00</span>
                     <span className="alumnos-modal__clase-sep">·</span>
                     <span className="alumnos-modal__clase-actividad">
-                      {ACTIVIDAD_LABEL[c.actividad] || c.actividad}
+                      {formatearNombreDisciplina(c.actividad)}
                     </span>
                   </li>
                 ))}
