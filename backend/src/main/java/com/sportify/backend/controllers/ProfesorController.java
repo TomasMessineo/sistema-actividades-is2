@@ -125,6 +125,16 @@ public class ProfesorController {
         }
     }
 
+    @PatchMapping("/{id}/restaurar")
+    public ResponseEntity<?> restaurarProfesor(@PathVariable Integer id) {
+        try {
+            profesorService.restaurar(id);
+            return ResponseEntity.ok(Map.of("mensaje", "Profesor restaurado correctamente"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("mensaje", e.getMessage()));
+        }
+    }
+
     private Map<String, Object> convertirADto(Profesor profesor) {
         Map<String, Object> dto = new HashMap<>();
 

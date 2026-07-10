@@ -130,4 +130,11 @@ public class ProfesorService {
                 clase.getHora() == null ? 0 : clase.getHora(),
                 actividad);
     }
+
+    public void restaurar(Integer id) {
+        Profesor profesor = profesorRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Profesor no encontrado"));
+        profesor.setActivo(true);
+        profesorRepository.save(profesor);
+    }
 }

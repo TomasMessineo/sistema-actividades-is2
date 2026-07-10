@@ -30,6 +30,9 @@ function TeacherStatsView() {
 
   const [eliminando, setEliminando] = useState(null)
   const [confirmarEliminacionId, setConfirmarEliminacionId] = useState(null)
+  const [restaurando, setRestaurando] = useState(null)
+  const [confirmarRestauracionId, setConfirmarRestauracionId] = useState(null)
+  const [mostrarExitoRestauracion, setMostrarExitoRestauracion] = useState(false)
 
   const [errorClasesPendientes, setErrorClasesPendientes] = useState(null)
 
@@ -78,6 +81,20 @@ function TeacherStatsView() {
     }
   }
 
+  const restaurarProfesor = async (id) => {
+    try {
+      setRestaurando(id)
+      await api.patch(`/profesores/${id}/restaurar`)
+      await cargarProfesores()
+      setMostrarExitoRestauracion(true)
+    } catch (err) {
+      const mensaje = err.response?.data?.mensaje || 'No se pudo restaurar el profesor.'
+      setError(mensaje)
+    } finally {
+      setRestaurando(null)
+    }
+  }
+
   const renderTarjeta = (profesor, opciones = {}) => {
     const actividad = profesor.actividad?.tipo
     return (
@@ -103,7 +120,16 @@ function TeacherStatsView() {
         </div>
 
         {opciones.eliminado ? (
-          <span className="alumno-badge-eliminado">Eliminado</span>
+          <div className="alumno-acciones">
+            <button
+              type="button"
+              className="btn-restaurar"
+              onClick={() => setConfirmarRestauracionId(profesor.id)}
+              disabled={restaurando === profesor.id}
+            >
+              {restaurando === profesor.id ? 'Restaurando...' : 'Restaurar'}
+            </button>
+          </div>
         ) : (
           <div className="alumno-acciones">
             <button
@@ -246,6 +272,62 @@ function TeacherStatsView() {
                   Entendido
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {confirmarRestauracionId !== null && (() => {
+          const profesor = profesoresEliminados.find((p) => p.id === confirmarRestauracionId)
+          if (!profesor) return null
+          return (
+            <div className="alumnos-modal-overlay" onClick={() => setConfirmarRestauracionId(null)}>
+              <div className="alumnos-modal" onClick={(e) => e.stopPropagation()}>
+                <p className="alumnos-modal__label">Confirmar restauración</p>
+                <h2>¿Querés restaurar este profesor?</h2>
+                <p style={{ marginTop: '0.75rem' }}>
+                  El profesor <strong>{profesor.nombre} {profesor.apellido}</strong> volverá a aparecer en la lista de activos.
+                </p>
+
+                <div className="alumnos-modal__actions">
+                  <button
+                    type="button"
+                    className="btn-cancelar"
+                    onClick={() => setConfirmarRestauracionId(null)}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-eliminar-confirmar"
+                    style={{ background: '#22c55e', color: '#fff' }}
+                    onClick={() => {
+                      restaurarProfesor(confirmarRestauracionId)
+                      setConfirmarRestauracionId(null)
+                    }}
+                  >
+                    Sí, restaurar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
+        })()}
+
+        {mostrarExitoRestauracion && (
+          <div className="alumnos-modal-overlay">
+            <div className="restauracion-exito-box">
+              <div className="restauracion-exito-icono">✓</div>
+              <div className="restauracion-exito-header">
+                <h2>¡Profesor restaurado!</h2>
+                <p>El profesor volvió a la lista de activos correctamente.</p>
+              </div>
+              <button
+                type="button"
+                className="restauracion-exito-btn"
+                onClick={() => setMostrarExitoRestauracion(false)}
+              >
+                Aceptar
+              </button>
             </div>
           </div>
         )}
