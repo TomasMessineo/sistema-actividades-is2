@@ -62,7 +62,7 @@ const AsistenciaTooltip = ({ active, payload, label }) => {
 
   return (
     <div style={{ ...tooltipStyle, padding: '10px 14px', lineHeight: 1.6 }}>
-      <strong>{label}</strong>
+      <strong style={{ color: '#ffffff', display: 'block', marginBottom: '4px' }}>{label}</strong>
       <div style={{ color: COLOR_ASISTIO }}>Asistieron: {item.Asistieron}</div>
       <div style={{ color: COLOR_FALTO }}>Faltaron: {item.Faltaron}</div>
       <div style={{ color: '#a1a1aa' }}>Asistencia: {item.porcentaje.toFixed(0)}%</div>
@@ -269,7 +269,12 @@ function IngresosStatsView() {
                           />
                         ))}
                       </Pie>
-                      <Tooltip formatter={(value) => formatoMoneda.format(value)} contentStyle={tooltipStyle} />
+                      <Tooltip
+                        formatter={(value) => formatoMoneda.format(value)}
+                        contentStyle={tooltipStyle}
+                        itemStyle={{ color: '#ffffff' }}
+                        labelStyle={{ color: '#ffffff' }}
+                      />
                       <Legend verticalAlign="bottom" iconType="circle" wrapperStyle={{ color: '#a1a1aa', fontSize: 14 }} />
                     </PieChart>
                   </ResponsiveContainer>
@@ -287,6 +292,8 @@ function IngresosStatsView() {
                     <Tooltip
                       formatter={(value) => [formatoMoneda.format(value), 'Ingreso']}
                       contentStyle={tooltipStyle}
+                      itemStyle={{ color: '#ffffff' }}
+                      labelStyle={{ color: '#ffffff' }}
                       cursor={{ fill: 'rgba(255,255,255,0.04)' }}
                     />
                     <Bar dataKey="total" radius={[6, 6, 0, 0]} onClick={(d) => toggleDisciplina(d.key)} cursor="pointer">
@@ -314,7 +321,12 @@ function IngresosStatsView() {
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
                   <XAxis dataKey="name" stroke="#a1a1aa" tickLine={false} />
                   <YAxis stroke="#a1a1aa" tickFormatter={ejeMoneda} tickLine={false} width={48} />
-                  <Tooltip formatter={(value) => formatoMoneda.format(value)} contentStyle={tooltipStyle} />
+                  <Tooltip
+                    formatter={(value) => formatoMoneda.format(value)}
+                    contentStyle={tooltipStyle}
+                    itemStyle={{ color: '#ffffff' }}
+                    labelStyle={{ color: '#ffffff' }}
+                  />
                   <Legend iconType="plainline" wrapperStyle={{ color: '#a1a1aa', fontSize: 14 }} />
                   <Line type="monotone" dataKey="Total" stroke="#ffffff" strokeWidth={2.5} dot={false} />
                   <Line type="monotone" dataKey="Individual" stroke={COLOR_INDIVIDUAL} strokeWidth={2} dot={false} />
@@ -335,6 +347,8 @@ function IngresosStatsView() {
                     <Tooltip
                       formatter={(value) => [value, 'Inscripciones']}
                       contentStyle={tooltipStyle}
+                      itemStyle={{ color: '#ffffff' }}
+                      labelStyle={{ color: '#ffffff' }}
                       cursor={{ fill: 'rgba(255,255,255,0.04)' }}
                     />
                     <Bar dataKey="cantidad" radius={[6, 6, 0, 0]} onClick={(d) => toggleDisciplina(d.key)} cursor="pointer">

@@ -57,6 +57,11 @@ public class PagoService {
             Pago pago = pagoRepository.findById(solicitud.getIdPago())
                     .orElseThrow(() -> new RuntimeException("Pago no encontrado"));
             pago.setTipoPago(solicitud.getMetodoPago());
+            if (pago.getClase() == null && solicitud.getIdClase() != null && solicitud.getIdClase() > 0) {
+                Clase clase = claseRepository.findById(solicitud.getIdClase())
+                        .orElseThrow(() -> new RuntimeException("Clase no encontrada"));
+                pago.setClase(clase);
+            }
             return pagoRepository.save(pago);
         }
 
@@ -70,7 +75,7 @@ public class PagoService {
         pago.setTipoPago(solicitud.getMetodoPago());
         pago.setFecha(LocalDate.now());
 
-        if (solicitud.getTipoPago() == Pago.TipoClase.INDIVIDUAL) {
+        if (solicitud.getIdClase() != null && solicitud.getIdClase() > 0) {
             Clase clase = claseRepository.findById(solicitud.getIdClase())
                     .orElseThrow(() -> new RuntimeException("Clase no encontrada"));
             pago.setClase(clase);
