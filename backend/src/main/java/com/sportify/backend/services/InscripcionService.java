@@ -83,7 +83,7 @@ public class InscripcionService {
                     boolean horarioOcupado = !preview.isEmpty() && preview.stream()
                             .allMatch(p -> p.getMotivo() == AbonoPreviewDTO.Motivo.CONFLICTO_HORARIO);
                     if (horarioOcupado) {
-                        throw new RuntimeException("Error de inscripción: Inscripción fallida, el horario ya está ocupado por otra reserva.");
+                        throw new RuntimeException("Inscripción fallida, el horario ya está ocupado por otra reserva.");
                     }
                     throw new RuntimeException("Error de inscripción: No hay clases disponibles en este mes para el abono seleccionado.");
                 }
@@ -122,7 +122,10 @@ public class InscripcionService {
                     null);
         } catch (Exception e) {
             String message = e.getMessage();
-            if (message != null && (message.startsWith("Error de inscripción:") || message.startsWith("Error de Inscripcion:"))) {
+            if (message != null && (message.startsWith("Error de inscripción:") || 
+                                    message.startsWith("Error de Inscripcion:") || 
+                                    message.equals("Ya tenés una inscripción realizada en este horario") || 
+                                    message.equals("Inscripción fallida, el horario ya está ocupado por otra reserva."))) {
                 throw new RuntimeException(message);
             }
             throw new RuntimeException("Error de Inscripcion: " + message);
