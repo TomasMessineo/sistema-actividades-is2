@@ -137,14 +137,6 @@ public class ActividadController {
             return ResponseEntity.badRequest().body("El nombre de la disciplina es obligatorio");
         }
 
-        String tipo = tipoRaw.trim();
-        boolean existe = actividadRepository.findAll().stream()
-                .anyMatch(a -> tipo.equalsIgnoreCase(a.getTipo()));
-
-        if (existe) {
-            return ResponseEntity.badRequest().body("La Disciplina no ha sido añadida debido a que la misma ya se encuentra en el sistema");
-        }
-
         Object precioObj = payload.get("precio");
         Double precio = 0.0;
         if (precioObj instanceof Number) {
@@ -160,9 +152,30 @@ public class ActividadController {
             return ResponseEntity.badRequest().body("La tarifa no puede ser negativa");
         }
 
+        String tipo = tipoRaw.trim();
+        java.util.Optional<Actividad> existenteOpt = actividadRepository.findAll().stream()
+                .filter(a -> tipo.equalsIgnoreCase(a.getTipo()))
+                .findFirst();
+
+        if (existenteOpt.isPresent()) {
+            Actividad existente = existenteOpt.get();
+            if (Boolean.TRUE.equals(existente.getActiva())) {
+                return ResponseEntity.badRequest().body("La Disciplina no ha sido añadida debido a que la misma ya se encuentra en el sistema");
+            } else {
+                existente.setActiva(true);
+                existente.setPrecio(precio);
+                actividadRepository.save(existente);
+                return ResponseEntity.ok(Map.of(
+                        "message", "La disciplina ha sido añadida correctamente",
+                        "actividad", existente
+                ));
+            }
+        }
+
         Actividad nueva = new Actividad();
         nueva.setTipo(tipo.toUpperCase());
         nueva.setPrecio(precio);
+        nueva.setActiva(true);
         actividadRepository.save(nueva);
 
         return ResponseEntity.ok(Map.of(
