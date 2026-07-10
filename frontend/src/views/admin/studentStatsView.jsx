@@ -27,6 +27,7 @@ function StudentStatsView() {
   const [eliminando, setEliminando] = useState(null)
   const [confirmarEliminacionId, setConfirmarEliminacionId] = useState(null)
   const [restaurando, setRestaurando] = useState(null)
+  const [confirmarRestauracionId, setConfirmarRestauracionId] = useState(null)
   const [mostrarExitoRestauracion, setMostrarExitoRestauracion] = useState(false)
   const [clasesAlumno, setClasesAlumno] = useState([])
   const [cargandoClases, setCargandoClases] = useState(false)
@@ -181,7 +182,7 @@ function StudentStatsView() {
                       <button
                         type="button"
                         className="btn-restaurar"
-                        onClick={() => restaurarAlumno(alumno.id)}
+                        onClick={() => setConfirmarRestauracionId(alumno.id)}
                         disabled={restaurando === alumno.id}
                       >
                         {restaurando === alumno.id ? 'Restaurando...' : 'Restaurar'}
@@ -250,6 +251,43 @@ function StudentStatsView() {
             </div>
           </div>
         )}
+
+        {confirmarRestauracionId !== null && (() => {
+          const alumno = alumnosEliminados.find((a) => a.id === confirmarRestauracionId)
+          if (!alumno) return null
+          return (
+            <div className="alumnos-modal-overlay" onClick={() => setConfirmarRestauracionId(null)}>
+              <div className="alumnos-modal" onClick={(e) => e.stopPropagation()}>
+                <p className="alumnos-modal__label">Confirmar restauración</p>
+                <h2>¿Querés restaurar este alumno?</h2>
+                <p style={{ marginTop: '0.75rem' }}>
+                  El alumno <strong>{alumno.nombre} {alumno.apellido}</strong> volverá a aparecer en la lista de activos.
+                </p>
+
+                <div className="alumnos-modal__actions">
+                  <button
+                    type="button"
+                    className="btn-cancelar"
+                    onClick={() => setConfirmarRestauracionId(null)}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-eliminar-confirmar"
+                    style={{ background: '#22c55e', color: '#fff' }}
+                    onClick={() => {
+                      restaurarAlumno(confirmarRestauracionId)
+                      setConfirmarRestauracionId(null)
+                    }}
+                  >
+                    Sí, restaurar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
+        })()}
 
         {mostrarExitoRestauracion && (
           <div className="alumnos-modal-overlay">
