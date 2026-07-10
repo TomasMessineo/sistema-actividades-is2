@@ -8,6 +8,5 @@ public class RegistroProfesorDTO {
     private String apellido;
     private String dni;
     private String email;
-    private String password;
     private Integer actividadId;
 }

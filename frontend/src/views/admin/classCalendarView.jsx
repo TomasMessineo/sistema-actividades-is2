@@ -59,6 +59,9 @@ function ClassCalendarView() {
  
   const [modalDisciplinaAbierto, setModalDisciplinaAbierto] = useState(false)
   const [modalEliminarDisciplinaAbierto, setModalEliminarDisciplinaAbierto] = useState(false)
+  const [disciplinasMenuAbierto, setDisciplinasMenuAbierto] = useState(false)
+  const disciplinasMenuRef = useRef(null)
+  const [mostrarCanceladas, setMostrarCanceladas] = useState(false)
   const [nombreDisciplina, setNombreDisciplina] = useState('')
   const [tarifaDisciplina, setTarifaDisciplina] = useState('')
   const [errorDisciplina, setErrorDisciplina] = useState('')
@@ -206,6 +209,27 @@ function ClassCalendarView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weekStart, weekEnd])
 
+  // Cierre del desplegable de Disciplinas al hacer click afuera o presionar Escape.
+  useEffect(() => {
+    if (!disciplinasMenuAbierto) return undefined
+
+    const handleClickOutside = (event) => {
+      if (disciplinasMenuRef.current && !disciplinasMenuRef.current.contains(event.target)) {
+        setDisciplinasMenuAbierto(false)
+      }
+    }
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setDisciplinasMenuAbierto(false)
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [disciplinasMenuAbierto])
+
   const abrirModificarClase = (clase) => {
     const claseCompleta = classes.find((item) => item.idClase === clase.id) ?? clase
     setClaseSeleccionada(claseCompleta)
@@ -221,6 +245,9 @@ function ClassCalendarView() {
     return classes
       .map((item) => {
         if (!item?.fecha || typeof item.hora !== 'number') return null
+
+        // Las clases no canceladas siempre se ven; las canceladas solo si el toggle está activo.
+        if (!mostrarCanceladas && Boolean(item.cancelada)) return null
 
         const classDate = new Date(`${item.fecha}T00:00:00`)
         const day = getDayKey(classDate)
@@ -238,7 +265,7 @@ function ClassCalendarView() {
         }
       })
       .filter(Boolean)
-  }, [classes, weekStart, weekEnd])
+  }, [classes, weekStart, weekEnd, mostrarCanceladas])
 
   return (
     <div className="available-classes-page" ref={mainRef}>
@@ -248,7 +275,7 @@ function ClassCalendarView() {
         {!loading && error && <p className="calendar-status calendar-status--error">{error}</p>}
         <AvailableClassesCalendar
           headerLeft={(
-            <div style={{ display: 'flex', gap: '10px' }}>
+            <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
               <button
                 type="button"
                 className="calendar-create-button"
@@ -256,14 +283,17 @@ function ClassCalendarView() {
               >
                 Crear clase nueva
               </button>
-              <button
-                type="button"
-                className="calendar-create-button"
-                style={{ background: 'rgba(255,255,255,0.08)', color: '#fff', border: '1px solid rgba(255,255,255,0.12)' }}
-                onClick={abrirModalAjuste}
-              >
-                Ajustar Precio
-              </button>
+              <label className="calendar-toggle">
+                <input
+                  type="checkbox"
+                  checked={mostrarCanceladas}
+                  onChange={(e) => setMostrarCanceladas(e.target.checked)}
+                />
+                <span className="calendar-toggle__track" aria-hidden="true">
+                  <span className="calendar-toggle__thumb" />
+                </span>
+                <span className="calendar-toggle__label">Ver canceladas</span>
+              </label>
             </div>
           )}
           headerCenter={(
@@ -278,22 +308,44 @@ function ClassCalendarView() {
             </div>
           )}
           headerRight={(
-            <div style={{ display: 'flex', gap: '10px' }}>
+            <div className="calendar-dropdown" ref={disciplinasMenuRef}>
               <button
                 type="button"
                 className="calendar-create-button"
-                onClick={abrirModalDisciplina}
+                aria-haspopup="true"
+                aria-expanded={disciplinasMenuAbierto}
+                onClick={() => setDisciplinasMenuAbierto((abierto) => !abierto)}
               >
-                Crear disciplina
+                Disciplinas <span aria-hidden="true" style={{ marginLeft: 4 }}>▾</span>
               </button>
-              <button
-                type="button"
-                className="calendar-create-button"
-                style={{ background: 'rgba(255, 80, 80, 0.12)', color: '#ffd7d7', border: '1px solid rgba(255, 80, 80, 0.35)' }}
-                onClick={() => setModalEliminarDisciplinaAbierto(true)}
-              >
-                Eliminar disciplina
-              </button>
+              {disciplinasMenuAbierto && (
+                <div className="calendar-dropdown__menu" role="menu">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="calendar-dropdown__item"
+                    onClick={() => { setDisciplinasMenuAbierto(false); abrirModalAjuste() }}
+                  >
+                    Ajustar precio
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="calendar-dropdown__item"
+                    onClick={() => { setDisciplinasMenuAbierto(false); abrirModalDisciplina() }}
+                  >
+                    Crear disciplina
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="calendar-dropdown__item calendar-dropdown__item--danger"
+                    onClick={() => { setDisciplinasMenuAbierto(false); setModalEliminarDisciplinaAbierto(true) }}
+                  >
+                    Eliminar disciplina
+                  </button>
+                </div>
+              )}
             </div>
           )}
           weekStart={weekStart}

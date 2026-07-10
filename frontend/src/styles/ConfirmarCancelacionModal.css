@@ -119,6 +119,18 @@
   border: 1px solid var(--border);
 }
 
+.confirmar-cancelacion-modal__button--primary {
+  color: #062b12;
+  background: #2fe36a;
+  border: 1px solid #2fe36a;
+  font-weight: 700;
+}
+
+.confirmar-cancelacion-modal__button--primary:hover:not(:disabled) {
+  background: #29c85d;
+  border-color: #29c85d;
+}
+
 @media (max-width: 480px) {
   .confirmar-cancelacion-modal__actions {
     flex-direction: column-reverse;

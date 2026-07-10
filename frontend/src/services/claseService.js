@@ -109,6 +109,15 @@ export const confirmarAsistenciaEspera = (idAlumno, idClase, metodoPago) => {
   });
 };
 
+// Rechaza el cupo ofrecido desde la lista de espera: el alumno sale de la cola
+// y el lugar se ofrece al siguiente de la lista.
+export const rechazarCupoEspera = (idAlumno, idClase) => {
+  return apiFetch('/lista-espera/rechazar', {
+    method: 'POST',
+    body: JSON.stringify({ idAlumno, idClase }),
+  });
+};
+
 // Cancela la asistencia de un alumno ya inscripto a una clase.
 export const cancelarAsistenciaAlumno = (idAlumno, idClase) => {
   return apiFetch('/lista-espera/cancelar-asistencia', {

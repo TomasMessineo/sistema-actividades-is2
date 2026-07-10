@@ -148,7 +148,19 @@ public class PagoService {
                 });
     }
 
-    private void inscribirEnClase(Clase clase, Alumno alumno) {
+    private boolean inscribirEnClase(Clase clase, Alumno alumno) {
+        return inscribirEnClase(clase, alumno, false);
+    }
+
+    /**
+     * Inscribe al alumno en la clase. Devuelve true si quedó efectivamente
+     * inscripto (o ya lo estaba), false si no pudo (cupo lleno).
+     *
+     * @param vieneDeEspera true cuando el alumno fue habilitado desde la lista
+     *   de espera: el cupo liberado es suyo, por lo que NO se aplica el tope de
+     *   cupo (ese lugar estaba reservado para él).
+     */
+    private boolean inscribirEnClase(Clase clase, Alumno alumno, boolean vieneDeEspera) {
         ListaAsistencia lista = listaAsistenciaRepository
                 .findByClaseIdClase(clase.getIdClase())
                 .orElseGet(() -> {
@@ -167,28 +179,48 @@ public class PagoService {
                 .anyMatch(a -> java.util.Objects.equals(a.getId(), alumno.getId()));
 
         if (yaInscripto) {
-            return;
+            // Ya está inscripto: aseguramos igualmente sacarlo de la cola de espera.
+            quitarDeListaEspera(clase, alumno);
+            return true;
         }
 
         // Validar cupo antes de insertar (defensa contra race conditions / dobles
         // llamadas). La ocupación cuenta también los lugares guardados por
         // renovación (reservas PENDIENTES de otros alumnos): un alumno nuevo no
         // puede tomar un lugar reservado, pero el dueño de la reserva sí entra.
-        int cupo = clase.getCupo() == null ? 0 : clase.getCupo();
-        int reservadosAjenos = contarReservasPendientesAjenas(clase, lista, alumno);
-        if (lista.getAlumnos().size() + reservadosAjenos >= cupo) {
-            return;
+        // Excepción: si viene de la lista de espera, el cupo liberado le pertenece
+        // y no se le aplica el tope.
+        if (!vieneDeEspera) {
+            int cupo = clase.getCupo() == null ? 0 : clase.getCupo();
+            int reservadosAjenos = contarReservasPendientesAjenas(clase, lista, alumno);
+            if (lista.getAlumnos().size() + reservadosAjenos >= cupo) {
+                return false;
+            }
         }
 
         lista.getAlumnos().add(alumno);
         listaAsistenciaRepository.save(lista);
 
         // Si el alumno venía de la lista de espera de esta clase, lo sacamos de la cola.
+        quitarDeListaEspera(clase, alumno);
+        return true;
+    }
+
+    private void quitarDeListaEspera(Clase clase, Alumno alumno) {
         esperaAlumnoRepository.findByAlumno_Id(alumno.getId()).stream()
                 .filter(ea -> ea.getListaEspera() != null
                         && ea.getListaEspera().getClase() != null
                         && ea.getListaEspera().getClase().getIdClase() == clase.getIdClase())
                 .forEach(esperaAlumnoRepository::delete);
+    }
+
+    /**
+     * Inscripción desde la lista de espera con crédito ya validado. El cupo
+     * liberado le pertenece al alumno, por lo que se saltea el tope de cupo.
+     * Devuelve true si quedó inscripto.
+     */
+    public boolean inscribirDesdeEspera(Clase clase, Alumno alumno) {
+        return inscribirEnClase(clase, alumno, true);
     }
 
     // Lugares guardados por renovación que ocupan cupo de esta clase para el

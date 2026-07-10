@@ -6,6 +6,7 @@ import com.sportify.backend.entities.ClasePlantilla;
 import com.sportify.backend.repositories.ActividadRepository;
 import com.sportify.backend.repositories.ClasePlantillaRepository;
 import com.sportify.backend.repositories.ClaseRepository;
+import com.sportify.backend.repositories.ProfesorRepository;
 import com.sportify.backend.services.ClaseService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,15 +25,18 @@ public class ActividadController {
     private final ActividadRepository actividadRepository;
     private final ClaseRepository claseRepository;
     private final ClasePlantillaRepository clasePlantillaRepository;
+    private final ProfesorRepository profesorRepository;
     private final ClaseService claseService;
 
     public ActividadController(ActividadRepository actividadRepository,
             ClaseRepository claseRepository,
             ClasePlantillaRepository clasePlantillaRepository,
+            ProfesorRepository profesorRepository,
             ClaseService claseService) {
         this.actividadRepository = actividadRepository;
         this.claseRepository = claseRepository;
         this.clasePlantillaRepository = clasePlantillaRepository;
+        this.profesorRepository = profesorRepository;
         this.claseService = claseService;
     }
 
@@ -71,6 +75,16 @@ public class ActividadController {
         if (tieneClasesActivas) {
             return ResponseEntity.badRequest().body(Map.of(
                     "message", "La eliminación no pudo realizarse debido a que la disciplina seleccionada cuenta con clases activas. Por favor, elimine primero las clases asociadas a la disciplina"
+            ));
+        }
+
+        // Escenario 3: no se puede eliminar una disciplina con profesores activos asociados.
+        boolean tieneProfesoresActivos = !profesorRepository
+                .findByActividad_IdActividadAndActivoTrue(id).isEmpty();
+
+        if (tieneProfesoresActivos) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "message", "La eliminación no pudo realizarse debido a que la disciplina seleccionada cuenta con profesores activos asociados. Por favor, elimine primero a dichos profesores"
             ));
         }
 

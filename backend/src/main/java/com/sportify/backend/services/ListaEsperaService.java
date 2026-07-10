@@ -1,7 +1,6 @@
 package com.sportify.backend.services;
 
 import com.sportify.backend.dtos.ClaseEnEsperaDTO;
-import com.sportify.backend.dtos.InscripcionRequest;
 import com.sportify.backend.dtos.ListaEsperaRequest;
 import com.sportify.backend.dtos.ListaEsperaResponse;
 import com.sportify.backend.entities.Alumno;
@@ -40,7 +39,7 @@ public class ListaEsperaService {
     private final EsperaAlumnoRepository esperaAlumnoRepository;
     private final AptoMedicoRepository aptoMedicoRepository;
     private final PagoRepository pagoRepository;
-    private final InscripcionService inscripcionService;
+    private final PagoService pagoService;
     private final EmailService emailService;
 
     public ListaEsperaService(
@@ -51,7 +50,7 @@ public class ListaEsperaService {
             EsperaAlumnoRepository esperaAlumnoRepository,
             AptoMedicoRepository aptoMedicoRepository,
             PagoRepository pagoRepository,
-            InscripcionService inscripcionService,
+            PagoService pagoService,
             EmailService emailService) {
         this.alumnoRepository = alumnoRepository;
         this.claseRepository = claseRepository;
@@ -60,7 +59,7 @@ public class ListaEsperaService {
         this.esperaAlumnoRepository = esperaAlumnoRepository;
         this.aptoMedicoRepository = aptoMedicoRepository;
         this.pagoRepository = pagoRepository;
-        this.inscripcionService = inscripcionService;
+        this.pagoService = pagoService;
         this.emailService = emailService;
     }
 
@@ -162,16 +161,41 @@ public class ListaEsperaService {
     // ============================================================
     @Transactional
     public InscripcionResponseConfirmacion confirmarConCredito(int idAlumno, int idClase) {
-        EsperaAlumno integrante = obtenerIntegranteConAcceso(idAlumno, idClase);
+        // Valida que el alumno esté en la cola y tenga el cupo habilitado.
+        obtenerIntegranteConAcceso(idAlumno, idClase);
 
-        InscripcionRequest req = new InscripcionRequest();
-        req.setIdAlumno(idAlumno);
-        req.setIdClase(idClase);
-        req.setTipoClase(Pago.TipoClase.INDIVIDUAL);
-        req.setMetodoPago(Pago.TipoPago.CREDITOS);
+        Alumno alumno = alumnoRepository.findById(idAlumno)
+                .orElseThrow(() -> new RuntimeException("El alumno no existe"));
+        Clase clase = claseRepository.findById(idClase)
+                .orElseThrow(() -> new RuntimeException("La clase no existe"));
 
-        // Esto descuenta crédito, anota al alumno y (vía registrarAsistencia) lo saca de la espera
-        inscripcionService.iniciarInscripcion(req);
+        int creditos = alumno.getCreditos() == null ? 0 : alumno.getCreditos();
+        if (creditos <= 0) {
+            throw new RuntimeException("No tenés créditos disponibles");
+        }
+
+        // Inscribir honrando el cupo que la lista de espera reservó para este alumno.
+        // Devuelve false si por algún motivo ya no hay lugar; en ese caso NO se
+        // descuenta el crédito y se informa el error (el alumno sigue en la cola).
+        boolean inscripto = pagoService.inscribirDesdeEspera(clase, alumno);
+        if (!inscripto) {
+            throw new RuntimeException("El cupo ya no está disponible para esta clase");
+        }
+
+        // Recién con la inscripción confirmada descontamos el crédito y registramos el pago.
+        alumno.setCreditos(creditos - 1);
+        alumnoRepository.save(alumno);
+
+        Pago pago = new Pago();
+        pago.setAlumno(alumno);
+        pago.setClase(clase);
+        pago.setFecha(LocalDate.now());
+        pago.setTipoPago(Pago.TipoPago.CREDITOS);
+        pago.setTipo(Pago.TipoClase.INDIVIDUAL);
+        pago.setValor(0.0);
+        pago.setEstado(Pago.EstadoPago.COMPLETADO);
+        pago.setDescripcion("Inscripción con crédito (lista de espera)");
+        pagoRepository.save(pago);
 
         return new InscripcionResponseConfirmacion("Inscripción confirmada con crédito");
     }
@@ -179,6 +203,35 @@ public class ListaEsperaService {
     // Valida que el alumno tenga acceso habilitado para confirmar esta clase
     public void validarAccesoParaPago(int idAlumno, int idClase) {
         obtenerIntegranteConAcceso(idAlumno, idClase);
+    }
+
+    // ============================================================
+    // 3b. RECHAZAR EL CUPO (declinar el lugar ofrecido desde la espera)
+    // ============================================================
+    // El alumno con acceso habilitado decide no ir: sale de la cola y el cupo
+    // se ofrece de inmediato al siguiente de la lista (sin esperar). No genera
+    // strike: declinar un cupo ofrecido no es cancelar una inscripción.
+    @Transactional
+    public String rechazarCupo(int idAlumno, int idClase) {
+        EsperaAlumno integrante = obtenerIntegranteConAcceso(idAlumno, idClase);
+
+        // Sale de la cola. El integrante se cargó a través de la colección del padre
+        // (ListaEspera.integrantes, con cascade=ALL + orphanRemoval=true), así que un
+        // esperaAlumnoRepository.delete() suelto quedaría anulado por el cascade del
+        // padre al hacer flush. Hay que sacarlo de la colección para que orphanRemoval
+        // borre efectivamente la fila. El lugar físico en la clase ya estaba libre.
+        ListaEspera lista = integrante.getListaEspera();
+        lista.getIntegrantes().remove(integrante);
+        listaEsperaRepository.save(lista);
+
+        // Se ofrece el cupo al primero sin acceso (habilitar + mail). El que rechaza
+        // ya salió de la colección, así que queda excluido.
+        boolean huboNotificado = habilitarPrimeroDeLaCola(idClase);
+
+        if (huboNotificado) {
+            return "Rechazaste el cupo. Se ofreció al siguiente de la lista de espera.";
+        }
+        return "Rechazaste el cupo.";
     }
 
     private EsperaAlumno obtenerIntegranteConAcceso(int idAlumno, int idClase) {

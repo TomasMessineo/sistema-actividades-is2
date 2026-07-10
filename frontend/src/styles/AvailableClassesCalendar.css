@@ -52,6 +52,111 @@
   transform: translateY(-2px);
 }
 
+/* Toggle "Ver canceladas" */
+.calendar-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.calendar-toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.calendar-toggle__track {
+  position: relative;
+  width: 42px;
+  height: 24px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.calendar-toggle__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform var(--transition-fast);
+}
+
+.calendar-toggle input:checked + .calendar-toggle__track {
+  background: linear-gradient(135deg, var(--primary-light), var(--primary));
+  border-color: var(--primary);
+}
+
+.calendar-toggle input:checked + .calendar-toggle__track .calendar-toggle__thumb {
+  transform: translateX(18px);
+}
+
+.calendar-toggle input:focus-visible + .calendar-toggle__track {
+  box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+.calendar-toggle__label {
+  font-family: var(--font-heading);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary, #fff);
+}
+
+/* Desplegable "Disciplinas" */
+.calendar-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.calendar-dropdown__menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 200;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  border-radius: 14px;
+  background: var(--surface, #10161f);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+.calendar-dropdown__item {
+  text-align: left;
+  padding: 0.7rem 0.9rem;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-primary, #fff);
+  font-family: var(--font-heading);
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.calendar-dropdown__item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.calendar-dropdown__item--danger {
+  color: #ffd7d7;
+}
+
+.calendar-dropdown__item--danger:hover {
+  background: rgba(255, 80, 80, 0.16);
+}
+
 .calendar-kicker {
   margin: 0 0 8px;
   text-transform: uppercase;

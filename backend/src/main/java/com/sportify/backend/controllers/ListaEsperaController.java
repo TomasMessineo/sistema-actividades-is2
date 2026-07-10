@@ -63,6 +63,17 @@ public class ListaEsperaController {
         }
     }
 
+    // Rechazar el cupo ofrecido desde la lista de espera (pasa al siguiente)
+    @PostMapping("/rechazar")
+    public ResponseEntity<?> rechazar(@RequestBody ConfirmarAsistenciaRequest request) {
+        try {
+            String mensaje = listaEsperaService.rechazarCupo(request.getIdAlumno(), request.getIdClase());
+            return ResponseEntity.ok(Map.of("mensaje", mensaje));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     // Cancelar la asistencia de un alumno ya inscripto (escenarios 4 y 5)
     @PostMapping("/cancelar-asistencia")
     public ResponseEntity<?> cancelarAsistencia(@RequestBody CancelarAsistenciaRequest request) {

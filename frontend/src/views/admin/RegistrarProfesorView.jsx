@@ -17,9 +17,6 @@ const schema = yup.object({
   email: yup.string()
     .email('Por favor, ingrese un correo electrónico válido')
     .required('El correo es obligatorio'),
-  password: yup.string()
-    .min(5, 'La contraseña debe tener al menos 5 caracteres')
-    .required('La contraseña es obligatoria'),
   actividadId: yup.number()
     .typeError('Debe seleccionar la disciplina')
     .required('Debe seleccionar la disciplina')
@@ -60,7 +57,6 @@ function RegistrarProfesorView() {
           apellido: data.apellido,
           dni: data.dni,
           email: data.email,
-          password: data.password,
           actividadId: Number(data.actividadId)
         })
       })
@@ -159,17 +155,10 @@ function RegistrarProfesorView() {
               {errors.email && <span className="field-error-text">{errors.email.message}</span>}
             </div>
 
-            <div className="form-group">
-              <label htmlFor="password">Contraseña inicial</label>
-              <input
-                type="password"
-                id="password"
-                {...register('password')}
-                className={errors.password ? 'input-error' : ''}
-                placeholder="••••••••"
-              />
-              {errors.password && <span className="field-error-text">{errors.password.message}</span>}
-            </div>
+            <p className="auth-status" style={{ marginTop: 0 }}>
+              La contraseña inicial del profesor será su DNI. Se le enviará un correo
+              y se le recomendará cambiarla al ingresar.
+            </p>
 
             <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
               <button

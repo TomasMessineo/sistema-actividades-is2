@@ -3,11 +3,13 @@ import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '../../components/Navbar/NavbarAlumno.jsx'
 import PasarAsistenciaModal from '../../components/PasarAsistenciaModal.jsx'
 import ConfirmarCancelacionModal from '../../components/ConfirmarCancelacionModal.jsx'
+import ConfirmarInscripcionEsperaModal from '../../components/ConfirmarInscripcionEsperaModal.jsx'
 import { useAuth } from '../../context/AuthContext'
 import {
   listarClasesDelAlumno,
   listarClasesEnEspera,
   confirmarAsistenciaEspera,
+  rechazarCupoEspera,
   cancelarAsistenciaAlumno,
 } from '../../services/claseService'
 import { apiFetch } from '../../services/apiClient'
@@ -133,6 +135,7 @@ function MyClassesView() {
   const [isStrikesModalOpen, setIsStrikesModalOpen] = useState(false)
   const [isAsistenciaModalOpen, setIsAsistenciaModalOpen] = useState(false)
   const [claseACancelar, setClaseACancelar] = useState(null)
+  const [claseAConfirmar, setClaseAConfirmar] = useState(null)
   const [strikesInfo, setStrikesInfo] = useState(null) // { strikes, limite }
   const [activeMonth, setActiveMonth] = useState(() => new Date())
   const [feedback, setFeedback] = useState(null) // { tipo: 'ok'|'error', texto }
@@ -203,6 +206,7 @@ function MyClassesView() {
         setFeedback({ tipo: 'error', texto: err.message || 'No se pudo confirmar la asistencia.' })
       } finally {
         setAccionEnCurso(null)
+        setClaseAConfirmar(null)
       }
       return
     }
@@ -235,6 +239,22 @@ function MyClassesView() {
     } catch (err) {
       setFeedback({ tipo: 'error', texto: err.message || 'No se pudo iniciar el pago.' })
       setAccionEnCurso(null)
+      setClaseAConfirmar(null)
+    }
+  }
+
+  const rechazarAsistencia = async (claseEspera) => {
+    setFeedback(null)
+    try {
+      setAccionEnCurso(`rechazar-${claseEspera.idClase}`)
+      const resp = await rechazarCupoEspera(user.id, claseEspera.idClase)
+      setFeedback({ tipo: 'ok', texto: resp?.mensaje || 'Rechazaste el cupo.' })
+      await loadClasses()
+    } catch (err) {
+      setFeedback({ tipo: 'error', texto: err.message || 'No se pudo rechazar el cupo.' })
+    } finally {
+      setAccionEnCurso(null)
+      setClaseAConfirmar(null)
     }
   }
 
@@ -276,6 +296,7 @@ function MyClassesView() {
         setIsEsperaModalOpen(false)
         setIsStrikesModalOpen(false)
         setClaseACancelar(null)
+        setClaseAConfirmar(null)
       }
     }
 
@@ -437,7 +458,7 @@ function MyClassesView() {
                         <button
                           type="button"
                           className="my-class-confirm-btn"
-                          onClick={() => confirmarAsistencia(clase)}
+                          onClick={() => setClaseAConfirmar(clase)}
                           disabled={accionEnCurso === `confirmar-${clase.idClase}`}
                         >
                           {accionEnCurso === `confirmar-${clase.idClase}` ? 'Procesando...' : 'Confirmar asistencia'}
@@ -461,7 +482,7 @@ function MyClassesView() {
             texto = 'Usted no tiene strikes este mes, y goza de un 20% de descuento el mes que viene.'
           } else if (cant < limite) {
             estado = 'warning'
-            texto = `${cant} de ${limite} strikes para ser penalizado.`
+            texto = `${cant} de ${limite} strikes para ser penalizado, y goza de un 20% de descuento el mes que viene.`
           } else {
             estado = 'error'
             texto = 'Usted acumuló 3 strikes este mes (por faltar sin avisar o cancelar fuera de término), por lo que perderá el 20% de descuento el mes que viene.'
@@ -556,6 +577,18 @@ function MyClassesView() {
           onConfirmar={() => claseACancelar && cancelarAsistencia(claseACancelar.id)}
           clase={claseACancelar}
           cargando={accionEnCurso === `cancelar-${claseACancelar?.id}`}
+        />
+
+        <ConfirmarInscripcionEsperaModal
+          abierto={!!claseAConfirmar}
+          onCerrar={() => setClaseAConfirmar(null)}
+          onConfirmar={() => claseAConfirmar && confirmarAsistencia(claseAConfirmar)}
+          onRechazar={() => claseAConfirmar && rechazarAsistencia(claseAConfirmar)}
+          titulo={claseAConfirmar?.actividad}
+          detalle={claseAConfirmar ? formatClassDate(claseAConfirmar.fecha, claseAConfirmar.hora) : ''}
+          usaCredito={(user?.creditos ?? 0) > 0}
+          confirmando={accionEnCurso === `confirmar-${claseAConfirmar?.idClase}`}
+          rechazando={accionEnCurso === `rechazar-${claseAConfirmar?.idClase}`}
         />
       </main>
     </div>

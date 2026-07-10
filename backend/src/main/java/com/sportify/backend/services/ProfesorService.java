@@ -33,6 +33,9 @@ public class ProfesorService {
     @Autowired
     private ProfesorValidator profesorValidator;
 
+    @Autowired
+    private EmailService emailService;
+
     public List<Profesor> listarTodos() {
         return profesorRepository.findByActivoTrue();
     }
@@ -57,29 +60,39 @@ public class ProfesorService {
         Actividad actividad = actividadRepository.findById(dto.getActividadId())
                 .orElseThrow(() -> new IllegalArgumentException("La disciplina seleccionada no existe"));
 
-        if (dto.getPassword() == null || dto.getPassword().isBlank()) {
-            throw new IllegalArgumentException("La contraseña es obligatoria");
-        }
         if (dto.getNombre() == null || dto.getNombre().isBlank()) {
             throw new IllegalArgumentException("El nombre es obligatorio");
         }
         if (dto.getApellido() == null || dto.getApellido().isBlank()) {
             throw new IllegalArgumentException("El apellido es obligatorio");
         }
+        if (dto.getDni() == null || dto.getDni().isBlank()) {
+            throw new IllegalArgumentException("El DNI es obligatorio");
+        }
+
+        // La contraseña inicial del profesor es su DNI. El admin no la define ni la
+        // conoce; el profesor la sabe (es su documento) y se le recomienda cambiarla.
+        String passwordInicial = dto.getDni().trim();
 
         Profesor profesor = new Profesor();
         profesor.setNombre(dto.getNombre().trim());
         profesor.setApellido(dto.getApellido().trim());
         profesor.setDni(dto.getDni());
         profesor.setEmail(dto.getEmail());
-        profesor.setPassword(dto.getPassword());
+        profesor.setPassword(passwordInicial);
         profesor.setFechaUltimoCambioPassword(LocalDateTime.now());
         profesor.setActivo(true);
         profesor.setActividad(actividad);
 
         profesorValidator.validarRegistro(profesor);
 
-        return profesorRepository.save(profesor);
+        Profesor guardado = profesorRepository.save(profesor);
+
+        // Correo de bienvenida indicando que la contraseña inicial es el DNI.
+        emailService.notificarRegistroProfesor(
+                guardado.getEmail(), guardado.getNombre(), passwordInicial);
+
+        return guardado;
     }
 
     public void desactivar(Integer id) {
