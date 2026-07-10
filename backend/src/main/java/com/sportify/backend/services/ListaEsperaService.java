@@ -309,11 +309,8 @@ public class ListaEsperaService {
         }
 
         // Se liberó un cupo → habilitar al primero de la cola de espera (si hay)
-        boolean huboNotificado = habilitarPrimeroDeLaCola(idClase);
+        habilitarPrimeroDeLaCola(idClase);
 
-        if (huboNotificado) {
-            return mensaje + " Se notificó al primer alumno de la lista de espera.";
-        }
         return mensaje;
     }
 
