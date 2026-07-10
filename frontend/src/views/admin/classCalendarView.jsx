@@ -117,6 +117,9 @@ function ClassCalendarView() {
   }
 
   const confirmarAjuste = async () => {
+    // Cada intento arranca limpio: evita que un error previo conviva con la confirmación.
+    setErrorAjuste('')
+    setExitoAjuste('')
     if (!actividadSeleccionada) {
       setErrorAjuste('Seleccioná una disciplina.')
       return
@@ -152,6 +155,9 @@ function ClassCalendarView() {
   }
 
   const guardarDisciplina = async () => {
+    // Cada intento arranca limpio: evita que un error previo conviva con la confirmación.
+    setErrorDisciplina('')
+    setExitoDisciplina('')
     if (!nombreDisciplina.trim()) {
       setErrorDisciplina('El nombre de la disciplina es obligatorio')
       return

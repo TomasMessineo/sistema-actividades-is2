@@ -3,7 +3,8 @@ import '../styles/ModificarClaseModal.css'
 import CancelarClaseModal from './CancelarClaseModal.jsx'
 import {
   cancelarClase as cancelarClaseApi,
-  cambiarProfesorClase
+  cambiarProfesorClase,
+  obtenerOcupacionClase
 } from '../services/claseService'
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8080/api').replace(/\/$/, '')
@@ -75,6 +76,7 @@ function ModificarClaseModal({
   const [fechaDesde, setFechaDesde] = useState('')
   const [fechaHasta, setFechaHasta] = useState('')
   const [fechaApartirDe, setFechaApartirDe] = useState('')
+  const [ocupacion, setOcupacion] = useState(null)
 
   useEffect(() => {
     if (abierto && claseSeleccionada) {
@@ -94,10 +96,24 @@ function ModificarClaseModal({
       setFechaDesde('')
       setFechaHasta('')
       setFechaApartirDe('')
+      setOcupacion(null)
 
       cargarProfesores()
+      cargarOcupacion()
     }
   }, [abierto, claseSeleccionada])
+
+  const cargarOcupacion = async () => {
+    const idClase = obtenerIdClase()
+    if (!idClase) return
+    try {
+      const data = await obtenerOcupacionClase(idClase)
+      setOcupacion(data)
+    } catch {
+      // No es crítico: si falla, no mostramos el detalle de ocupación.
+      setOcupacion(null)
+    }
+  }
 
   if (!abierto || !claseSeleccionada) {
     return null
@@ -422,6 +438,20 @@ function ModificarClaseModal({
               <span>Profesor</span>
               <strong>{obtenerNombreProfesor(obtenerProfesorSeleccionado())}</strong>
             </div>
+
+            {ocupacion && (
+              <>
+                <div className="modificar-clase-modal__summary-item">
+                  <span>Inscriptos (pagaron)</span>
+                  <strong>{ocupacion.pagados}</strong>
+                </div>
+
+                <div className="modificar-clase-modal__summary-item">
+                  <span>Con reserva del mes sin pagar</span>
+                  <strong>{ocupacion.reservadosSinPagar}</strong>
+                </div>
+              </>
+            )}
           </aside>
         )}
 

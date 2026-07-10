@@ -328,6 +328,23 @@ public class ClaseService {
                 ReservaCupo.EstadoReserva.PENDIENTE);
     }
 
+    // Ocupación de una clase para el panel del administrador: cuántos alumnos ya
+    // pagaron (están en la lista de asistencia) y cuántos tienen su lugar guardado
+    // por renovación pero todavía no pagaron el abono del mes (reservas PENDIENTES).
+    @Transactional(readOnly = true)
+    public com.sportify.backend.dtos.OcupacionClaseDTO obtenerOcupacion(Integer idClase) {
+        Clase clase = claseRepository.findById(idClase)
+                .orElseThrow(() -> new RuntimeException("Clase no encontrada"));
+
+        int pagados = clase.getListaAsistencia() != null && clase.getListaAsistencia().getAlumnos() != null
+                ? clase.getListaAsistencia().getAlumnos().size()
+                : 0;
+
+        int reservadosSinPagar = reservasPendientes(clase).size();
+
+        return new com.sportify.backend.dtos.OcupacionClaseDTO(pagados, reservadosSinPagar);
+    }
+
     // HELPER — true si el alumno ya está inscripto en OTRA clase en la misma fecha
     // y hora.
     private boolean alumnoTieneOtraClaseEnHorario(Integer alumnoId, Clase clase) {
@@ -1396,6 +1413,10 @@ public class ClaseService {
                             && !c.getFecha().isBefore(desde)
                             && !c.getFecha().isAfter(hasta))
                     .collect(Collectors.toList());
+
+            if (delRango.isEmpty()) {
+                throw new RuntimeException("No hay clases de esta serie en el rango seleccionado.");
+            }
 
             delRango.forEach(c -> c.setProfesor(profesor));
             claseRepository.saveAll(delRango);

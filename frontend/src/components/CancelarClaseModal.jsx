@@ -206,6 +206,10 @@ function CancelarClaseModal({
 
     try {
       const resultado = await cancelarRangoSerieApi(idPlantilla, fechaDesde, fechaHasta, motivo.trim())
+      if ((resultado?.totalEnRango ?? 0) === 0) {
+        setError('No hay clases de esta serie en el rango seleccionado.')
+        return
+      }
       finalizarConExito(resultado)
     } catch (err) {
       setError(err.message || 'Ocurrió un error al cancelar las clases del rango.')
@@ -398,7 +402,13 @@ function CancelarClaseModal({
 
               <h3>Cancelación registrada</h3>
 
-              <p>{construirMensajeExito(resultadoExito)}</p>
+              {/* El conteo de ocurrencias solo tiene sentido para un rango acotado.
+                  En "una sola clase" e "a partir de X" se muestra un mensaje genérico. */}
+              <p>
+                {modo === MODO_RANGO
+                  ? construirMensajeExito(resultadoExito)
+                  : 'La cancelación se registró correctamente.'}
+              </p>
 
               {resultadoExito?.alumnosAcreditados > 0 && (
                 <div className="cancelar-clase-modal__creditos-aviso">

@@ -100,6 +100,11 @@ export const listarClasesEnEspera = (idAlumno) => {
   return apiFetch(`/lista-espera/alumno/${idAlumno}`);
 };
 
+// Ocupación de una clase (panel admin): { pagados, reservadosSinPagar }.
+export const obtenerOcupacionClase = (idClase) => {
+  return apiFetch(`/clases/${idClase}/ocupacion`);
+};
+
 // Confirma la asistencia desde la lista de espera (solo si tiene acceso).
 // metodoPago: 'CREDITOS' para pagar con crédito; null/otro para ir al pago.
 export const confirmarAsistenciaEspera = (idAlumno, idClase, metodoPago) => {

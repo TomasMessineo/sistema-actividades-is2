@@ -176,6 +176,18 @@ public class ClaseController {
     }
 
     // Alumnos anotados en una clase puntual.
+    // Ocupación de la clase: cuántos pagaron (inscriptos) y cuántos tienen
+    // reserva del mes sin pagar. Para el panel del administrador.
+    @GetMapping("/{id}/ocupacion")
+    @Transactional(readOnly = true)
+    public ResponseEntity<?> obtenerOcupacion(@PathVariable Integer id) {
+        try {
+            return ResponseEntity.ok(claseService.obtenerOcupacion(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @GetMapping("/{id}/alumnos")
     @Transactional(readOnly = true)
     public ResponseEntity<?> listarAlumnosDeClase(@PathVariable Integer id) {
