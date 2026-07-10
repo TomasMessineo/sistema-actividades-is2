@@ -1355,6 +1355,10 @@ public class ClaseService {
         Clase clase = claseRepository.findById(idClase)
                 .orElseThrow(() -> new RuntimeException("Clase no encontrada"));
 
+        if (Boolean.TRUE.equals(clase.getCancelada())) {
+            throw new RuntimeException("No se puede cambiar el profesor de una clase cancelada.");
+        }
+
         Profesor profesor = profesorRepository.findById(request.getProfesorId())
                 .orElseThrow(() -> new RuntimeException("El profesor seleccionado no existe."));
 

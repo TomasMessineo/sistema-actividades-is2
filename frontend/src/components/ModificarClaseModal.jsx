@@ -609,6 +609,10 @@ function ModificarClaseModal({
                     className="modificar-clase-modal__button modificar-clase-modal__button--primary"
                     onClick={() => {
                       setError('')
+                      if (claseSeleccionada.cancelada) {
+                        setError('No se puede modificar el profesor de una clase cancelada.')
+                        return
+                      }
                       // Restricción a nivel front: las clases que ya ocurrieron no se modifican.
                       if (claseEstaOcurriendoOYaPaso()) {
                         setError('No se puede modificar una clase que está ocurriendo o ya pasó.')
@@ -616,7 +620,7 @@ function ModificarClaseModal({
                       }
                       setMostrarOpcionesModificar(true)
                     }}
-                    disabled={cargando || cargandoProfesores}
+                    disabled={cargando || cargandoProfesores || Boolean(claseSeleccionada.cancelada)}
                   >
                     Modificar profesor
                   </button>
