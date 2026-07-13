@@ -12,6 +12,10 @@ public interface RegistroAsistenciaRepository extends JpaRepository<RegistroAsis
 
     List<RegistroAsistencia> findByAlumno_IdOrderByClase_FechaDesc(Integer alumnoId);
 
+    // Historial acotado a las clases dictadas por un profesor: un profesor solo
+    // puede ver información de los alumnos inscriptos a SUS clases (HU #22/#74).
+    List<RegistroAsistencia> findByAlumno_IdAndClase_Profesor_IdOrderByClase_FechaDesc(Integer alumnoId, Integer profesorId);
+
     Optional<RegistroAsistencia> findByAlumno_IdAndClase_IdClase(Integer alumnoId, Integer idClase);
 
     List<RegistroAsistencia> findByClase_IdClase(Integer idClase);

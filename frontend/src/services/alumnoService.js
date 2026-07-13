@@ -37,8 +37,11 @@ export const listarAlumnosDelProfesor = (profesorId) => {
 };
 
 // Historial de asistencias del alumno (clases con asistencia ya tomada).
-export const listarHistorialAsistencias = (idAlumno) => {
-  return apiFetch(`/alumnos/${idAlumno}/asistencias`);
+// Si se pasa profesorId, se acota a las clases de ese profesor (vista del
+// profesor): solo ve asistencias de sus propias clases.
+export const listarHistorialAsistencias = (idAlumno, profesorId) => {
+  const query = profesorId != null ? `?profesorId=${profesorId}` : '';
+  return apiFetch(`/alumnos/${idAlumno}/asistencias${query}`);
 };
 // Strikes del mes actual del alumno → { strikes, limite }. Un mismo contador
 // para faltar sin avisar y para cancelar tarde.

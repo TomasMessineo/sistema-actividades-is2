@@ -32,7 +32,8 @@ const formatClassDate = (fecha, hora) => {
 function HistorialAsistenciasModal({
   abierto,
   onCerrar,
-  alumno
+  alumno,
+  profesorId
 }) {
   const [historial, setHistorial] = useState([])
   const [cargando, setCargando] = useState(false)
@@ -49,7 +50,7 @@ function HistorialAsistenciasModal({
       try {
         setCargando(true)
         setError('')
-        const respuesta = await listarHistorialAsistencias(alumno.id)
+        const respuesta = await listarHistorialAsistencias(alumno.id, profesorId)
         if (!cancelado) {
           setHistorial(Array.isArray(respuesta) ? respuesta : [])
         }
@@ -69,7 +70,7 @@ function HistorialAsistenciasModal({
     return () => {
       cancelado = true
     }
-  }, [abierto, alumno?.id])
+  }, [abierto, alumno?.id, profesorId])
 
   if (!abierto) {
     return null
@@ -105,7 +106,7 @@ function HistorialAsistenciasModal({
           </div>
         ) : historial.length === 0 ? (
           <p className="historial-asistencias-modal__vacio">
-            Todavía no se le pasó asistencia en ninguna clase.
+            Este alumno todavía no tiene asistencias registradas en tus clases.
           </p>
         ) : (
           <div className="historial-asistencias-modal__lista">

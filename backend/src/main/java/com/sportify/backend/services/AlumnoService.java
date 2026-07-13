@@ -301,6 +301,17 @@ public class AlumnoService {
                 .toList();
     }
 
+    // Historial acotado a las clases de un profesor: solo las clases que dicta
+    // ese profesor, para que no vea asistencias de clases de otros (HU #22).
+    public List<RegistroAsistenciaDTO> listarHistorialAsistenciasDeProfesor(Integer idAlumno, Integer profesorId) {
+        buscarPorId(idAlumno);
+
+        return registroAsistenciaRepository
+                .findByAlumno_IdAndClase_Profesor_IdOrderByClase_FechaDesc(idAlumno, profesorId).stream()
+                .map(RegistroAsistenciaDTO::fromEntity)
+                .toList();
+    }
+
     private void validarFotoDePerfil(MultipartFile archivo) {
         if (archivo.getSize() > MAX_PROFILE_PICTURE_SIZE) {
             throw new IllegalArgumentException("La imagen no puede superar los 2 MB");

@@ -90,6 +90,7 @@ function VerAlumnosView() {
       <HistorialAsistenciasModal
         abierto={alumnoSeleccionado !== null}
         alumno={alumnoSeleccionado}
+        profesorId={user?.id}
         onCerrar={cerrarHistorial}
       />
     </div>

@@ -58,9 +58,16 @@ public class AlumnoController {
     }
 
     // Historial de asistencias del alumno (clases con asistencia ya tomada).
+    // Si viene profesorId, se acota a las clases de ese profesor (vista del
+    // profesor): un profesor solo ve asistencias de sus propias clases (HU #22).
     @GetMapping("/{id}/asistencias")
     @Transactional(readOnly = true)
-    public List<RegistroAsistenciaDTO> listarHistorialAsistencias(@PathVariable Integer id) {
+    public List<RegistroAsistenciaDTO> listarHistorialAsistencias(
+            @PathVariable Integer id,
+            @RequestParam(required = false) Integer profesorId) {
+        if (profesorId != null) {
+            return alumnoService.listarHistorialAsistenciasDeProfesor(id, profesorId);
+        }
         return alumnoService.listarHistorialAsistencias(id);
     }
     // Strikes del mes actual del alumno (para el menú "strikes restantes").

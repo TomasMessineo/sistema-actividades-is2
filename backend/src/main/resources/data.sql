@@ -631,6 +631,58 @@ INSERT INTO pago (id_pago, alumno_id, clase_id, valor, fecha, fecha_creacion, fe
             estado = EXCLUDED.estado;
 
 -- =========================
+-- HISTORIAL DE ASISTENCIAS + FINALIZACIÓN DE CLASES PASADAS
+-- =========================
+-- CONTEXTO: el job finalizarAsistenciasDeClasesTerminadas (cada 60s) recorre
+-- toda clase pasada NO finalizada y, a cada alumno inscripto sin registro, le
+-- crea un RegistroAsistencia(falto=true) + 1 strike. Con el seed inscribiendo
+-- alumnos en clases pasadas, eso generaba faltas y strikes espurios (el profesor
+-- veía "Faltó" en clases de meses anteriores). Para evitarlo:
+--   1) Sembramos a mano un historial coherente SOLO para clases de junio
+--      (inequívocamente pasadas): mezcla deliberada de asistió/faltó por profesor.
+--   2) Finalizamos TODAS las clases con fecha < hoy, para que el job no fabrique
+--      faltas en las clases de julio/agosto a medida que van quedando en el pasado.
+-- Se siembran registros únicamente para clases de JUNIO (nunca para clases que
+-- podrían caer en el futuro según la fecha de la demo): así no aparece "asistió/
+-- faltó" en una clase que todavía no ocurrió.
+
+-- Partimos de un estado limpio y determinístico en cada arranque.
+DELETE FROM registro_asistencia;
+
+INSERT INTO registro_asistencia (id_registro_asistencia, alumno_id, clase_id, falto) VALUES
+  -- Clase 12 (Funcional Mié · profesor 8): Lucas asistió
+  (1, 3, 12, false),
+  -- Clase 31 (Yoga Jue 10 · profesor 8): Lucas y Sofía asistieron
+  (2, 3, 31, false),
+  (3, 4, 31, false),
+  -- Clase 32 (Pilates Jue 16 · profesor 10): Martín asistió, Camila faltó
+  (4, 5, 32, false),
+  (5, 6, 32, true),
+  -- Clase 33 (Funcional Vie 18 · profesor 11): Valentina asistió, Lucas faltó
+  (6, 7, 33, false),
+  (7, 3, 33, true),
+  -- Clase 34 (Yoga Vie 11 · profesor 8): Sofía asistió, Martín faltó
+  (8, 4, 34, false),
+  (9, 5, 34, true);
+
+-- El job no debe tocar ninguna clase que ya ocurrió (ni las de junio ya
+-- sembradas, ni las de julio/agosto que envejezcan): así no aparecen faltas
+-- espurias. Las clases de hoy y futuras siguen su curso normal.
+UPDATE clase SET asistencia_finalizada = true WHERE fecha < CURRENT_DATE;
+
+-- =========================
+-- STRIKES (prueba HU #15 - Visualizar Strikes)
+-- =========================
+-- Reset limpio en cada arranque (evita arrastrar strikes inflados de corridas
+-- previas del job sobre un volumen persistente) y luego fijamos los 3 escenarios:
+--   Sofía (4)  -> 0 strikes  (verde: sin strikes)
+--   Martín (5) -> 2 strikes  (amarillo: 2 de 3)
+--   Camila (6) -> 3 strikes  (rojo: penalizado)
+UPDATE alumno SET strikes = 0;
+UPDATE alumno SET strikes = 2 WHERE id = 5;
+UPDATE alumno SET strikes = 3 WHERE id = 6;
+
+-- =========================
 -- REAJUSTE DE SECUENCIAS
 -- =========================
 -- Recreamos cada secuencia con INCREMENT BY 1 (alineado con allocationSize=1 en las entidades)
