@@ -139,7 +139,8 @@ INSERT INTO clase_plantilla (id_plantilla, dia_semana, hora, cupo, precio, activ
   (21, 'FRIDAY',    13, 3, 14000.0, true, (date_trunc('week', (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date)::date - 28), NULL, 3, 10),  -- Funcional Vie 13h (conflicto Sofía)
   (22, 'FRIDAY',    18, 3, 14000.0, true, (date_trunc('week', (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date)::date - 28), NULL, 3, 12),  -- Funcional Vie 18h (Valentina)
   (23, 'FRIDAY',    19, 5, 14000.0, true, (date_trunc('week', (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date)::date - 28), NULL, 3, 10),  -- Funcional Vie 19h (Lionel/contraste 20%)
-  (24, 'FRIDAY',    20, 5, 14000.0, true, (date_trunc('week', (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date)::date - 28), NULL, 3, 12)   -- Funcional Vie 20h (par de la anterior)
+  (24, 'FRIDAY',    20, 5, 14000.0, true, (date_trunc('week', (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date)::date - 28), NULL, 3, 12),  -- Funcional Vie 20h (par de la anterior)
+  (25, 'FRIDAY',    17, 2, 14000.0, true, (date_trunc('week', (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date)::date - 28), NULL, 3, 10)   -- Funcional Vie 17h (escenario 8 HU: individual+strike+espera)
     ON CONFLICT (id_plantilla) DO UPDATE
         SET dia_semana = EXCLUDED.dia_semana, hora = EXCLUDED.hora, cupo = EXCLUDED.cupo,
             precio = EXCLUDED.precio, activa = EXCLUDED.activa,
@@ -156,6 +157,7 @@ INSERT INTO clase_plantilla (id_plantilla, dia_semana, hora, cupo, precio, activ
 -- 32-33: miércoles y jueves siguientes
 -- 34-36: clases históricas SUELTAS (sin plantilla) que anclan los pagos de
 --        estadísticas sin disparar reservas de renovación sobre las series.
+-- 37:   Funcional Vie 17h (escenario 8 HU: individual + strike + espera).
 INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, cancelada, hora, plantilla_id) VALUES
   -- Pasadas (semana de la demo)
   (1,  2, (date_trunc('week', (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date)::date + 0),  14000.0, 2, 11, false, 14, 5),   -- Pilates Lun 14h: Martín FALTÓ (1ª falta)
@@ -199,7 +201,11 @@ INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, can
   -- Históricas sueltas (ancla de pagos de estadísticas; sin plantilla)
   (34, 10, (date_trunc('week', (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date)::date - 21), 3000.0,  1, 9,  false, 9,  NULL),
   (35, 10, (date_trunc('week', (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date)::date - 21), 14000.0, 2, 11, false, 10, NULL),
-  (36, 10, (date_trunc('week', (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date)::date - 21), 14000.0, 3, 10, false, 11, NULL)
+  (36, 10, (date_trunc('week', (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date)::date - 21), 14000.0, 3, 10, false, 11, NULL),
+  -- Escenario 8 HU (individual + strike + espera): Funcional Vie 17h con 1 lugar
+  -- libre (Martín sembrado 1/2). En vivo: Sofía paga INDIVIDUAL el último cupo,
+  -- Lucas se anota a la espera, Sofía cancela (<24h) -> strike + mail a Lucas.
+  (37, 2, (date_trunc('week', (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date)::date + 4),  14000.0, 3, 10, false, 17, 25)
     ON CONFLICT (id_clase) DO UPDATE
         SET cupo = EXCLUDED.cupo, fecha = EXCLUDED.fecha, precio = EXCLUDED.precio,
             actividad_id = EXCLUDED.actividad_id, profesor_id = EXCLUDED.profesor_id,
@@ -211,7 +217,8 @@ INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, can
 INSERT INTO lista_asistencia (id_lista_asistencia, clase_id) VALUES
   (1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, 6), (7, 7), (8, 8), (9, 9), (10, 10),
   (11, 11), (13, 13), (14, 14), (15, 15), (16, 16), (17, 17), (18, 18),
-  (21, 21), (23, 23), (27, 27), (28, 28), (29, 29), (30, 30), (31, 31), (32, 32), (33, 33)
+  (21, 21), (23, 23), (27, 27), (28, 28), (29, 29), (30, 30), (31, 31), (32, 32), (33, 33),
+  (37, 37)
     ON CONFLICT (id_lista_asistencia) DO UPDATE SET clase_id = EXCLUDED.clase_id;
 
 -- Alumnos: 3 Lucas, 4 Sofía, 5 Martín, 6 Camila, 7 Valentina (8 Lionel: nunca)
@@ -241,7 +248,8 @@ INSERT INTO lista_asistencia_alumnos (lista_asistencia_id, alumno_id) VALUES
   (30, 3), (30, 6),          -- Yoga Mar 9h LLENA: Lucas, Camila
   (31, 6),                   -- Funcional Mar 10h: Camila (1/2)
   (32, 3),                   -- Yoga Mié 9h próx.: Lucas
-  (33, 3)                    -- Yoga Jue 19h próx.: Lucas
+  (33, 3),                   -- Yoga Jue 19h próx.: Lucas
+  (37, 5)                    -- Funcional Vie 17h: Martín (relleno 1/2; SIN pago sembrado para no alterar las estadísticas de julio)
     ON CONFLICT DO NOTHING;
 
 -- =========================
@@ -401,11 +409,11 @@ UPDATE alumno SET creditos = 5,  strikes = 0 WHERE id = 8;
 -- entidades) posicionada sobre el máximo ID sembrado.
 DROP SEQUENCE IF EXISTS clase_seq;
 CREATE SEQUENCE clase_seq INCREMENT BY 1 START WITH 1;
-SELECT setval('clase_seq', GREATEST(COALESCE((SELECT MAX(id_clase) FROM clase), 0), 36) + 1, false);
+SELECT setval('clase_seq', GREATEST(COALESCE((SELECT MAX(id_clase) FROM clase), 0), 37) + 1, false);
 
 DROP SEQUENCE IF EXISTS clase_plantilla_seq;
 CREATE SEQUENCE clase_plantilla_seq INCREMENT BY 1 START WITH 1;
-SELECT setval('clase_plantilla_seq', GREATEST(COALESCE((SELECT MAX(id_plantilla) FROM clase_plantilla), 0), 24) + 1, false);
+SELECT setval('clase_plantilla_seq', GREATEST(COALESCE((SELECT MAX(id_plantilla) FROM clase_plantilla), 0), 25) + 1, false);
 
 DROP SEQUENCE IF EXISTS usuario_seq;
 CREATE SEQUENCE usuario_seq INCREMENT BY 1 START WITH 1;
