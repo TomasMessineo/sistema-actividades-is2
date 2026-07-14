@@ -194,7 +194,7 @@ INSERT INTO clase (id_clase, cupo, fecha, precio, actividad_id, profesor_id, can
   (29, 2, (date_trunc('week', (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date)::date + 7),  14000.0, 3, 12, false, 19, 8),   -- Funcional Lun 19h LLENA: Sofía y Martín
   -- Martes próximo
   (30, 2, (date_trunc('week', (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date)::date + 8),  3000.0,  1, 9,  false, 9,  9),   -- Yoga Mar 9h LLENA: Lucas y Camila (Sofía espera ÉXITO)
-  (31, 2, (date_trunc('week', (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date)::date + 8),  14000.0, 3, 12, false, 10, 10),  -- Funcional Mar 10h: Camila (1/2) + espera [Lucas]
+  (31, 2, (date_trunc('week', (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date)::date + 8),  14000.0, 3, 12, false, 10, 10),  -- Funcional Mar 10h: Camila (1/2); Sofía llena y Lucas espera EN VIVO
   -- Miércoles y jueves siguientes
   (32, 3, (date_trunc('week', (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date)::date + 9),  3000.0,  1, 9,  false, 9,  11),  -- Yoga Mié 9h: Lucas (cancel. individual con crédito+mail)
   (33, 3, (date_trunc('week', (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date)::date + 10), 3000.0,  1, 9,  false, 19, 14),  -- Yoga Jue 19h próx.: Lucas (se baja: +1 crédito)
@@ -256,15 +256,15 @@ INSERT INTO lista_asistencia_alumnos (lista_asistencia_id, alumno_id) VALUES
 -- LISTAS DE ESPERA SEMBRADAS
 -- =========================
 -- Pilates Lun 16h (clase 27): Valentina 1ª -> "Cancelar ÉXITO 4" (Sofía se anota detrás).
--- Funcional Mar 10h (clase 31): Lucas 1º -> "Cancelar ÉXITO 8" (promoción + mail real).
+-- Funcional Mar 10h (clase 31): SIN espera sembrada. Lucas se anota EN VIVO
+-- después de que Sofía paga el último cupo (una espera con lugar libre sería
+-- un estado imposible de alcanzar por el flujo normal).
 INSERT INTO lista_espera (id_lista_espera, clase_id) VALUES
-  (1, 27),
-  (2, 31)
+  (1, 27)
     ON CONFLICT (id_lista_espera) DO UPDATE SET clase_id = EXCLUDED.clase_id;
 
 INSERT INTO espera_alumno (id, lista_espera_id, alumno_id, posicion, tiene_acceso) VALUES
-  (1, 1, 7, 1, false),   -- Valentina, 1ª en Pilates Lun 16h
-  (2, 2, 3, 1, false)    -- Lucas, 1º en Funcional Mar 10h
+  (1, 1, 7, 1, false)    -- Valentina, 1ª en Pilates Lun 16h
     ON CONFLICT (id) DO UPDATE
         SET lista_espera_id = EXCLUDED.lista_espera_id, alumno_id = EXCLUDED.alumno_id,
             posicion = EXCLUDED.posicion, tiene_acceso = EXCLUDED.tiene_acceso;
