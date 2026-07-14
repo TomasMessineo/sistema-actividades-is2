@@ -216,7 +216,18 @@ public class PagoService {
                 .filter(ea -> ea.getListaEspera() != null
                         && ea.getListaEspera().getClase() != null
                         && ea.getListaEspera().getClase().getIdClase() == clase.getIdClase())
-                .forEach(esperaAlumnoRepository::delete);
+                .forEach(ea -> {
+                    // ListaEspera.integrantes tiene cascade=ALL + orphanRemoval=true: si el
+                    // padre está cargado en esta misma transacción (p. ej. confirmar desde la
+                    // lista de espera, que valida el acceso leyendo la lista completa), un
+                    // delete() suelto queda anulado por el cascade al hacer flush. Hay que
+                    // sacar al integrante de la colección del padre para que orphanRemoval
+                    // borre la fila de verdad.
+                    if (ea.getListaEspera().getIntegrantes() != null) {
+                        ea.getListaEspera().getIntegrantes().remove(ea);
+                    }
+                    esperaAlumnoRepository.delete(ea);
+                });
     }
 
     /**
