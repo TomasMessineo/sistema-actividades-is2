@@ -107,6 +107,12 @@ public class ActividadController {
             return ResponseEntity.badRequest().body("Precio inválido");
         }
 
+        // Precio repetido: si es el mismo que ya tiene la disciplina, no hay ajuste.
+        if (actividad.getPrecio() != null && actividad.getPrecio().doubleValue() == nuevoPrecio.doubleValue()) {
+            return ResponseEntity.badRequest()
+                    .body("No se realizó el ajuste: el precio ingresado es el precio actual de la disciplina");
+        }
+
         // 1. Update activity price
         actividad.setPrecio(nuevoPrecio);
         actividadRepository.save(actividad);

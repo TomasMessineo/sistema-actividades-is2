@@ -130,6 +130,15 @@ function ClassCalendarView() {
       return
     }
 
+    // Precio repetido: si es el mismo que ya tiene la disciplina, no hay ajuste.
+    const actividadActual = actividades.find(
+      (a) => a.idActividad.toString() === actividadSeleccionada.toString()
+    )
+    if (actividadActual && Number(actividadActual.precio) === precioNum) {
+      setErrorAjuste('No se realizó el ajuste: el precio ingresado es el precio actual de la disciplina.')
+      return
+    }
+
     try {
       await apiFetch(`/actividades/${actividadSeleccionada}/precio`, {
         method: 'PUT',
