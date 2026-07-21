@@ -324,10 +324,14 @@ INSERT INTO pago (id_pago, alumno_id, clase_id, valor, fecha, fecha_creacion, fe
   (11, 5, 23, 44800.0, (date_trunc('month', (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date)::date + 1), NOW(), NOW(), 'ABONADO', 'TARJETADECREDITO', 'COMPLETADO', 'Abono mensual Pilates Lunes 10h',    'SEED-A11'),
   (12, 5, 27, 44800.0, (date_trunc('month', (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date)::date + 1), NOW(), NOW(), 'ABONADO', 'MERCADOPAGO',      'COMPLETADO', 'Abono mensual Pilates Lunes 16h',    'SEED-A12'),
   (13, 5, 29, 44800.0, (date_trunc('month', (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date)::date + 1), NOW(), NOW(), 'ABONADO', 'MERCADOPAGO',      'COMPLETADO', 'Abono mensual Funcional Lunes 19h',  'SEED-A13'),
-  (14, 5, 1,  44800.0, (date_trunc('month', (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date)::date + 1), NOW(), NOW(), 'ABONADO', 'TARJETADECREDITO', 'COMPLETADO', 'Abono mensual Pilates Lunes 14h',    'SEED-A14'),
-  (15, 5, 2,  44800.0, (date_trunc('month', (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date)::date + 1), NOW(), NOW(), 'ABONADO', 'MERCADOPAGO',      'COMPLETADO', 'Abono mensual Funcional Lunes 17h',  'SEED-A15'),
-  (16, 5, 3,  44800.0, (date_trunc('month', (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date)::date + 1), NOW(), NOW(), 'ABONADO', 'MERCADOPAGO',      'COMPLETADO', 'Abono mensual Funcional Martes 10h', 'SEED-A16'),
-  (17, 5, 5,  44800.0, (date_trunc('month', (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date)::date + 1), NOW(), NOW(), 'ABONADO', 'TARJETADECREDITO', 'COMPLETADO', 'Abono mensual Pilates Miércoles 13h','SEED-A17'),
+  -- OJO: los pagos de las clases PASADAS de Martín (14-17) son INDIVIDUAL a
+  -- propósito. Si fueran ABONADO de julio, el sistema consideraría que Martín
+  -- ya tiene el abono del mes de esas series y se las OCULTARÍA en la vista de
+  -- abono (rompería "#46 ÉXITO 2: Martín abona Pilates Lun 14h en vivo").
+  (14, 5, 1,  14000.0, (date_trunc('month', (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date)::date + 1), NOW(), NOW(), 'INDIVIDUAL', 'TARJETADECREDITO', 'COMPLETADO', 'Clase individual Pilates Lunes 14h',    'SEED-A14'),
+  (15, 5, 2,  14000.0, (date_trunc('month', (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date)::date + 1), NOW(), NOW(), 'INDIVIDUAL', 'MERCADOPAGO',      'COMPLETADO', 'Clase individual Funcional Lunes 17h',  'SEED-A15'),
+  (16, 5, 3,  14000.0, (date_trunc('month', (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date)::date + 1), NOW(), NOW(), 'INDIVIDUAL', 'MERCADOPAGO',      'COMPLETADO', 'Clase individual Funcional Martes 10h', 'SEED-A16'),
+  (17, 5, 5,  14000.0, (date_trunc('month', (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date)::date + 1), NOW(), NOW(), 'INDIVIDUAL', 'TARJETADECREDITO', 'COMPLETADO', 'Clase individual Pilates Miércoles 13h','SEED-A17'),
   -- Camila (6)
   (18, 6, 6,  9600.0,  (date_trunc('month', (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date)::date + 1), NOW(), NOW(), 'ABONADO', 'MERCADOPAGO',      'COMPLETADO', 'Abono mensual Yoga Jueves 10h',      'SEED-A18'),
   (19, 6, 7,  9600.0,  (date_trunc('month', (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date)::date + 1), NOW(), NOW(), 'ABONADO', 'TARJETADECREDITO', 'COMPLETADO', 'Abono mensual Yoga Jueves 19h',      'SEED-A19'),
@@ -343,7 +347,10 @@ INSERT INTO pago (id_pago, alumno_id, clase_id, valor, fecha, fecha_creacion, fe
   (28, 7, 10, 44800.0, (date_trunc('month', (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date)::date + 1), NOW(), NOW(), 'ABONADO', 'MERCADOPAGO',      'COMPLETADO', 'Abono mensual Funcional Jueves 20h', 'SEED-A28'),
   (29, 7, 18, 44800.0, (date_trunc('month', (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date)::date + 1), NOW(), NOW(), 'ABONADO', 'MERCADOPAGO',      'COMPLETADO', 'Abono mensual Funcional Viernes 18h','SEED-A29'),
   (30, 7, 21, 9600.0,  (date_trunc('month', (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date)::date + 1), NOW(), NOW(), 'ABONADO', 'TARJETADECREDITO', 'COMPLETADO', 'Abono mensual Yoga Lunes 9h',        'SEED-A30'),
-  (31, 7, 5,  44800.0, (date_trunc('month', (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date)::date + 1), NOW(), NOW(), 'ABONADO', 'MERCADOPAGO',      'COMPLETADO', 'Abono mensual Pilates Miércoles 13h','SEED-A31')
+  -- Pago 31: INDIVIDUAL por el mismo motivo que los 14-17 (clase PASADA de
+  -- Valentina; como ABONADO le ocultaría la serie Pilates Mié 13h en la vista
+  -- de abono de julio).
+  (31, 7, 5,  14000.0, (date_trunc('month', (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date)::date + 1), NOW(), NOW(), 'INDIVIDUAL', 'MERCADOPAGO',      'COMPLETADO', 'Clase individual Pilates Miércoles 13h','SEED-A31')
     ON CONFLICT (id_pago) DO UPDATE
         SET alumno_id = EXCLUDED.alumno_id, clase_id = EXCLUDED.clase_id, valor = EXCLUDED.valor,
             fecha = EXCLUDED.fecha, tipo = EXCLUDED.tipo, tipo_pago = EXCLUDED.tipo_pago,
