@@ -11,7 +11,8 @@ public class ClaseCalendarioDTO {
         private String nombre;
         private String apellido;
 
-        public ProfesorDTO() {}
+        public ProfesorDTO() {
+        }
 
         public ProfesorDTO(Integer id, String nombre, String apellido) {
             this.id = id;
@@ -19,12 +20,29 @@ public class ClaseCalendarioDTO {
             this.apellido = apellido;
         }
 
-        public Integer getId() { return id; }
-        public void setId(Integer id) { this.id = id; }
-        public String getNombre() { return nombre; }
-        public void setNombre(String nombre) { this.nombre = nombre; }
-        public String getApellido() { return apellido; }
-        public void setApellido(String apellido) { this.apellido = apellido; }
+        public Integer getId() {
+            return id;
+        }
+
+        public void setId(Integer id) {
+            this.id = id;
+        }
+
+        public String getNombre() {
+            return nombre;
+        }
+
+        public void setNombre(String nombre) {
+            this.nombre = nombre;
+        }
+
+        public String getApellido() {
+            return apellido;
+        }
+
+        public void setApellido(String apellido) {
+            this.apellido = apellido;
+        }
     }
 
     private int idClase;
@@ -36,11 +54,22 @@ public class ClaseCalendarioDTO {
     private double precio;
     private boolean cancelada;
     private ProfesorDTO profesor;
+    private Integer idPlantilla;
+    private Boolean abonoDisponible;
+    // Cuando abonoDisponible es false, indica el motivo dominante:
+    // "CONFLICTO_HORARIO" si todas las clases restantes chocan con otra clase
+    // del alumno (no es que falte cupo), o "LLENA" en el resto de los casos.
+    private String motivoAbonoNoDisponible;
+    // True si el alumno que consulta tiene su cupo guardado por renovación
+    // (ReservaCupo PENDIENTE) para esta serie este mes.
+    private Boolean tieneReserva;
+
 
     public ClaseCalendarioDTO() {
     }
 
-    public ClaseCalendarioDTO(int idClase, LocalDate fecha, Integer hora, String actividad, int inscritos, int cupo, double precio, boolean cancelada, ProfesorDTO profesor) {
+    public ClaseCalendarioDTO(int idClase, LocalDate fecha, Integer hora, String actividad, int inscritos, int cupo,
+            double precio, boolean cancelada, ProfesorDTO profesor, Integer idPlantilla) {
         this.idClase = idClase;
         this.fecha = fecha;
         this.hora = hora;
@@ -50,11 +79,12 @@ public class ClaseCalendarioDTO {
         this.precio = precio;
         this.cancelada = cancelada;
         this.profesor = profesor;
+        this.idPlantilla = idPlantilla;
     }
 
     public static ClaseCalendarioDTO fromEntity(Clase clase) {
         String actividadNombre = clase.getActividad() != null && clase.getActividad().getTipo() != null
-                ? clase.getActividad().getTipo().name()
+                ? clase.getActividad().getTipo()
                 : "CLASE";
 
         ProfesorDTO profesorDTO = null;
@@ -62,9 +92,12 @@ public class ClaseCalendarioDTO {
             profesorDTO = new ProfesorDTO(
                     clase.getProfesor().getId(),
                     clase.getProfesor().getNombre(),
-                    clase.getProfesor().getApellido()
-            );
+                    clase.getProfesor().getApellido());
         }
+
+        double precio = (clase.getActividad() != null && clase.getActividad().getPrecio() != null && clase.getActividad().getPrecio() > 0)
+                ? clase.getActividad().getPrecio()
+                : clase.getPrecio();
 
         return new ClaseCalendarioDTO(
                 clase.getIdClase(),
@@ -75,10 +108,10 @@ public class ClaseCalendarioDTO {
                         ? clase.getListaAsistencia().getAlumnos().size()
                         : 0,
                 clase.getCupo(),
-                clase.getPrecio(),
+                precio,
                 clase.getCancelada(),
-                profesorDTO
-        );
+                profesorDTO,
+                clase.getPlantilla() != null ? clase.getPlantilla().getIdPlantilla() : null);
     }
 
     public int getIdClase() {
@@ -151,5 +184,37 @@ public class ClaseCalendarioDTO {
 
     public void setProfesor(ProfesorDTO profesor) {
         this.profesor = profesor;
+    }
+
+    public Integer getIdPlantilla() {
+        return idPlantilla;
+    }
+
+    public void setIdPlantilla(Integer idPlantilla) {
+        this.idPlantilla = idPlantilla;
+    }
+
+    public Boolean getAbonoDisponible() {
+        return abonoDisponible;
+    }
+
+    public void setAbonoDisponible(Boolean abonoDisponible) {
+        this.abonoDisponible = abonoDisponible;
+    }
+
+    public Boolean getTieneReserva() {
+        return tieneReserva;
+    }
+
+    public void setTieneReserva(Boolean tieneReserva) {
+        this.tieneReserva = tieneReserva;
+    }
+
+    public String getMotivoAbonoNoDisponible() {
+        return motivoAbonoNoDisponible;
+    }
+
+    public void setMotivoAbonoNoDisponible(String motivoAbonoNoDisponible) {
+        this.motivoAbonoNoDisponible = motivoAbonoNoDisponible;
     }
 }

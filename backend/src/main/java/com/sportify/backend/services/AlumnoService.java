@@ -2,6 +2,7 @@ package com.sportify.backend.services;
 
 import com.sportify.backend.dtos.AptoMedicoDTO;
 import com.sportify.backend.dtos.ActualizarPerfilAlumnoDTO;
+import com.sportify.backend.dtos.RegistroAsistenciaDTO;
 import com.sportify.backend.entities.AptoMedico;
 import com.sportify.backend.entities.FotoDePerfil;
 import com.sportify.backend.entities.Alumno;
@@ -9,8 +10,17 @@ import com.sportify.backend.entities.Pago;
 import com.sportify.backend.repositories.AlumnoRepository;
 import com.sportify.backend.repositories.AptoMedicoRepository;
 import com.sportify.backend.repositories.PagoRepository;
+import com.sportify.backend.repositories.RegistroAsistenciaRepository;
 import com.sportify.backend.validations.AlumnoValidator;
+import com.sportify.backend.entities.ListaAsistencia;
+import com.sportify.backend.entities.ListaEspera;
+import com.sportify.backend.entities.EsperaAlumno;
+import com.sportify.backend.repositories.ListaAsistenciaRepository;
+import com.sportify.backend.repositories.ListaEsperaRepository;
+import com.sportify.backend.repositories.EsperaAlumnoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -44,7 +54,19 @@ public class AlumnoService {
     private PagoRepository pagoRepository;
 
     @Autowired
+    private RegistroAsistenciaRepository registroAsistenciaRepository;
+
+    @Autowired
     private AlumnoValidator alumnoValidator;
+
+    @Autowired
+    private ListaAsistenciaRepository listaAsistenciaRepository;
+
+    @Autowired
+    private ListaEsperaRepository listaEsperaRepository;
+
+    @Autowired
+    private EsperaAlumnoRepository esperaAlumnoRepository;
 
     // 1. LISTAR (solo activos)
     public List<Alumno> listarTodos() {
@@ -54,6 +76,11 @@ public class AlumnoService {
     // 1.1 LISTAR (solo desactivados)
     public List<Alumno> listarEliminados() {
         return alumnoRepository.findByActivoFalse();
+    }
+
+    // 1.2 LISTAR (alumnos activos anotados en clases de un profesor)
+    public List<Alumno> listarPorProfesor(Integer profesorId) {
+        return alumnoRepository.findActivosPorProfesor(profesorId);
     }
 
     // 2. AGREGAR / GUARDAR
@@ -73,15 +100,31 @@ public class AlumnoService {
     }
 
     // 4. ELIMINAR (borrado lógico)
+    @Transactional
     public void desactivar(Integer id) {
         Alumno alumno = alumnoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Alumno no encontrado"));
 
-        boolean tieneClaseActiva = pagoRepository.existsByAlumnoIdAndEstadoAndClaseCanceladaFalseAndClaseFechaGreaterThanEqual(
-                id, Pago.EstadoPago.COMPLETADO, LocalDate.now());
+        // Quitar de todas las listas de asistencia
+        if (alumno.getAsistencias() != null) {
+            for (ListaAsistencia asistencia : new java.util.ArrayList<>(alumno.getAsistencias())) {
+                if (asistencia.getAlumnos() != null) {
+                    asistencia.getAlumnos().remove(alumno);
+                    listaAsistenciaRepository.save(asistencia);
+                }
+            }
+            alumno.getAsistencias().clear();
+        }
 
-        if (tieneClaseActiva) {
-            throw new RuntimeException("No se puede desactivar el alumno porque tiene clases activas pendientes");
+        // Quitar de todas las listas de espera
+        List<EsperaAlumno> esperas = esperaAlumnoRepository.findByAlumno_Id(id);
+        for (EsperaAlumno espera : esperas) {
+            ListaEspera lista = espera.getListaEspera();
+            if (lista != null && lista.getIntegrantes() != null) {
+                lista.getIntegrantes().remove(espera);
+                listaEsperaRepository.save(lista);
+            }
+            esperaAlumnoRepository.delete(espera);
         }
 
         alumno.setActivo(false);
@@ -90,6 +133,31 @@ public class AlumnoService {
 
     public void eliminarAlumno(Integer id) {
         desactivar(id);
+    }
+
+    // Corre el primer día de cada mes a las 00:10: los strikes (por faltar o
+    // por cancelar tarde) se acumulan solo dentro del mes en curso.
+    @Scheduled(cron = "0 10 0 1 * *", zone = "America/Argentina/Buenos_Aires")
+    @Transactional
+    public void reiniciarStrikesMensuales() {
+        List<Alumno> aActualizar = new java.util.ArrayList<>();
+        for (Alumno alumno : alumnoRepository.findAll()) {
+            if (alumno.getStrikes() != null && alumno.getStrikes() != 0) {
+                alumno.setStrikes(0);
+                aActualizar.add(alumno);
+            }
+        }
+
+        if (!aActualizar.isEmpty()) {
+            alumnoRepository.saveAll(aActualizar);
+        }
+    }
+
+    public void restaurar(Integer id) {
+        Alumno alumno = alumnoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Alumno no encontrado"));
+        alumno.setActivo(true);
+        alumnoRepository.save(alumno);
     }
 
 
@@ -220,6 +288,27 @@ public class AlumnoService {
 
         return aptoMedicoRepository.findByAlumno_IdOrderByFechaDeVencimientoDesc(id).stream()
                 .map(AptoMedicoDTO::fromEntity)
+                .toList();
+    }
+
+    // Historial de asistencias del alumno: una fila por clase en la que se le
+    // pasó asistencia (no incluye clases sin asistencia tomada todavía).
+    public List<RegistroAsistenciaDTO> listarHistorialAsistencias(Integer id) {
+        buscarPorId(id);
+
+        return registroAsistenciaRepository.findByAlumno_IdOrderByClase_FechaDesc(id).stream()
+                .map(RegistroAsistenciaDTO::fromEntity)
+                .toList();
+    }
+
+    // Historial acotado a las clases de un profesor: solo las clases que dicta
+    // ese profesor, para que no vea asistencias de clases de otros (HU #22).
+    public List<RegistroAsistenciaDTO> listarHistorialAsistenciasDeProfesor(Integer idAlumno, Integer profesorId) {
+        buscarPorId(idAlumno);
+
+        return registroAsistenciaRepository
+                .findByAlumno_IdAndClase_Profesor_IdOrderByClase_FechaDesc(idAlumno, profesorId).stream()
+                .map(RegistroAsistenciaDTO::fromEntity)
                 .toList();
     }
 

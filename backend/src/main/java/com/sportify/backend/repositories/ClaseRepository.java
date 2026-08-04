@@ -4,6 +4,7 @@ import com.sportify.backend.entities.Actividad;
 import com.sportify.backend.entities.Clase;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.util.List;
@@ -24,4 +25,13 @@ public interface ClaseRepository extends JpaRepository<Clase, Integer> {
     List<Clase> findByFecha(LocalDate fecha);
     List<Clase> findByActividad(Actividad actividad);
     List<Clase> findByActividad_IdActividad(Integer actividadId);
+
+    // Instancias pertenecientes a una serie (plantilla)
+    List<Clase> findByPlantilla_IdPlantilla(Integer idPlantilla);
+
+    // Clases no canceladas a las que todavía no se les corrió el barrido de
+    // ausentes. "IS NOT TRUE" (en vez de "= false") para que también agarre
+    // las clases existentes antes de esta columna, que quedaron en null.
+    @Query("SELECT c FROM Clase c WHERE c.asistenciaFinalizada IS NOT TRUE AND c.cancelada = false")
+    List<Clase> findPendientesDeFinalizarAsistencia();
 }

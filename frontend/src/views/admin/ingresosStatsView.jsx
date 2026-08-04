@@ -1,0 +1,393 @@
+import { useEffect, useState } from 'react'
+import {
+  PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  LineChart, Line
+} from 'recharts'
+import Navbar from '../../components/Navbar/NavbarAdmin.jsx'
+import { getEstadisticasIngresos } from '../../services/estadisticasService'
+import { apiFetch } from '../../services/apiClient'
+import '../../styles/ingresosStats.css'
+
+const formatoMoneda = new Intl.NumberFormat('es-AR', {
+  style: 'currency',
+  currency: 'ARS',
+  maximumFractionDigits: 0
+})
+
+const COLOR_INDIVIDUAL = '#3ecf2a'
+const COLOR_ABONO = '#5b9dff'
+const COLOR_ASISTIO = '#3ecf2a'
+const COLOR_FALTO = '#ff5c5c'
+
+const formatearNombreDisciplina = (name) => {
+  if (!name) return ''
+  if (name === 'TODAS') return 'Todas'
+  return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase()
+}
+
+const PRESET_COLORS = {
+  YOGA: '#3ecf2a',
+  PILATES: '#5b9dff',
+  FUNCIONAL: '#f5a623'
+}
+
+const PALETTE = ['#ec4899', '#a855f7', '#06b6d4', '#f43f5e', '#10b981', '#fb7185', '#38bdf8']
+
+const obtenerColorDisciplina = (name) => {
+  if (!name) return '#888'
+  const upper = name.toUpperCase()
+  if (PRESET_COLORS[upper]) return PRESET_COLORS[upper]
+  let hash = 0
+  for (let i = 0; i < upper.length; i++) {
+    hash = upper.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  const colorIndex = Math.abs(hash) % PALETTE.length
+  return PALETTE[colorIndex]
+}
+
+const ejeMoneda = (v) => (v >= 1000 ? `$${Math.round(v / 1000)}k` : `$${v}`)
+
+const tooltipStyle = {
+  background: '#15151a',
+  border: '1px solid rgba(255,255,255,0.12)',
+  borderRadius: 12,
+  color: '#fff'
+}
+
+const AsistenciaTooltip = ({ active, payload, label }) => {
+  if (!active || !payload || payload.length === 0) return null
+  const item = payload[0]?.payload
+  if (!item) return null
+
+  return (
+    <div style={{ ...tooltipStyle, padding: '10px 14px', lineHeight: 1.6 }}>
+      <strong style={{ color: '#ffffff', display: 'block', marginBottom: '4px' }}>{label}</strong>
+      <div style={{ color: COLOR_ASISTIO }}>Asistieron: {item.Asistieron}</div>
+      <div style={{ color: COLOR_FALTO }}>Faltaron: {item.Faltaron}</div>
+      <div style={{ color: '#a1a1aa' }}>Asistencia: {item.porcentaje.toFixed(0)}%</div>
+    </div>
+  )
+}
+
+function IngresosStatsView() {
+  const [data, setData] = useState(null)
+  const [anio, setAnio] = useState(null)
+  const [disciplina, setDisciplina] = useState('TODAS')
+  const [cargando, setCargando] = useState(true)
+  const [error, setError] = useState('')
+  const [disciplinas, setDisciplinas] = useState(['TODAS'])
+
+  const cargar = async (anioElegido, discElegida) => {
+    setCargando(true)
+    setError('')
+    try {
+      const respuesta = await getEstadisticasIngresos(anioElegido, discElegida)
+      setData(respuesta)
+      setAnio(respuesta.anio)
+      setDisciplina(discElegida || 'TODAS')
+
+      if (respuesta.porDisciplina) {
+        const nombresData = respuesta.porDisciplina.map(d => d.disciplina.toUpperCase())
+        setDisciplinas(prev => {
+          const set = new Set([...prev, ...nombresData])
+          return Array.from(set)
+        })
+      }
+    } catch {
+      setError('No se pudieron cargar las estadísticas de ingresos.')
+    } finally {
+      setCargando(false)
+    }
+  }
+
+  useEffect(() => {
+    const cargarInicial = async () => {
+      try {
+        const actividades = await apiFetch('/actividades')
+        if (Array.isArray(actividades)) {
+          const nombres = actividades.map(a => a.tipo.toUpperCase())
+          setDisciplinas(['TODAS', ...nombres])
+        }
+      } catch (err) {
+        console.error('Error al cargar disciplinas:', err)
+      }
+      cargar(undefined, 'TODAS')
+    }
+    cargarInicial()
+  }, [])
+
+  const cambiarAnio = (nuevoAnio) => cargar(nuevoAnio, disciplina)
+  const cambiarDisciplina = (nuevaDisc) => cargar(anio, nuevaDisc)
+  const toggleDisciplina = (key) => cambiarDisciplina(disciplina === key ? 'TODAS' : key)
+
+  const sufijoDisc = disciplina !== 'TODAS' ? ` · ${formatearNombreDisciplina(disciplina)}` : ''
+
+  const datosDona = data
+    ? [
+        { name: 'Clases individuales', value: data.ingresoIndividual },
+        { name: 'Abonos mensuales', value: data.ingresoAbono }
+      ].filter((d) => d.value > 0)
+    : []
+
+  const datosDisciplina = (data?.porDisciplina || []).map((d) => ({
+    key: d.disciplina,
+    nombre: formatearNombreDisciplina(d.disciplina),
+    total: d.total
+  }))
+
+  const datosMeses = (data?.porMes || []).map((m) => ({
+    name: m.nombre.slice(0, 3),
+    Total: m.total,
+    Individual: m.individual,
+    Abono: m.abono
+  }))
+
+  const datosInscripciones = (data?.inscripcionesPorDisciplina || []).map((d) => ({
+    key: d.disciplina,
+    nombre: formatearNombreDisciplina(d.disciplina),
+    cantidad: d.cantidad
+  }))
+
+  const datosAsistencia = (data?.asistenciaPorDia || []).map((d) => ({
+    dia: d.dia,
+    Asistieron: d.asistieron,
+    Faltaron: d.faltaron,
+    porcentaje: d.porcentajeAsistencia
+  }))
+
+  const seleccionVacia = data && data.hayDatos && data.ingresoTotal === 0
+
+  return (
+    <div className="ingresos-page">
+      <Navbar />
+      <main className="ingresos-main">
+        <div className="ingresos-header">
+          <div>
+            <p className="ingresos-header__label">Panel administrativo</p>
+            <h1>Estadísticas de ingresos</h1>
+            <p className="ingresos-header__sub">Evaluá la situación financiera del gimnasio.</p>
+          </div>
+
+          <div className="ingresos-filtros">
+            {data?.aniosDisponibles?.length > 0 && (
+              <label className="ingresos-filtro">
+                <span>Año</span>
+                <select
+                  value={anio ?? ''}
+                  onChange={(e) => cambiarAnio(Number(e.target.value))}
+                  disabled={cargando}
+                >
+                  {data.aniosDisponibles.map((a) => (
+                    <option key={a} value={a}>{a}</option>
+                  ))}
+                </select>
+              </label>
+            )}
+
+            <label className="ingresos-filtro">
+              <span>Disciplina</span>
+              <select
+                value={disciplina}
+                onChange={(e) => cambiarDisciplina(e.target.value)}
+                disabled={cargando}
+              >
+                {disciplinas.map((d) => (
+                  <option key={d} value={d}>{formatearNombreDisciplina(d)}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </div>
+
+        {cargando && <p className="ingresos-status">Cargando estadísticas...</p>}
+        {!cargando && error && <p className="ingresos-status ingresos-status--error">{error}</p>}
+
+        {!cargando && !error && data && !data.hayDatos && (
+          <div className="ingresos-alerta">
+            {data.anioEsFuturo
+              ? `Aún no hay datos de ingresos cargados para ${anio}.`
+              : `No se cuenta con estadísticas sobre el año ${anio}.`}
+          </div>
+        )}
+
+        {!cargando && !error && data && data.hayDatos && (
+          <>
+            {seleccionVacia && (
+              <div className="ingresos-alerta ingresos-alerta--info">
+                No hay ingresos de {formatearNombreDisciplina(disciplina)} en {anio}.
+              </div>
+            )}
+
+            <section className="ingresos-kpis">
+              <article className="ingresos-kpi">
+                <span className="ingresos-kpi__label">Ingreso total {anio}{sufijoDisc}</span>
+                <strong className="ingresos-kpi__valor">{formatoMoneda.format(data.ingresoTotal)}</strong>
+              </article>
+
+              <article className="ingresos-kpi">
+                <span className="ingresos-kpi__label">Cantidad de pagos</span>
+                <strong className="ingresos-kpi__valor">{data.cantidadPagos}</strong>
+              </article>
+
+              <article className="ingresos-kpi">
+                <span className="ingresos-kpi__label">Ticket promedio</span>
+                <strong className="ingresos-kpi__valor">{formatoMoneda.format(data.ticketPromedio)}</strong>
+              </article>
+
+              <article className="ingresos-kpi">
+                <span className="ingresos-kpi__label">Mejor mes</span>
+                <strong className="ingresos-kpi__valor">{data.mejorMesNombre}</strong>
+                <span className="ingresos-kpi__detalle">{formatoMoneda.format(data.mejorMesMonto)}</span>
+              </article>
+            </section>
+
+            <div className="ingresos-charts">
+              <section className="ingresos-grafico">
+                <h2>Ingresos por tipo{sufijoDisc}</h2>
+                <p className="ingresos-grafico__sub">Clases individuales vs abonos mensuales.</p>
+                {datosDona.length === 0 ? (
+                  <p className="ingresos-vacio">Sin ingresos para esta selección.</p>
+                ) : (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={datosDona}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={70}
+                        outerRadius={110}
+                        paddingAngle={2}
+                        stroke="none"
+                      >
+                        {datosDona.map((entry) => (
+                          <Cell
+                            key={entry.name}
+                            fill={entry.name.startsWith('Clases') ? COLOR_INDIVIDUAL : COLOR_ABONO}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value) => formatoMoneda.format(value)}
+                        contentStyle={tooltipStyle}
+                        itemStyle={{ color: '#ffffff' }}
+                        labelStyle={{ color: '#ffffff' }}
+                      />
+                      <Legend verticalAlign="bottom" iconType="circle" wrapperStyle={{ color: '#a1a1aa', fontSize: 14 }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+              </section>
+
+              <section className="ingresos-grafico">
+                <h2>Ingresos por disciplina</h2>
+                <p className="ingresos-grafico__sub">Tocá una barra para filtrar todo el tablero por esa disciplina.</p>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={datosDisciplina}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+                    <XAxis dataKey="nombre" stroke="#a1a1aa" tickLine={false} />
+                    <YAxis stroke="#a1a1aa" tickFormatter={ejeMoneda} tickLine={false} width={48} />
+                    <Tooltip
+                      formatter={(value) => [formatoMoneda.format(value), 'Ingreso']}
+                      contentStyle={tooltipStyle}
+                      itemStyle={{ color: '#ffffff' }}
+                      labelStyle={{ color: '#ffffff' }}
+                      cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+                    />
+                    <Bar dataKey="total" radius={[6, 6, 0, 0]} onClick={(d) => toggleDisciplina(d.key)} cursor="pointer">
+                      {datosDisciplina.map((entry) => {
+                        const activa = disciplina === 'TODAS' || disciplina === entry.key
+                        return (
+                          <Cell
+                            key={entry.key}
+                            fill={obtenerColorDisciplina(entry.key)}
+                            fillOpacity={activa ? 1 : 0.28}
+                          />
+                        )
+                      })}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </section>
+            </div>
+
+            <section className="ingresos-grafico">
+              <h2>Evolución mensual{sufijoDisc}</h2>
+              <p className="ingresos-grafico__sub">Ingresos mes a mes: total, individuales y abonos.</p>
+              <ResponsiveContainer width="100%" height={340}>
+                <LineChart data={datosMeses} margin={{ top: 10, right: 16, bottom: 0, left: 4 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+                  <XAxis dataKey="name" stroke="#a1a1aa" tickLine={false} />
+                  <YAxis stroke="#a1a1aa" tickFormatter={ejeMoneda} tickLine={false} width={48} />
+                  <Tooltip
+                    formatter={(value) => formatoMoneda.format(value)}
+                    contentStyle={tooltipStyle}
+                    itemStyle={{ color: '#ffffff' }}
+                    labelStyle={{ color: '#ffffff' }}
+                  />
+                  <Legend iconType="plainline" wrapperStyle={{ color: '#a1a1aa', fontSize: 14 }} />
+                  <Line type="monotone" dataKey="Total" stroke="#ffffff" strokeWidth={2.5} dot={false} />
+                  <Line type="monotone" dataKey="Individual" stroke={COLOR_INDIVIDUAL} strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="Abono" stroke={COLOR_ABONO} strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </section>
+
+            <div className="ingresos-charts">
+              <section className="ingresos-grafico">
+                <h2>Inscripciones por disciplina</h2>
+                <p className="ingresos-grafico__sub">A qué tipo de clases se inscribe más la gente en {anio}. Tocá una barra para filtrar todo el tablero.</p>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={datosInscripciones}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+                    <XAxis dataKey="nombre" stroke="#a1a1aa" tickLine={false} />
+                    <YAxis stroke="#a1a1aa" tickLine={false} width={40} allowDecimals={false} />
+                    <Tooltip
+                      formatter={(value) => [value, 'Inscripciones']}
+                      contentStyle={tooltipStyle}
+                      itemStyle={{ color: '#ffffff' }}
+                      labelStyle={{ color: '#ffffff' }}
+                      cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+                    />
+                    <Bar dataKey="cantidad" radius={[6, 6, 0, 0]} onClick={(d) => toggleDisciplina(d.key)} cursor="pointer">
+                      {datosInscripciones.map((entry) => {
+                        const activa = disciplina === 'TODAS' || disciplina === entry.key
+                        return (
+                          <Cell
+                            key={entry.key}
+                            fill={obtenerColorDisciplina(entry.key)}
+                            fillOpacity={activa ? 1 : 0.28}
+                          />
+                        )
+                      })}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </section>
+
+              <section className="ingresos-grafico">
+                <h2>Asistencia por día de la semana{sufijoDisc}</h2>
+                <p className="ingresos-grafico__sub">En qué días asiste más o menos la gente (según el check-in de clase) en {anio}.</p>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={datosAsistencia}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+                    <XAxis dataKey="dia" stroke="#a1a1aa" tickLine={false} />
+                    <YAxis stroke="#a1a1aa" tickLine={false} width={40} allowDecimals={false} />
+                    <Tooltip content={<AsistenciaTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+                    <Legend iconType="circle" wrapperStyle={{ color: '#a1a1aa', fontSize: 14 }} />
+                    <Bar dataKey="Asistieron" stackId="asistencia" fill={COLOR_ASISTIO} radius={[0, 0, 0, 0]} />
+                    <Bar dataKey="Faltaron" stackId="asistencia" fill={COLOR_FALTO} radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </section>
+            </div>
+          </>
+        )}
+      </main>
+    </div>
+  )
+}
+
+export default IngresosStatsView

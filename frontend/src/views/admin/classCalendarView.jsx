@@ -3,7 +3,10 @@ import Navbar from '../../components/Navbar/NavbarAdmin.jsx'
 import AvailableClassesCalendar from '../../components/AvailableClassesCalendar.jsx'
 import CrearClaseModal from '../../components/CrearClaseModal.jsx'
 import ModificarClaseModal from '../../components/ModificarClaseModal.jsx'
+import EliminarDisciplinaModal from '../../components/EliminarDisciplinaModal.jsx'
 import { listarClases } from '../../services/claseService'
+import { apiFetch } from '../../services/apiClient'
+import { getDayKey, buildWeekDays } from '../../utils/weekDays'
 import '../../styles/AvailableClasses.css'
 
 const monthFormatter = new Intl.DateTimeFormat('es-AR', { month: 'long' })
@@ -36,15 +39,12 @@ const formatWeekLabel = (date) => {
   return `${startDay} ${startMonthLabel} - ${endDay} ${endMonthLabel}`
 }
 
-const getDayKeyFromDate = (date) => {
-  const day = date.getDay()
-
-  if (day === 1) return 'monday'
-  if (day === 2) return 'tuesday'
-  if (day === 3) return 'wednesday'
-  if (day === 4) return 'thursday'
-  if (day === 5) return 'friday'
-  return null
+// Formatea una fecha local como YYYY-MM-DD (sin desfase de zona horaria).
+const formatDate = (date) => {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
 
 function ClassCalendarView() {
@@ -56,18 +56,143 @@ function ClassCalendarView() {
   const [modalCrearAbierto, setModalCrearAbierto] = useState(false)
   const [modalModificarAbierto, setModalModificarAbierto] = useState(false)
   const [claseSeleccionada, setClaseSeleccionada] = useState(null)
+ 
+  const [modalDisciplinaAbierto, setModalDisciplinaAbierto] = useState(false)
+  const [modalEliminarDisciplinaAbierto, setModalEliminarDisciplinaAbierto] = useState(false)
+  const [disciplinasMenuAbierto, setDisciplinasMenuAbierto] = useState(false)
+  const disciplinasMenuRef = useRef(null)
+  const [mostrarCanceladas, setMostrarCanceladas] = useState(false)
+  const [nombreDisciplina, setNombreDisciplina] = useState('')
+  const [tarifaDisciplina, setTarifaDisciplina] = useState('')
+  const [errorDisciplina, setErrorDisciplina] = useState('')
+  const [exitoDisciplina, setExitoDisciplina] = useState('')
+
+  const [modalAjusteAbierto, setModalAjusteAbierto] = useState(false)
+  const [actividades, setActividades] = useState([])
+  const [actividadSeleccionada, setActividadSeleccionada] = useState('')
+  const [nuevoPrecio, setNuevoPrecio] = useState('')
+  const [errorAjuste, setErrorAjuste] = useState('')
+  const [exitoAjuste, setExitoAjuste] = useState('')
 
   const cargarClases = async () => {
     setLoading(true)
     setError('')
 
     try {
-      const response = await listarClases()
+      const response = await listarClases(undefined, formatDate(weekStart), formatDate(weekEnd))
       setClasses(Array.isArray(response) ? response : [])
     } catch (loadError) {
       setError(loadError.message || 'No se pudieron cargar las clases.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const abrirModalAjuste = async () => {
+    setErrorAjuste('')
+    setExitoAjuste('')
+    setNuevoPrecio('')
+    setActividadSeleccionada('')
+    setModalAjusteAbierto(true)
+    setActividades([]) // Reset list to trigger loading state
+    try {
+      const data = await apiFetch('/actividades')
+      const dataArr = Array.isArray(data) ? data : []
+      setActividades(dataArr)
+      if (dataArr.length > 0) {
+        setActividadSeleccionada(dataArr[0].idActividad.toString())
+        setNuevoPrecio(dataArr[0].precio ? dataArr[0].precio.toString() : '')
+      }
+    } catch (err) {
+      setErrorAjuste(err.message || 'Error al cargar las disciplinas.')
+    }
+  }
+
+  const manejarCambioActividad = (id) => {
+    setActividadSeleccionada(id)
+    const act = actividades.find(a => a.idActividad.toString() === id)
+    if (act) {
+      setNuevoPrecio(act.precio ? act.precio.toString() : '')
+    }
+  }
+
+  const confirmarAjuste = async () => {
+    // Cada intento arranca limpio: evita que un error previo conviva con la confirmación.
+    setErrorAjuste('')
+    setExitoAjuste('')
+    if (!actividadSeleccionada) {
+      setErrorAjuste('Seleccioná una disciplina.')
+      return
+    }
+    const precioNum = parseFloat(nuevoPrecio)
+    if (isNaN(precioNum) || precioNum < 0) {
+      setErrorAjuste('Por favor, ingresá un precio válido.')
+      return
+    }
+
+    // Precio repetido: si es el mismo que ya tiene la disciplina, no hay ajuste.
+    const actividadActual = actividades.find(
+      (a) => a.idActividad.toString() === actividadSeleccionada.toString()
+    )
+    if (actividadActual && Number(actividadActual.precio) === precioNum) {
+      setErrorAjuste('No se realizó el ajuste: el precio ingresado es el precio actual de la disciplina.')
+      return
+    }
+
+    try {
+      await apiFetch(`/actividades/${actividadSeleccionada}/precio`, {
+        method: 'PUT',
+        body: JSON.stringify({ precio: precioNum })
+      })
+
+      setExitoAjuste('El precio ha sido ajustado correctamente')
+      setTimeout(() => {
+        setModalAjusteAbierto(false)
+        cargarClases()
+      }, 1500)
+    } catch (err) {
+      setErrorAjuste(err.message || 'Ocurrió un error al ajustar el precio.')
+    }
+  }
+
+  const abrirModalDisciplina = () => {
+    setNombreDisciplina('')
+    setTarifaDisciplina('')
+    setErrorDisciplina('')
+    setExitoDisciplina('')
+    setModalDisciplinaAbierto(true)
+  }
+
+  const guardarDisciplina = async () => {
+    // Cada intento arranca limpio: evita que un error previo conviva con la confirmación.
+    setErrorDisciplina('')
+    setExitoDisciplina('')
+    if (!nombreDisciplina.trim()) {
+      setErrorDisciplina('El nombre de la disciplina es obligatorio')
+      return
+    }
+    const precioNum = parseFloat(tarifaDisciplina)
+    if (isNaN(precioNum) || precioNum < 0) {
+      setErrorDisciplina('Por favor, ingresá una tarifa válida.')
+      return
+    }
+
+    try {
+      await apiFetch('/actividades', {
+        method: 'POST',
+        body: JSON.stringify({
+          tipo: nombreDisciplina,
+          precio: precioNum
+        })
+      })
+
+      setExitoDisciplina('La disciplina ha sido añadida correctamente')
+      setTimeout(() => {
+        setModalDisciplinaAbierto(false)
+        cargarClases()
+      }, 1500)
+    } catch (err) {
+      setErrorDisciplina(err.message || 'La Disciplina no ha sido añadida debido a que la misma ya se encuentra en el sistema')
     }
   }
 
@@ -92,9 +217,33 @@ function ClassCalendarView() {
     return end
   }, [weekStart])
 
+  const days = useMemo(() => buildWeekDays(weekStart), [weekStart])
+
   useEffect(() => {
     cargarClases()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weekStart, weekEnd])
+
+  // Cierre del desplegable de Disciplinas al hacer click afuera o presionar Escape.
+  useEffect(() => {
+    if (!disciplinasMenuAbierto) return undefined
+
+    const handleClickOutside = (event) => {
+      if (disciplinasMenuRef.current && !disciplinasMenuRef.current.contains(event.target)) {
+        setDisciplinasMenuAbierto(false)
+      }
+    }
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setDisciplinasMenuAbierto(false)
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [disciplinasMenuAbierto])
 
   const abrirModificarClase = (clase) => {
     const claseCompleta = classes.find((item) => item.idClase === clase.id) ?? clase
@@ -112,10 +261,12 @@ function ClassCalendarView() {
       .map((item) => {
         if (!item?.fecha || typeof item.hora !== 'number') return null
 
-        const classDate = new Date(`${item.fecha}T00:00:00`)
-        const day = getDayKeyFromDate(classDate)
+        // Las clases no canceladas siempre se ven; las canceladas solo si el toggle está activo.
+        if (!mostrarCanceladas && Boolean(item.cancelada)) return null
 
-        if (!day) return null
+        const classDate = new Date(`${item.fecha}T00:00:00`)
+        const day = getDayKey(classDate)
+
         if (classDate < weekStart || classDate > weekEnd) return null
 
         return {
@@ -129,7 +280,7 @@ function ClassCalendarView() {
         }
       })
       .filter(Boolean)
-  }, [classes, weekStart, weekEnd])
+  }, [classes, weekStart, weekEnd, mostrarCanceladas])
 
   return (
     <div className="available-classes-page" ref={mainRef}>
@@ -138,19 +289,82 @@ function ClassCalendarView() {
         {loading && <p className="calendar-status">Cargando clases...</p>}
         {!loading && error && <p className="calendar-status calendar-status--error">{error}</p>}
         <AvailableClassesCalendar
-          headerAction={(
-            <button
-              type="button"
-              className="calendar-create-button"
-              onClick={() => setModalCrearAbierto(true)}
-            >
-              Crear clase nueva
-            </button>
+          headerLeft={(
+            <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+              <button
+                type="button"
+                className="calendar-create-button"
+                onClick={() => setModalCrearAbierto(true)}
+              >
+                Crear clase nueva
+              </button>
+              <label className="calendar-toggle">
+                <input
+                  type="checkbox"
+                  checked={mostrarCanceladas}
+                  onChange={(e) => setMostrarCanceladas(e.target.checked)}
+                />
+                <span className="calendar-toggle__track" aria-hidden="true">
+                  <span className="calendar-toggle__thumb" />
+                </span>
+                <span className="calendar-toggle__label">Ver canceladas</span>
+              </label>
+            </div>
           )}
-          weekLabel={weekLabel}
+          headerCenter={(
+            <div className="calendar-week-controls" aria-label="Navegación de semana">
+              <button type="button" className="calendar-week-button" onClick={() => setWeekOffset((current) => current - 1)} aria-label="Semana anterior">
+                &lt;
+              </button>
+              <span className="calendar-week-label">{weekLabel}</span>
+              <button type="button" className="calendar-week-button" onClick={() => setWeekOffset((current) => current + 1)} aria-label="Semana siguiente">
+                &gt;
+              </button>
+            </div>
+          )}
+          headerRight={(
+            <div className="calendar-dropdown" ref={disciplinasMenuRef}>
+              <button
+                type="button"
+                className="calendar-create-button"
+                aria-haspopup="true"
+                aria-expanded={disciplinasMenuAbierto}
+                onClick={() => setDisciplinasMenuAbierto((abierto) => !abierto)}
+              >
+                Disciplinas <span aria-hidden="true" style={{ marginLeft: 4 }}>▾</span>
+              </button>
+              {disciplinasMenuAbierto && (
+                <div className="calendar-dropdown__menu" role="menu">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="calendar-dropdown__item"
+                    onClick={() => { setDisciplinasMenuAbierto(false); abrirModalAjuste() }}
+                  >
+                    Ajustar precio
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="calendar-dropdown__item"
+                    onClick={() => { setDisciplinasMenuAbierto(false); abrirModalDisciplina() }}
+                  >
+                    Crear disciplina
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="calendar-dropdown__item calendar-dropdown__item--danger"
+                    onClick={() => { setDisciplinasMenuAbierto(false); setModalEliminarDisciplinaAbierto(true) }}
+                  >
+                    Eliminar disciplina
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
           weekStart={weekStart}
-          onPreviousWeek={() => setWeekOffset((current) => current - 1)}
-          onNextWeek={() => setWeekOffset((current) => current + 1)}
+          days={days}
           classes={calendarClasses}
           showCapacity
           showCancelledState
@@ -176,6 +390,141 @@ function ClassCalendarView() {
           cargarClases()
         }}
       />
+
+      <EliminarDisciplinaModal
+        abierto={modalEliminarDisciplinaAbierto}
+        onCerrar={() => setModalEliminarDisciplinaAbierto(false)}
+        onDisciplinaEliminada={() => {
+          setModalEliminarDisciplinaAbierto(false)
+          cargarClases()
+        }}
+      />
+
+      {modalAjusteAbierto && (
+        <div 
+          onClick={() => setModalAjusteAbierto(false)}
+          style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{ background: '#1e1e24', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '16px', padding: '2rem', width: '90%', maxWidth: '400px', display: 'flex', flexDirection: 'column', gap: '1.25rem', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}
+          >
+            <h3 style={{ color: '#fff', fontSize: '1.25rem', margin: 0 }}>Ajustar Precios</h3>
+
+            {actividades.length === 0 && !errorAjuste ? (
+              <p style={{ color: '#a1a1aa', margin: 0, fontSize: '0.875rem' }}>Cargando disciplinas...</p>
+            ) : (
+              <>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <label style={{ color: '#a1a1aa', fontSize: '0.875rem' }}>Disciplina</label>
+                  <select
+                    value={actividadSeleccionada}
+                    onChange={(e) => manejarCambioActividad(e.target.value)}
+                    style={{ width: '100%', padding: '0.75rem', background: '#15151a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#fff', fontSize: '1rem', outline: 'none' }}
+                  >
+                    {actividades.map((act) => (
+                      <option key={act.idActividad} value={act.idActividad}>
+                        {act.tipo} (Precio actual: ${act.precio})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <label style={{ color: '#a1a1aa', fontSize: '0.875rem' }}>Nuevo precio por clase</label>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#a1a1aa' }}>$</span>
+                    <input
+                      type="number"
+                      value={nuevoPrecio}
+                      onChange={(e) => setNuevoPrecio(e.target.value)}
+                      style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 1.75rem', background: '#15151a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#fff', fontSize: '1rem', outline: 'none' }}
+                      placeholder="0.00"
+                      autoFocus
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {errorAjuste && <p style={{ color: '#ff6b6b', fontSize: '0.875rem', margin: 0 }}>{errorAjuste}</p>}
+            {exitoAjuste && <p style={{ color: '#3ecf2a', fontSize: '0.875rem', margin: 0 }}>{exitoAjuste}</p>}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+              <button
+                onClick={() => setModalAjusteAbierto(false)}
+                style={{ padding: '0.5rem 1rem', background: 'transparent', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', color: '#fff', cursor: 'pointer', fontWeight: '600' }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmarAjuste}
+                disabled={actividades.length === 0}
+                style={{ padding: '0.5rem 1rem', background: actividades.length === 0 ? 'rgba(255,255,255,0.08)' : '#3ecf2a', border: 'none', borderRadius: '6px', color: actividades.length === 0 ? '#666' : '#000', cursor: actividades.length === 0 ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {modalDisciplinaAbierto && (
+        <div 
+          onClick={() => setModalDisciplinaAbierto(false)}
+          style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{ background: '#1e1e24', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '16px', padding: '2rem', width: '90%', maxWidth: '400px', display: 'flex', flexDirection: 'column', gap: '1.25rem', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}
+          >
+            <h3 style={{ color: '#fff', fontSize: '1.25rem', margin: 0 }}>Añadir Disciplina</h3>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label style={{ color: '#a1a1aa', fontSize: '0.875rem' }}>Nombre de la disciplina</label>
+              <input
+                type="text"
+                value={nombreDisciplina}
+                onChange={(e) => setNombreDisciplina(e.target.value)}
+                style={{ width: '100%', padding: '0.75rem', background: '#15151a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#fff', fontSize: '1rem', outline: 'none' }}
+                placeholder="Ej. Funcional"
+                autoFocus
+              />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label style={{ color: '#a1a1aa', fontSize: '0.875rem' }}>Tarifa individual</label>
+              <div style={{ position: 'relative' }}>
+                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#a1a1aa' }}>$</span>
+                <input
+                  type="number"
+                  value={tarifaDisciplina}
+                  onChange={(e) => setTarifaDisciplina(e.target.value)}
+                  style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 1.75rem', background: '#15151a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#fff', fontSize: '1rem', outline: 'none' }}
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+
+            {errorDisciplina && <p style={{ color: '#ff6b6b', fontSize: '0.875rem', margin: 0 }}>{errorDisciplina}</p>}
+            {exitoDisciplina && <p style={{ color: '#3ecf2a', fontSize: '0.875rem', margin: 0 }}>{exitoDisciplina}</p>}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+              <button
+                onClick={() => setModalDisciplinaAbierto(false)}
+                style={{ padding: '0.5rem 1rem', background: 'transparent', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', color: '#fff', cursor: 'pointer', fontWeight: '600' }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={guardarDisciplina}
+                style={{ padding: '0.5rem 1rem', background: '#3ecf2a', border: 'none', borderRadius: '6px', color: '#000', cursor: 'pointer', fontWeight: 'bold' }}
+              >
+                Añadir Disciplina
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

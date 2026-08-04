@@ -2,14 +2,16 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import Navbar from '../../components/Navbar/NavbarAlumno.jsx'
 import AvailableClassesCalendar from '../../components/AvailableClassesCalendar.jsx'
 import { useAuth } from '../../context/AuthContext'
-import { listarClases } from '../../services/claseService'
+import { listarClases, listarSemanaPlantilla } from '../../services/claseService'
+import { getDayKey, buildWeekDays } from '../../utils/weekDays'
 import '../../styles/AvailableClasses.css'
 import PopupInscripcionClase from '../../components/PopupInscripcionClase.jsx'
 import PopupListaEspera from '../../components/PopupListaEspera.jsx'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios';
 
-const monthFormatter = new Intl.DateTimeFormat('es-AR', { month: 'long' });
+const VIEW_MODE_FIXED = 'fixed'
+const VIEW_MODE_ROLLING = 'rolling'
 
 const getStartOfWeek = (date) => {
   const result = new Date(date)
@@ -20,57 +22,35 @@ const getStartOfWeek = (date) => {
   return result
 }
 
-const formatWeekLabel = (date) => {
-  const weekStart = getStartOfWeek(date)
-  const weekEnd = new Date(weekStart)
-  weekEnd.setDate(weekStart.getDate() + 6)
-
-  const startDay = weekStart.getDate()
-  const endDay = weekEnd.getDate()
-  const startMonth = monthFormatter.format(weekStart)
-  const endMonth = monthFormatter.format(weekEnd)
-  const startMonthLabel = startMonth.charAt(0).toUpperCase() + startMonth.slice(1)
-  const endMonthLabel = endMonth.charAt(0).toUpperCase() + endMonth.slice(1)
-
-  if (weekStart.getMonth() === weekEnd.getMonth()) {
-    return `${startDay} - ${endDay} ${startMonthLabel}`
-  }
-
-  return `${startDay} ${startMonthLabel} - ${endDay} ${endMonthLabel}`
+const getRangeStart = (date) => {
+  const result = new Date(date)
+  result.setHours(0, 0, 0, 0)
+  return result
 }
 
-const getDayKeyFromDate = (date) => {
-  const day = date.getDay()
-
-  if (day === 1) return 'monday'
-  if (day === 2) return 'tuesday'
-  if (day === 3) return 'wednesday'
-  if (day === 4) return 'thursday'
-  if (day === 5) return 'friday'
-  return null
+// Formatea una fecha local como YYYY-MM-DD (sin desfase de zona horaria).
+const formatDate = (date) => {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
 
 function AvailableClassesView() {
   const mainRef = useRef(null)
-  const [weekOffset, setWeekOffset] = useState(0)
+  const [viewMode, setViewMode] = useState(VIEW_MODE_FIXED)
   const [classes, setClasses] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const { user, loading: authLoading, updateUser } = useAuth()
+  // Caché en memoria por modo+semana: al volver a un modo ya visitado las
+  // clases aparecen al instante (y se refrescan por detrás sin velo).
+  const classesCacheRef = useRef({})
 
-  const weekLabel = useMemo(() => {
-    const currentWeek = new Date()
-    currentWeek.setDate(currentWeek.getDate() + weekOffset * 7)
-    return formatWeekLabel(currentWeek)
-  }, [weekOffset])
-
-  const currentWeekDate = useMemo(() => {
-    const currentWeek = new Date()
-    currentWeek.setDate(currentWeek.getDate() + weekOffset * 7)
-    return currentWeek
-  }, [weekOffset])
-
-  const weekStart = useMemo(() => getStartOfWeek(currentWeekDate), [currentWeekDate])
+  const weekStart = useMemo(() => {
+    const today = new Date()
+    return viewMode === VIEW_MODE_ROLLING ? getRangeStart(today) : getStartOfWeek(today)
+  }, [viewMode])
 
   const weekEnd = useMemo(() => {
     const end = new Date(weekStart)
@@ -79,27 +59,56 @@ function AvailableClassesView() {
     return end
   }, [weekStart])
 
+  const days = useMemo(() => buildWeekDays(weekStart), [weekStart])
+
   useEffect(() => {
     if (authLoading) {
       return
     }
 
+    const cacheKey = `${viewMode}:${formatDate(weekStart)}:${formatDate(weekEnd)}`
+
+    // Si el usuario cambia de modo/semana mientras un pedido viejo sigue en
+    // vuelo, esa respuesta tardía NO debe pisar las clases del modo actual.
+    let vigente = true
+
     const loadClasses = async () => {
-      setLoading(true)
+      const cached = classesCacheRef.current[cacheKey]
+      if (cached) {
+        // Ya lo vimos antes: mostrar al instante y refrescar por detrás.
+        setClasses(cached)
+        setLoading(false)
+      } else {
+        setLoading(true)
+      }
       setError('')
 
       try {
-        const response = await listarClases(user?.id)
-        setClasses(Array.isArray(response) ? response : [])
+        // Vista lunes-domingo (FIXED): se arma por plantilla (para inscripción mensual).
+        // Vista de 6 días (ROLLING): clases disponibles individuales.
+        const response = viewMode === VIEW_MODE_FIXED
+          ? await listarSemanaPlantilla(user?.id, formatDate(weekStart), formatDate(weekEnd))
+          : await listarClases(user?.id, formatDate(weekStart), formatDate(weekEnd))
+        const lista = Array.isArray(response) ? response : []
+        classesCacheRef.current[cacheKey] = lista
+        if (vigente) {
+          setClasses(lista)
+        }
       } catch (loadError) {
-        setError(loadError.message || 'No se pudieron cargar las clases.')
+        if (vigente) {
+          setError(loadError.message || 'No se pudieron cargar las clases.')
+        }
       } finally {
-        setLoading(false)
+        if (vigente) {
+          setLoading(false)
+        }
       }
     }
 
     loadClasses()
-  }, [authLoading, user?.id])
+    return () => { vigente = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, user?.id, weekStart, weekEnd, viewMode])
 
   const calendarClasses = useMemo(() => {
     return classes
@@ -107,10 +116,13 @@ function AvailableClassesView() {
         if (!item?.fecha || typeof item.hora !== 'number') return null
 
         const classDate = new Date(`${item.fecha}T00:00:00`)
-        const day = getDayKeyFromDate(classDate)
+        const day = getDayKey(classDate)
 
-        if (!day) return null
-        if (classDate < weekStart || classDate > weekEnd) return null
+        // En la vista mensual (por series) el backend ya devuelve una tarjeta
+        // por serie y puede representar a la serie con su próxima instancia del
+        // mes (ej: una serie nueva que arranca la semana que viene). No hay que
+        // filtrar por la semana visible o la serie desaparecería del calendario.
+        if (viewMode !== VIEW_MODE_FIXED && (classDate < weekStart || classDate > weekEnd)) return null
 
         return {
           id: item.idClase,
@@ -119,30 +131,17 @@ function AvailableClassesView() {
           activity: item.actividad,
           inscritos: item.inscritos ?? 0,
           cupo: item.cupo ?? 0,
+          precio: item.precio ?? 0,
+          idPlantilla: item.idPlantilla ?? null,
+          fecha: item.fecha ?? '',
+          abonoDisponible: item.abonoDisponible,
+          motivoAbono: item.motivoAbonoNoDisponible ?? null,
+          tieneReserva: item.tieneReserva === true,
         }
       })
       .filter(Boolean)
-  }, [classes, weekStart, weekEnd])
+  }, [classes, weekStart, weekEnd, viewMode])
 
-
-  /*Precios hardcodeados por actividad :
-
-  ┌───────────┬────────┬─────────┐
-  │ Actividad │ Diario │ Mensual │
-  ├───────────┼────────┼─────────┤
-  │ Yoga      │ $3.000 │ $20.000 │
-  ├───────────┼────────┼─────────┤
-  │ Pilates   │ $3.500 │ $22.000 │
-  ├───────────┼────────┼─────────┤
-  │ Funcional │ $2.500 │ $18.000 │
-  Cuando lo definamos los precios como van solo cambiar abrirPopup para leer los precios de clase.precios en vez de
-  la constante PRECIOS-ACTIVIDAD
-  */
-  const PRECIOS_ACTIVIDAD = {
-    YOGA:      { diario: 3000,  mensual: 20000 },
-    PILATES:   { diario: 3500,  mensual: 22000 },
-    FUNCIONAL: { diario: 2500,  mensual: 18000 },
-  }
 
   const navigate = useNavigate()
 
@@ -150,7 +149,6 @@ function AvailableClassesView() {
   const [mostrarPopup, setMostrarPopup] = useState(false)
   const [idClaseSeleccionada, setIdClaseSeleccionada] = useState(null)
   const [precioDiarioActual, setPrecioDiarioActual] = useState(0)
-  const [precioMensualActual, setPrecioMensualActual] = useState(0)
   const [claseInfo, setClaseInfo] = useState(null)
   const [errorInscripcion, setErrorInscripcion] = useState('')
 
@@ -160,18 +158,17 @@ function AvailableClassesView() {
   const [cargandoEspera, setCargandoEspera] = useState(false)
 
   const abrirPopup = (clase) => {
-    const estaLlena = Number(clase.inscritos) >= Number(clase.cupo)
-    const activityKey = (clase.activity || '').toString().toUpperCase()
-    const precios = PRECIOS_ACTIVIDAD[activityKey] || { diario: 0, mensual: 0 }
-
+    // Si el alumno tiene su cupo guardado por renovación, la clase nunca está
+    // "llena" para él: su lugar ya está reservado.
+    const estaLlena = Number(clase.inscritos) >= Number(clase.cupo) && !clase.tieneReserva
+    const precioDiario = clase.precio || 0
     setIdClaseSeleccionada(clase.id)
-    setClaseInfo({ actividad: clase.activity, hora: clase.hour })
-    setPrecioDiarioActual(precios.diario)
-    setPrecioMensualActual(precios.mensual)
+    setClaseInfo({ actividad: clase.activity, hora: clase.hour, tieneReserva: clase.tieneReserva === true })
+    setPrecioDiarioActual(precioDiario)
     setErrorInscripcion('')
     setErrorEspera('')
 
-    if (estaLlena) {
+    if (estaLlena && viewMode !== VIEW_MODE_FIXED) {
       setMostrarPopupEspera(true)
     } else {
       setMostrarPopup(true)
@@ -218,7 +215,7 @@ function AvailableClassesView() {
       navigate('/pago', {
         state: {
           idPago: response.data.idPago,
-          monto: tipoInscripcion === 'mensual' ? precioMensualActual : precioDiarioActual,
+          monto: response.data.monto,
           tipoPago: tipoInscripcion === 'mensual' ? 'ABONADO' : 'INDIVIDUAL'
         }
       })
@@ -241,7 +238,7 @@ function AvailableClassesView() {
         state: {
           titulo: '¡Te anotamos!',
           descripcion: 'Quedaste en la lista de espera. Te avisamos si se libera un cupo.',
-          destino: '/clasesDisponibles',
+          destino: '/alumno/clasesDisponibles',
           labelBoton: 'Ver clases disponibles',
         }
       })
@@ -257,28 +254,62 @@ function AvailableClassesView() {
     <div className="available-classes-page" ref={mainRef}>
       <Navbar />
       <main>
-        {loading && <p className="calendar-status">Cargando clases...</p>}
         {!loading && error && <p className="calendar-status calendar-status--error">{error}</p>}
-        <AvailableClassesCalendar
-          weekLabel={weekLabel}
+        <div className={`calendar-loading-shell${loading ? ' calendar-loading-shell--loading' : ''}`}>
+          {loading && (
+            <div className="calendar-loading-veil" role="status">
+              <span>Cargando clases…</span>
+            </div>
+          )}
+          <AvailableClassesCalendar
+          headerRight={(
+            <div className="calendar-mode-toggle" role="group" aria-label="Modo de visualización del calendario">
+              <button
+                type="button"
+                className={`calendar-mode-button ${viewMode === VIEW_MODE_FIXED ? 'calendar-mode-button--active' : ''}`}
+                onClick={() => {
+                  if (viewMode === VIEW_MODE_FIXED) return
+                  // Velo desde el primer frame: evita el parpadeo de las
+                  // clases del modo anterior antes de que arranque la carga.
+                  setLoading(true)
+                  setViewMode(VIEW_MODE_FIXED)
+                }}
+              >
+                Inscripción Mensual
+              </button>
+              <button
+                type="button"
+                className={`calendar-mode-button ${viewMode === VIEW_MODE_ROLLING ? 'calendar-mode-button--active' : ''}`}
+                onClick={() => {
+                  if (viewMode === VIEW_MODE_ROLLING) return
+                  setLoading(true)
+                  setViewMode(VIEW_MODE_ROLLING)
+                }}
+              >
+                Inscripción Individual
+              </button>
+            </div>
+          )}
           weekStart={weekStart}
-          onPreviousWeek={() => setWeekOffset((current) => current - 1)}
-          onNextWeek={() => setWeekOffset((current) => current + 1)}
-          classes={calendarClasses}
+          days={days}
+          classes={loading ? [] : calendarClasses}
           showFullBadge
+          showDayDates={viewMode !== VIEW_MODE_FIXED}
+          showHoyBadge={viewMode !== VIEW_MODE_FIXED}
           onClassClick={abrirPopup}
-        />
+          />
+        </div>
         <PopupInscripcionClase
           isOpen={mostrarPopup}
           onClose={cerrarPopup}
           onConfirm={manejarInscripcion}
           precioDiario={precioDiarioActual}
-          precioMensual={precioMensualActual}
           creditos={user?.creditos || 0}
           error={errorInscripcion}
           claseInfo={claseInfo}
           idClase={idClaseSeleccionada}
           idAlumno={user?.id || null}
+          tipoForzado={viewMode === VIEW_MODE_FIXED ? 'mensual' : 'individual'}
         />
         <PopupListaEspera
           isOpen={mostrarPopupEspera}

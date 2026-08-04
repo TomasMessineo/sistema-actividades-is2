@@ -1,7 +1,9 @@
+
 package com.sportify.backend.controllers;
 
 import com.sportify.backend.dtos.ClaseCalendarioDTO;
 import com.sportify.backend.dtos.AptoMedicoDTO;
+import com.sportify.backend.dtos.RegistroAsistenciaDTO;
 import com.sportify.backend.services.ClaseService;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,6 +57,46 @@ public class AlumnoController {
         return alumnoService.listarAptosMedicos(id);
     }
 
+    // Historial de asistencias del alumno (clases con asistencia ya tomada).
+    // Si viene profesorId, se acota a las clases de ese profesor (vista del
+    // profesor): un profesor solo ve asistencias de sus propias clases (HU #22).
+    @GetMapping("/{id}/asistencias")
+    @Transactional(readOnly = true)
+    public List<RegistroAsistenciaDTO> listarHistorialAsistencias(
+            @PathVariable Integer id,
+            @RequestParam(required = false) Integer profesorId) {
+        if (profesorId != null) {
+            return alumnoService.listarHistorialAsistenciasDeProfesor(id, profesorId);
+        }
+        return alumnoService.listarHistorialAsistencias(id);
+    }
+    // Strikes del mes actual del alumno (para el menú "strikes restantes").
+    // Un mismo contador para faltar sin avisar y para cancelar tarde.
+
+    @GetMapping("/{id}/strikes")
+    public ResponseEntity<?> obtenerStrikes(@PathVariable Integer id) {
+        try {
+            Alumno alumno = alumnoService.buscarPorId(id);
+            int strikes = alumno.getStrikes() == null ? 0 : alumno.getStrikes();
+            return ResponseEntity.ok(java.util.Map.of(
+                    "strikes", strikes,
+                    "limite", 3
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<?> obtenerAlumno(@PathVariable Integer id) {
+        try {
+            Alumno alumno = alumnoService.buscarPorId(id);
+            return ResponseEntity.ok(alumno);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @GetMapping
     public ResponseEntity<?> listarAlumnos() {
         try {
@@ -80,6 +122,16 @@ public class AlumnoController {
         try {
             alumnoService.desactivar(id);
             return ResponseEntity.ok("Alumno desactivado correctamente");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PatchMapping("/{id}/restaurar")
+    public ResponseEntity<?> restaurarAlumno(@PathVariable Integer id) {
+        try {
+            alumnoService.restaurar(id);
+            return ResponseEntity.ok("Alumno restaurado correctamente");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

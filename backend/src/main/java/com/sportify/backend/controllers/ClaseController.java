@@ -1,10 +1,19 @@
 package com.sportify.backend.controllers;
 
 import com.sportify.backend.dtos.AbonoPreviewDTO;
+import com.sportify.backend.dtos.AlumnoAsistenciaDTO;
+import com.sportify.backend.dtos.AlumnoResumenDTO;
+import com.sportify.backend.dtos.CambiarProfesorRequest;
+import com.sportify.backend.dtos.CancelarDesdeRequest;
+import com.sportify.backend.dtos.CancelarRangoRequest;
 import com.sportify.backend.dtos.ClaseCalendarioDTO;
-import com.sportify.backend.dtos.CrearClasesLoteRequest;
+import com.sportify.backend.dtos.ClaseCancelacionResponse;
+import com.sportify.backend.dtos.ClasePlantillaRequest;
+import com.sportify.backend.dtos.ClaseSerieResponse;
+import com.sportify.backend.dtos.EscanearAsistenciaRequest;
 import com.sportify.backend.entities.Clase;
 import com.sportify.backend.services.ClaseService;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +29,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -32,11 +42,39 @@ public class ClaseController {
 
     @GetMapping
     @Transactional
-    public List<ClaseCalendarioDTO> listar(@RequestParam(value = "alumnoId", required = false) Integer alumnoId) {
+    public List<ClaseCalendarioDTO> listar(
+            @RequestParam(value = "alumnoId", required = false) Integer alumnoId,
+            @RequestParam(value = "desde", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
+            @RequestParam(value = "hasta", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta) {
+
+        // Lazy: si se pide una ventana, materializamos las instancias faltantes antes de leer.
+        boolean conRango = desde != null && hasta != null;
+        if (conRango) {
+            claseService.materializarRango(desde, hasta);
+        }
+
         return (alumnoId == null ? claseService.listarClases() : claseService.listAvailableForAlumno(alumnoId))
                 .stream()
+                .filter(clase -> {
+                    if (!conRango) {
+                        return true;
+                    }
+                    LocalDate fecha = clase.getFecha();
+                    return fecha != null && !fecha.isBefore(desde) && !fecha.isAfter(hasta);
+                })
                 .map(ClaseCalendarioDTO::fromEntity)
                 .toList();
+    }
+
+    // Vista semanal por plantilla (lunes-domingo) para inscripción mensual/abono.
+    // Muestra un slot por serie; oculta solo las series con abono del alumno este mes.
+    @GetMapping("/semana-plantilla")
+    @Transactional
+    public List<ClaseCalendarioDTO> listarSemanaPorPlantilla(
+            @RequestParam(value = "alumnoId", required = false) Integer alumnoId,
+            @RequestParam("desde") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
+            @RequestParam("hasta") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta) {
+        return claseService.listarSemanaPorPlantilla(desde, hasta, alumnoId);
     }
 
     @GetMapping("/{id}")
@@ -59,11 +97,23 @@ public class ClaseController {
         }
     }
 
-    @PostMapping("/lote")
-    public ResponseEntity<?> crearClasesLote(@RequestBody CrearClasesLoteRequest request) {
+    // Crea una serie perpetua (plantilla) y genera sus instancias semanales.
+    @PostMapping("/plantilla")
+    public ResponseEntity<?> crearSerie(@RequestBody ClasePlantillaRequest request) {
         try {
-            List<Clase> creadas = claseService.crearClasesLote(request);
-            return ResponseEntity.ok(creadas);
+            ClaseSerieResponse respuesta = claseService.crearSerie(request);
+            return ResponseEntity.ok(respuesta);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // Cambia el profesor de una clase individual o de toda la serie.
+    @PutMapping("/{id}/profesor")
+    public ResponseEntity<?> cambiarProfesor(@PathVariable Integer id, @RequestBody CambiarProfesorRequest request) {
+        try {
+            ClaseCalendarioDTO clase = claseService.cambiarProfesor(id, request);
+            return ResponseEntity.ok(clase);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -90,10 +140,71 @@ public class ClaseController {
     }
 
     @PatchMapping("/{id}/cancelar")
-    public ResponseEntity<?> cancelarClase(@PathVariable Integer id) {
+    public ResponseEntity<?> cancelarClase(@PathVariable Integer id,
+            @RequestBody(required = false) com.sportify.backend.dtos.CancelarClaseRequest request) {
         try {
-            Clase claseCancelada = claseService.cancelarClase(id);
-            return ResponseEntity.ok(claseCancelada);
+            String motivo = request != null ? request.getMotivo() : null;
+            ClaseCancelacionResponse respuesta = claseService.cancelarClaseConDetalle(id, motivo);
+            return ResponseEntity.ok(respuesta);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // Cancela todas las instancias de una serie dentro de un rango de fechas
+    // (materializa las que falten antes de cancelarlas).
+    @PatchMapping("/plantilla/{idPlantilla}/cancelar-rango")
+    public ResponseEntity<?> cancelarRangoSerie(@PathVariable Integer idPlantilla, @RequestBody CancelarRangoRequest request) {
+        try {
+            ClaseCancelacionResponse respuesta = claseService.cancelarRangoSerie(idPlantilla, request);
+            return ResponseEntity.ok(respuesta);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // Corta la vigencia de una serie a partir de una fecha y cancela las
+    // instancias ya materializadas en o después de esa fecha.
+    @PatchMapping("/plantilla/{idPlantilla}/cancelar-desde")
+    public ResponseEntity<?> cancelarDesdeSerie(@PathVariable Integer idPlantilla, @RequestBody CancelarDesdeRequest request) {
+        try {
+            ClaseCancelacionResponse respuesta = claseService.cancelarDesdeSerie(idPlantilla, request);
+            return ResponseEntity.ok(respuesta);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // Alumnos anotados en una clase puntual.
+    // Ocupación de la clase: cuántos pagaron (inscriptos) y cuántos tienen
+    // reserva del mes sin pagar. Para el panel del administrador.
+    @GetMapping("/{id}/ocupacion")
+    @Transactional(readOnly = true)
+    public ResponseEntity<?> obtenerOcupacion(@PathVariable Integer id) {
+        try {
+            return ResponseEntity.ok(claseService.obtenerOcupacion(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/{id}/alumnos")
+    @Transactional(readOnly = true)
+    public ResponseEntity<?> listarAlumnosDeClase(@PathVariable Integer id) {
+        try {
+            List<AlumnoAsistenciaDTO> alumnos = claseService.listarAlumnosDeClase(id);
+            return ResponseEntity.ok(alumnos);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // Marca a un alumno como presente en la clase a partir de su QR escaneado.
+    @PostMapping("/{id}/asistencia/escanear")
+    public ResponseEntity<?> registrarAsistenciaPorEscaneo(@PathVariable Integer id, @RequestBody EscanearAsistenciaRequest request) {
+        try {
+            AlumnoResumenDTO alumno = claseService.registrarAsistenciaPorEscaneo(id, request.getIdAlumno());
+            return ResponseEntity.ok(alumno);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

@@ -1,10 +1,28 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '../../components/Navbar/NavbarAlumno.jsx'
+import PasarAsistenciaModal from '../../components/PasarAsistenciaModal.jsx'
+import ConfirmarCancelacionModal from '../../components/ConfirmarCancelacionModal.jsx'
+import ConfirmarInscripcionEsperaModal from '../../components/ConfirmarInscripcionEsperaModal.jsx'
 import { useAuth } from '../../context/AuthContext'
-import { listarClasesDelAlumno } from '../../services/claseService'
+import {
+  listarClasesDelAlumno,
+  listarClasesEnEspera,
+  confirmarAsistenciaEspera,
+  rechazarCupoEspera,
+  cancelarAsistenciaAlumno,
+} from '../../services/claseService'
+import { apiFetch } from '../../services/apiClient'
+import { obtenerStrikesAlumno } from '../../services/alumnoService'
+import { isClassInBuenosAiresCurrentHour } from '../../utils/buenosAiresTime'
 import '../../styles/AvailableClasses.css'
 import '../../styles/MyClasses.css'
+
+const PRECIOS_ACTIVIDAD = {
+  YOGA: { diario: 3000 },
+  PILATES: { diario: 3500 },
+  FUNCIONAL: { diario: 2500 },
+}
 
 const monthFormatter = new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'long' })
 const monthTitleFormatter = new Intl.DateTimeFormat('es-AR', { month: 'long', year: 'numeric' })
@@ -13,6 +31,27 @@ const monthDayFormatter = new Intl.DateTimeFormat('es-AR', { day: 'numeric' })
 const monthWeekdayHeaders = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 
 const getClassDateTime = (item) => new Date(`${item.fecha}T${String(item.hora).padStart(2, '0')}:00:00`)
+
+const normalizarNombreActividad = (actividad) => {
+  if (!actividad) return 'Clase'
+
+  const formateado = actividad
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/_/g, ' ')
+
+  if (!formateado) return 'Clase'
+  return formateado.charAt(0).toUpperCase() + formateado.slice(1)
+}
+
+const claseEnCurso = (clase) => {
+  if (clase.cancelada) {
+    return false
+  }
+
+  return isClassInBuenosAiresCurrentHour(clase?.fecha, Number(clase?.hora))
+}
 
 const toDateOnly = (value) => new Date(`${value}T00:00:00`)
 
@@ -88,11 +127,21 @@ const buildMonthGrid = (date, classes) => {
 function MyClassesView() {
   const [classes, setClasses] = useState([])
   const [allClasses, setAllClasses] = useState([])
+  const [clasesEnEspera, setClasesEnEspera] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [isMonthModalOpen, setIsMonthModalOpen] = useState(false)
+  const [isEsperaModalOpen, setIsEsperaModalOpen] = useState(false)
+  const [isStrikesModalOpen, setIsStrikesModalOpen] = useState(false)
+  const [isAsistenciaModalOpen, setIsAsistenciaModalOpen] = useState(false)
+  const [claseACancelar, setClaseACancelar] = useState(null)
+  const [claseAConfirmar, setClaseAConfirmar] = useState(null)
+  const [strikesInfo, setStrikesInfo] = useState(null) // { strikes, limite }
   const [activeMonth, setActiveMonth] = useState(() => new Date())
-  const { user, loading: authLoading } = useAuth()
+  const [feedback, setFeedback] = useState(null) // { tipo: 'ok'|'error', texto }
+  const [accionEnCurso, setAccionEnCurso] = useState(null)
+  const { user, loading: authLoading, updateUser } = useAuth()
+  const navigate = useNavigate()
 
   useEffect(() => {
     if (authLoading) {
@@ -106,45 +155,154 @@ function MyClassesView() {
       return
     }
 
-    const loadClasses = async () => {
-      setLoading(true)
-      setError('')
-
-      try {
-        const response = await listarClasesDelAlumno(user?.id)
-        const enrolledClasses = Array.isArray(response) ? response : []
-        setAllClasses(enrolledClasses)
-
-        const upcomingClasses = enrolledClasses
-          .filter((item) => item?.fecha && typeof item.hora === 'number')
-          .sort((left, right) => getClassDateTime(left) - getClassDateTime(right))
-          .slice(0, 3)
-
-        setClasses(upcomingClasses)
-      } catch (loadError) {
-        setError(loadError.message || 'No se pudieron cargar tus clases.')
-      } finally {
-        setLoading(false)
-      }
-    }
-
     loadClasses()
   }, [authLoading, user?.id])
 
-  useEffect(() => {
-    if (!isMonthModalOpen) {
-      return undefined
+  const loadClasses = async () => {
+    setLoading(true)
+    setError('')
+
+    try {
+      const [response, espera] = await Promise.all([
+        listarClasesDelAlumno(user?.id),
+        listarClasesEnEspera(user?.id),
+      ])
+
+      const enrolledClasses = Array.isArray(response) ? response : []
+      setAllClasses(enrolledClasses)
+
+      const ahora = Date.now()
+      const upcomingClasses = enrolledClasses
+        .filter((item) => item?.fecha && typeof item.hora === 'number')
+        .filter((item) => getClassDateTime(item).getTime() >= ahora)
+        .sort((left, right) => getClassDateTime(left) - getClassDateTime(right))
+        .slice(0, 6)
+
+      setClasses(upcomingClasses)
+      setClasesEnEspera(Array.isArray(espera) ? espera : [])
+    } catch (loadError) {
+      setError(loadError.message || 'No se pudieron cargar tus clases.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const confirmarAsistencia = async (claseEspera) => {
+    setFeedback(null)
+    const tieneCreditos = (user?.creditos ?? 0) > 0
+
+    if (tieneCreditos) {
+      try {
+        setAccionEnCurso(`confirmar-${claseEspera.idClase}`)
+        const resp = await confirmarAsistenciaEspera(user.id, claseEspera.idClase, 'CREDITOS')
+        if (resp?.creditosRestantes != null) {
+          updateUser({ creditos: resp.creditosRestantes })
+        } else {
+          updateUser({ creditos: (user.creditos ?? 1) - 1 })
+        }
+        setFeedback({ tipo: 'ok', texto: 'Inscripción confirmada con crédito.' })
+        await loadClasses()
+      } catch (err) {
+        setFeedback({ tipo: 'error', texto: err.message || 'No se pudo confirmar la asistencia.' })
+      } finally {
+        setAccionEnCurso(null)
+        setClaseAConfirmar(null)
+      }
+      return
     }
 
+    // Sin créditos → flujo de pago individual
+    try {
+      setAccionEnCurso(`confirmar-${claseEspera.idClase}`)
+      const actividadKey = (claseEspera.actividad || '').toString().toUpperCase()
+      const precio = PRECIOS_ACTIVIDAD[actividadKey]?.diario ?? 0
+
+      const inscripcion = await apiFetch('/inscripciones/iniciar', {
+        method: 'POST',
+        body: JSON.stringify({
+          idAlumno: user.id,
+          idClase: claseEspera.idClase,
+          tipoClase: 'INDIVIDUAL',
+          metodoPago: null,
+        }),
+      })
+
+      navigate('/pago', {
+        state: {
+          idPago: inscripcion?.idPago,
+          idAlumno: user.id,
+          idClase: claseEspera.idClase,
+          monto: inscripcion?.monto ?? precio,
+          tipoPago: 'INDIVIDUAL',
+        },
+      })
+    } catch (err) {
+      setFeedback({ tipo: 'error', texto: err.message || 'No se pudo iniciar el pago.' })
+      setAccionEnCurso(null)
+      setClaseAConfirmar(null)
+    }
+  }
+
+  const rechazarAsistencia = async (claseEspera) => {
+    setFeedback(null)
+    try {
+      setAccionEnCurso(`rechazar-${claseEspera.idClase}`)
+      const resp = await rechazarCupoEspera(user.id, claseEspera.idClase)
+      setFeedback({ tipo: 'ok', texto: resp?.mensaje || 'Rechazaste el cupo.' })
+      await loadClasses()
+    } catch (err) {
+      setFeedback({ tipo: 'error', texto: err.message || 'No se pudo rechazar el cupo.' })
+    } finally {
+      setAccionEnCurso(null)
+      setClaseAConfirmar(null)
+    }
+  }
+
+  const abrirStrikes = async () => {
+    setIsStrikesModalOpen(true)
+    try {
+      const data = await obtenerStrikesAlumno(user.id)
+      setStrikesInfo(data)
+    } catch {
+      setStrikesInfo({ strikes: 0, limite: 3 })
+    }
+  }
+
+  const cancelarAsistencia = async (idClase) => {
+    setFeedback(null)
+    try {
+      setAccionEnCurso(`cancelar-${idClase}`)
+      const resp = await cancelarAsistenciaAlumno(user.id, idClase)
+      // El backend puede haber acreditado un crédito → reflejarlo localmente
+      const mensaje = resp?.mensaje || 'Cancelación exitosa.'
+      if (/acredit[oó] 1 crédito/i.test(mensaje)) {
+        updateUser({ creditos: (user.creditos ?? 0) + 1 })
+      }
+      setFeedback({ tipo: 'ok', texto: mensaje })
+      await loadClasses()
+      setClaseACancelar(null)
+    } catch (err) {
+      setFeedback({ tipo: 'error', texto: err.message || 'No se pudo cancelar la asistencia.' })
+      setClaseACancelar(null)
+    } finally {
+      setAccionEnCurso(null)
+    }
+  }
+
+  useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.key === 'Escape') {
         setIsMonthModalOpen(false)
+        setIsEsperaModalOpen(false)
+        setIsStrikesModalOpen(false)
+        setClaseACancelar(null)
+        setClaseAConfirmar(null)
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isMonthModalOpen])
+  }, [])
 
   const renderedClasses = useMemo(() => {
     return classes.map((item) => ({
@@ -155,6 +313,10 @@ function MyClassesView() {
   }, [classes])
 
   const renderedMonthDays = useMemo(() => buildMonthGrid(activeMonth, allClasses), [activeMonth, allClasses])
+  const claseEnCursoActual = useMemo(
+    () => allClasses.find((clase) => claseEnCurso(clase)) || null,
+    [allClasses]
+  )
 
   const openMonthModal = () => {
     setActiveMonth(new Date())
@@ -180,10 +342,16 @@ function MyClassesView() {
         {loading && <p className="calendar-status">Cargando tus clases...</p>}
         {!loading && error && <p className="calendar-status calendar-status--error">{error}</p>}
 
+        {!loading && !error && feedback && (
+          <div className={`my-classes-feedback my-classes-feedback--${feedback.tipo}`}>
+            {feedback.texto}
+          </div>
+        )}
+
         {!loading && !error && (
           <section className="my-classes-layout">
             <div className="my-classes-panel">
-              <p className="my-classes-kicker">Esta semana</p>
+              <p className="my-classes-kicker">Próximamente</p>
               <h1 className="my-classes-title">Tus próximas clases</h1>
 
               {hasClasses ? (
@@ -194,6 +362,14 @@ function MyClassesView() {
                         <strong>{classItem.title}</strong>
                         <p>{classItem.detail}</p>
                       </div>
+                      <button
+                        type="button"
+                        className="my-class-cancel-btn"
+                        onClick={() => setClaseACancelar(classItem)}
+                        disabled={accionEnCurso === `cancelar-${classItem.id}`}
+                      >
+                        {accionEnCurso === `cancelar-${classItem.id}` ? 'Cancelando...' : 'Cancelar asistencia'}
+                      </button>
                     </li>
                   ))}
                 </ul>
@@ -207,14 +383,134 @@ function MyClassesView() {
             </div>
 
             <aside className="my-classes-cta">
-              <div>
-                <p className="my-classes-kicker">Nueva clase</p>
-                <h2 className="my-classes-title">Encontrá una clase nueva para sumarte</h2>
-              </div>
-              <Link to="/clasesDisponibles" className="my-classes-button">Buscas clases nuevas</Link>
+              {claseEnCursoActual ? (
+                <>
+                  <div>
+                    <p className="my-classes-kicker">Clase en curso</p>
+                    <h2 className="my-classes-title">
+                      Tenes una clase de {normalizarNombreActividad(claseEnCursoActual.actividad)} en curso
+                    </h2>
+                  </div>
+                  <button
+                    type="button"
+                    className="my-classes-button"
+                    onClick={() => setIsAsistenciaModalOpen(true)}
+                  >
+                    Abrir cámara
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <p className="my-classes-kicker">Nueva clase</p>
+                    <h2 className="my-classes-title">Encontrá una clase nueva para sumarte</h2>
+                  </div>
+                  <Link to="/alumno/clasesDisponibles" className="my-classes-button">Buscas clases nuevas</Link>
+                  <button
+                    type="button"
+                    className="my-classes-button my-classes-button--secondary"
+                    onClick={() => setIsEsperaModalOpen(true)}
+                  >
+                    Lista de espera
+                  </button>
+                  <button
+                    type="button"
+                    className="my-classes-button my-classes-button--secondary"
+                    onClick={abrirStrikes}
+                  >
+                    Strikes
+                  </button>
+                </>
+              )}
             </aside>
           </section>
         )}
+
+        {isEsperaModalOpen && (
+          <div className="my-classes-modal" role="dialog" aria-modal="true" aria-label="Clases en lista de espera" onClick={() => setIsEsperaModalOpen(false)}>
+            <div className="my-classes-modal__panel" onClick={(event) => event.stopPropagation()}>
+              <div className="my-classes-modal__header">
+                <div>
+                  <p className="my-classes-modal__kicker">Lista de espera</p>
+                  <h2>Clases en las que estás esperando</h2>
+                </div>
+                <button type="button" className="my-classes-modal__close" onClick={() => setIsEsperaModalOpen(false)} aria-label="Cerrar">
+                  ×
+                </button>
+              </div>
+
+              {clasesEnEspera.length === 0 ? (
+                <p className="my-classes-empty">No tenés clases en lista de espera.</p>
+              ) : (
+                <ul className="my-classes-list">
+                  {clasesEnEspera.map((clase) => (
+                    <li key={clase.idClase} className="my-class-item my-class-item--espera">
+                      <div>
+                        <strong>{clase.actividad}</strong>
+                        <p>{formatClassDate(clase.fecha, clase.hora)}</p>
+                        <span className={`my-class-espera-badge ${clase.tieneAcceso ? 'my-class-espera-badge--listo' : ''}`}>
+                          {clase.tieneAcceso
+                            ? '¡Se liberó un cupo! Confirmá tu asistencia'
+                            : `En espera · posición ${clase.posicion}`}
+                        </span>
+                      </div>
+                      {clase.tieneAcceso && (
+                        <button
+                          type="button"
+                          className="my-class-confirm-btn"
+                          onClick={() => setClaseAConfirmar(clase)}
+                          disabled={accionEnCurso === `confirmar-${clase.idClase}`}
+                        >
+                          {accionEnCurso === `confirmar-${clase.idClase}` ? 'Procesando...' : 'Confirmar asistencia'}
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        )}
+
+        {isStrikesModalOpen && (() => {
+          const cant = strikesInfo?.strikes ?? 0
+          const limite = strikesInfo?.limite ?? 3
+          let estado = 'ok'
+          let texto = ''
+          if (cant === 0) {
+            estado = 'ok'
+            texto = 'Usted no tiene strikes este mes, y goza de un 20% de descuento el mes que viene.'
+          } else if (cant < limite) {
+            estado = 'warning'
+            texto = `${cant} de ${limite} strikes para ser penalizado, y goza de un 20% de descuento el mes que viene.`
+          } else {
+            estado = 'error'
+            texto = 'Usted acumuló 3 strikes este mes (por faltar sin avisar o cancelar fuera de término), por lo que perderá el 20% de descuento el mes que viene.'
+          }
+          return (
+            <div className="my-classes-modal" role="dialog" aria-modal="true" aria-label="Strikes restantes" onClick={() => setIsStrikesModalOpen(false)}>
+              <div className="my-classes-modal__panel" onClick={(event) => event.stopPropagation()}>
+                <div className="my-classes-modal__header">
+                  <div>
+                    <p className="my-classes-modal__kicker">Strikes restantes</p>
+                    <h2>Tu estado del mes</h2>
+                  </div>
+                  <button type="button" className="my-classes-modal__close" onClick={() => setIsStrikesModalOpen(false)} aria-label="Cerrar">
+                    ×
+                  </button>
+                </div>
+
+                {strikesInfo === null ? (
+                  <p className="my-classes-empty">Cargando...</p>
+                ) : (
+                  <div className={`strikes-banner strikes-banner--${estado}`}>
+                    {texto}
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        })()}
 
         {isMonthModalOpen && (
           <div className="my-classes-modal" role="dialog" aria-modal="true" aria-label="Calendario mensual de mis clases" onClick={closeMonthModal}>
@@ -224,8 +520,8 @@ function MyClassesView() {
                   <p className="my-classes-modal__kicker">Calendario mensual</p>
                   <h2>{monthTitleFormatter.format(activeMonth)}</h2>
                 </div>
-                <button type="button" className="my-classes-modal__close" onClick={closeMonthModal} aria-label="Cerrar calendario mensual">
-                  ×
+                <button type="button" className="my-classes-modal__back" onClick={closeMonthModal} aria-label="Volver a próximas clases">
+                  ← Volver
                 </button>
               </div>
 
@@ -267,6 +563,33 @@ function MyClassesView() {
             </div>
           </div>
         )}
+
+        <PasarAsistenciaModal
+          abierto={isAsistenciaModalOpen}
+          onCerrar={() => setIsAsistenciaModalOpen(false)}
+          clase={claseEnCursoActual}
+          alumnoId={user?.id}
+        />
+
+        <ConfirmarCancelacionModal
+          abierto={!!claseACancelar}
+          onCerrar={() => setClaseACancelar(null)}
+          onConfirmar={() => claseACancelar && cancelarAsistencia(claseACancelar.id)}
+          clase={claseACancelar}
+          cargando={accionEnCurso === `cancelar-${claseACancelar?.id}`}
+        />
+
+        <ConfirmarInscripcionEsperaModal
+          abierto={!!claseAConfirmar}
+          onCerrar={() => setClaseAConfirmar(null)}
+          onConfirmar={() => claseAConfirmar && confirmarAsistencia(claseAConfirmar)}
+          onRechazar={() => claseAConfirmar && rechazarAsistencia(claseAConfirmar)}
+          titulo={claseAConfirmar?.actividad}
+          detalle={claseAConfirmar ? formatClassDate(claseAConfirmar.fecha, claseAConfirmar.hora) : ''}
+          usaCredito={(user?.creditos ?? 0) > 0}
+          confirmando={accionEnCurso === `confirmar-${claseAConfirmar?.idClase}`}
+          rechazando={accionEnCurso === `rechazar-${claseAConfirmar?.idClase}`}
+        />
       </main>
     </div>
   )

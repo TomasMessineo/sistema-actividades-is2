@@ -1,0 +1,10 @@
+APTO MEDICO DE PRUEBA
+
+Este archivo esta en formato .txt a proposito, para probar que el sistema
+RECHACE la subida por formato no aceptado (solo se permiten pdf/jpg/png).
+
+Paciente: Juan Perez
+Fecha: 2026-07-12
+Resultado: apto para actividad fisica.
+
+-- Archivo de prueba, no es un apto medico real --
